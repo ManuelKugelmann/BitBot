@@ -683,6 +683,411 @@ See `.claude-flow/agents/` for specialized agent definitions.
 
 ---
 
+## AI Agent Execution in Devcontainers
+
+**Critical Consideration for Container-Based Development**
+
+When using AI coding assistants with devcontainers, understanding where agents execute (host vs. container) is essential for proper file access, tooling, and security.
+
+### VS Code Extension Architecture
+
+VS Code uses an "inside/outside" architecture for extensions in remote environments (devcontainers, SSH, Codespaces):
+
+#### Extension Types
+
+**1. UI Extensions (Execute OUTSIDE Container)**
+
+- **Location:** Run on local machine
+- **Purpose:** User interface contributions
+- **Access:** Local files only
+- **Cannot:**
+  - Access files in remote workspace
+  - Run scripts/tools installed in container
+  - Execute container commands
+
+**Examples:**
+- Themes
+- Snippets
+- Language grammars
+- Keymaps
+
+**2. Workspace Extensions (Execute INSIDE Container)**
+
+- **Location:** Run where workspace is located
+- **Purpose:** Workspace manipulation and tooling
+- **Access:** Full workspace files and container environment
+- **Can:**
+  - Access all files in workspace
+  - Invoke container scripts/tools
+  - Provide language services using container dependencies
+  - Execute debuggers and build tools
+
+**Examples:**
+- Language servers
+- Debuggers
+- Linters
+- AI coding agents (GitHub Copilot, Cline, Continue.dev)
+
+### AI Agent Execution Behavior
+
+#### GitHub Copilot Chat Agent
+
+**Default Execution:** INSIDE devcontainer (as Workspace Extension)
+
+**Configuration Required:**
+```json
+// devcontainer.json
+{
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat"
+      ]
+    }
+  }
+}
+```
+
+**Settings Configuration:**
+```json
+// settings.json
+{
+  "chat.agent.enabled": true,
+  "chat.mcp.discovery.enabled": true,
+  "github.copilot.chat.agent.autoFix": true,
+  "github.copilot.chat.agent.runTasks": true
+}
+```
+
+**Known Issues:**
+- Bug reported where agent mode accessed **host filesystem** instead of **container filesystem**
+- Issue tracked: Agent created files on host even when devcontainer was active
+- Workaround: Explicitly verify file operations target container paths
+
+#### GitHub Copilot Coding Agent (Cloud-Based)
+
+**Execution:** OUTSIDE local environment entirely
+
+- Runs in **GitHub Actions environment** (cloud)
+- Temporary isolated dev environment
+- Not on local machine or devcontainer
+- Can explore codebase, make changes, build, test
+
+**Use Cases:**
+- Background feature implementation
+- Automated pull request creation
+- Independent from local development environment
+
+#### Continue.dev & Cline
+
+**Execution:** INSIDE devcontainer (as Workspace Extensions)
+
+**Installation:**
+- Must be listed in `devcontainer.json` extensions
+- Configuration files accessible from container
+
+**Example Configuration:**
+```json
+// devcontainer.json
+{
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Continue.continue",
+        "saoudrizwan.claude-dev"
+      ]
+    }
+  }
+}
+```
+
+### MCP Server Execution Locations
+
+MCP servers have **flexible execution options**:
+
+#### Option 1: Host Machine (Local)
+```json
+// mcp.json (on host)
+{
+  "mcpServers": {
+    "host-server": {
+      "command": "node",
+      "args": ["/host/path/to/server.js"]
+    }
+  }
+}
+```
+
+**Pros:**
+- Survives container rebuilds
+- Access to host resources
+- Single configuration
+
+**Cons:**
+- Cannot access container-specific tools
+- Different environment than workspace
+
+#### Option 2: Inside Devcontainer
+```json
+// .vscode/mcp.json (in workspace)
+{
+  "mcpServers": {
+    "container-server": {
+      "command": "node",
+      "args": ["/workspace/mcp/server.js"]
+    }
+  }
+}
+```
+
+**Pros:**
+- Access to container environment
+- Uses container-installed dependencies
+- Same environment as code
+
+**Cons:**
+- Lost on container rebuild (unless in Dockerfile)
+- Requires installation in container
+
+#### Option 3: Separate Docker Container
+```json
+{
+  "mcpServers": {
+    "docker-mcp": {
+      "command": "docker",
+      "args": ["run", "--rm", "mcp-server-image"]
+    }
+  }
+}
+```
+
+**Pros:**
+- Isolated from both host and devcontainer
+- Consistent environment
+- Easy distribution
+
+**Cons:**
+- Network communication overhead
+- Docker-in-Docker complexity
+
+#### Option 4: Remote SSE Server
+```json
+{
+  "mcpServers": {
+    "remote-mcp": {
+      "url": "https://mcp-server.example.com/sse",
+      "transport": "sse"
+    }
+  }
+}
+```
+
+**Pros:**
+- Centralized service
+- No local installation
+- Shared across team
+
+**Cons:**
+- Network dependency
+- Security considerations
+- Latency
+
+### MCP Discovery Across Environments
+
+VS Code can **auto-discover** MCP servers configured in other tools:
+
+```json
+// settings.json
+{
+  "chat.mcp.discovery.enabled": true  // Detects Claude Desktop MCP configs
+}
+```
+
+**Discovered Locations:**
+- Claude Desktop: `~/Library/Application Support/Claude/`
+- Custom: `.vscode/mcp.json`
+- Native: `mcp.json` in project root
+
+### Implications for BitBot
+
+As BitBot manages devcontainers with AI agent integration, consider:
+
+#### 1. **File Access Boundaries**
+
+**Problem:** AI agents must access files in managed devcontainers, not host
+
+**Solution:**
+- Document which agents execute where
+- Test file operation paths explicitly
+- Provide clear configuration examples
+
+#### 2. **MCP Server Architecture**
+
+**Design Decision Required:**
+
+```
+Option A: MCP Servers on Host
+  ✓ Simple configuration
+  ✓ Persistent across container lifecycles
+  ✗ Cannot use container-specific tools
+
+Option B: MCP Servers in Devcontainer
+  ✓ Access to container environment
+  ✓ Consistent with workspace
+  ✗ Requires Dockerfile setup
+
+Option C: Hybrid Approach
+  ✓ Host servers for persistent services
+  ✓ Container servers for workspace tools
+  ✗ More complex configuration
+```
+
+**Recommendation for BitBot:** Hybrid approach with clear documentation
+
+#### 3. **Configuration Propagation**
+
+**Challenge:** Ensure AI agent configs available in managed containers
+
+**BitBot Should:**
+- Include AI agent extensions in generated `devcontainer.json`
+- Provide templates for MCP server configurations
+- Document where to place AGENTS.md, CLAUDE.md, etc.
+
+**Example BitBot-Generated devcontainer.json:**
+```json
+{
+  "name": "BitBot Managed Container",
+  "image": "bitbot/base:latest",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Recommended AI agents
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "Continue.continue",
+        "saoudrizwan.claude-dev"
+      ],
+      "settings": {
+        "chat.agent.enabled": true,
+        "chat.mcp.discovery.enabled": true
+      }
+    }
+  },
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "mounts": [
+    // BitBot could mount MCP configs from host
+    "source=${localEnv:HOME}/.config/bitbot/mcp.json,target=/workspace/.vscode/mcp.json,type=bind"
+  ],
+
+  "postCreateCommand": "bash .devcontainer/setup-ai-agents.sh"
+}
+```
+
+#### 4. **Security Boundaries**
+
+**Workspace Extensions Security:**
+- Run with full container permissions
+- Can execute arbitrary code in container
+- Should be restricted in untrusted containers
+
+**BitBot Security Modes:**
+```yaml
+# .bitbot/config.yml
+security_mode: sandbox
+
+ai_agents:
+  allow_workspace_extensions: false  # Disable for untrusted code
+  allow_ui_extensions: true
+
+  mcp_servers:
+    execution: host_only              # Prevent container MCP servers
+
+  file_access:
+    deny_patterns:
+      - "**/.env"
+      - "**/*.key"
+      - "**/credentials.json"
+```
+
+#### 5. **Testing AI Agent Integration**
+
+**BitBot Should Test:**
+1. ✓ AI agent can access container files
+2. ✓ AI agent uses container tools (not host tools)
+3. ✓ MCP servers communicate with agents
+4. ✓ File edits appear in correct location (container, not host)
+5. ✓ Terminal commands execute in container shell
+
+**Test Script Example:**
+```bash
+#!/bin/bash
+# BitBot AI Agent Integration Test
+
+# Test 1: Verify agent file access
+echo "Test 1: Agent file access boundary"
+# Ask agent to create /workspace/test.txt
+# Verify file exists in container, not on host
+
+# Test 2: Verify tool execution
+echo "Test 2: Container tool usage"
+# Ask agent to run 'which python'
+# Verify returns container python, not host python
+
+# Test 3: MCP server connectivity
+echo "Test 3: MCP server communication"
+# Invoke MCP tool
+# Verify response from correct MCP server (host vs container)
+```
+
+### Summary: Execution Locations
+
+| Component                  | Default Location     | Configurable? | Access Scope          |
+|----------------------------|----------------------|---------------|-----------------------|
+| **UI Extensions**          | Host                | No            | Local files only      |
+| **Workspace Extensions**   | Devcontainer        | No            | Container workspace   |
+| **GitHub Copilot Chat**    | Devcontainer        | Via config    | Container workspace   |
+| **Continue.dev**           | Devcontainer        | Via config    | Container workspace   |
+| **Cline**                  | Devcontainer        | Via config    | Container workspace   |
+| **MCP Servers (stdio)**    | Host or Container   | Yes           | Depends on location   |
+| **MCP Servers (SSE)**      | Remote/Docker       | Yes           | Network-accessible    |
+| **GitHub Coding Agent**    | GitHub Cloud        | No            | Temporary cloud env   |
+
+### Best Practices for Container-Based AI Development
+
+1. **Explicit Extension Configuration:**
+   - Always list AI extensions in `devcontainer.json`
+   - Don't rely on auto-installation
+
+2. **Test File Operations:**
+   - Verify agents create files in container, not host
+   - Check terminal command execution location
+
+3. **Document MCP Architecture:**
+   - Clearly state where MCP servers run
+   - Provide setup instructions for each location
+
+4. **Security Boundaries:**
+   - Restrict workspace extensions in untrusted containers
+   - Use sandboxed execution for unknown code
+
+5. **Version Control:**
+   - Commit `devcontainer.json` with AI agent configs
+   - Exclude `.vscode/settings.local.json` (personal prefs)
+
+6. **BitBot-Specific:**
+   - Generate devcontainer configs with AI agent support
+   - Provide templates for common AI toolchains
+   - Document execution boundaries clearly in AGENTS.md
+
+---
+
 ## Comparison Matrix
 
 | Tool              | Primary Config File(s)                  | Format        | Hierarchy   | AGENTS.md Support | Version Control |
@@ -863,6 +1268,9 @@ CLAUDE.md                           # Reference to AGENTS.md + Claude-specific n
 - [Cline Documentation](https://docs.cline.bot/)
 - [VS Code Agent Mode](https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode)
 - [VS Code MCP Integration](https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview)
+- [VS Code Remote Development](https://code.visualstudio.com/api/advanced-topics/remote-extensions)
+- [VS Code Devcontainers](https://code.visualstudio.com/docs/devcontainers/containers)
+- [VS Code MCP Servers](https://code.visualstudio.com/docs/copilot/customization/mcp-servers)
 
 #### Claude Flow
 - [Claude Flow GitHub Repository](https://github.com/ruvnet/claude-flow)
@@ -961,9 +1369,10 @@ Located in `.claude/agents/` for specialized tasks.
 
 ---
 
-**Document Version:** 1.1
+**Document Version:** 1.2
 **Last Updated:** October 2025
 **Changelog:**
+- v1.2: Added AI agent execution in devcontainers (inside/outside architecture), MCP server execution locations, BitBot-specific implications
 - v1.1: Added VS Code agentic extensions (Continue.dev, Cline, Roo Code), VSCodium support, Claude Flow multi-agent orchestration
 - v1.0: Initial research covering AGENTS.md standard and major AI coding tools
 
