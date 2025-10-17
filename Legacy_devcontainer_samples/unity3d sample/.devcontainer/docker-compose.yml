@@ -1,0 +1,50 @@
+
+services:
+  devcontainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TZ: ${TZ:-UTC}
+        CLAUDE_CODE_VERSION: latest
+        GIT_DELTA_VERSION: 0.18.2
+        ZSH_IN_DOCKER_VERSION: 1.2.0
+        NODE_VERSION: 20
+
+    volumes:
+      # Mount workspace
+      - ..:/workspace:cached
+
+      # Persist Claude config and command history in container volumes
+      - claude_config:/home/user/.claude
+      - claude_flow:/home/user/.claude-flow
+      - commandhistory:/commandhistory
+
+    # Enable networking
+    network_mode: bridge
+
+    # Keep container running
+    command: sleep infinity
+
+    # Environment variables
+    environment:
+      - TZ=${TZ:-UTC}
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - CLAUDE_CONFIG_DIR=/home/user/.claude
+      - DOTNET_CLI_TELEMETRY_OPTOUT=1
+      - HISTFILE=/commandhistory/.bash_history
+      - SHELL=/bin/zsh
+
+    # Post-create command
+    entrypoint: ["/bin/sh", "-c", "git config --global --add safe.directory /workspace && exec sleep infinity"]
+
+    # Set user
+    user: user
+
+    # Working directory
+    working_dir: /workspace
+
+volumes:
+  claude_config:
+  claude_flow:
+  commandhistory:

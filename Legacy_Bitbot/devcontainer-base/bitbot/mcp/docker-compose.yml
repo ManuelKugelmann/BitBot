@@ -1,0 +1,83 @@
+networks:
+  workspace-mcp-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+services:
+  workspace-mcp-registry:
+    build:
+      context: ../../../shared/registry
+      dockerfile: Dockerfile
+      args:
+        TZ: "${TZ:-UTC}"
+    container_name: "workspace-mcp-registry-${WORKSPACE_HASH:-default}"
+    ports:
+      - "9080:8080"
+    networks:
+      workspace-mcp-network:
+        ipv4_address: 172.21.0.10
+    environment:
+      - REGISTRY_PORT=8080
+      - MCP_NETWORK=workspace-mcp-network
+      - WORKSPACE_MODE=true
+      - TZ=${TZ:-UTC}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  workspace-simple-mcp:
+    build:
+      context: ../../../shared/simple-mcp
+      dockerfile: Dockerfile
+      args:
+        TZ: "${TZ:-UTC}"
+    container_name: "workspace-simple-mcp-${WORKSPACE_HASH:-default}"
+    networks:
+      workspace-mcp-network:
+        ipv4_address: 172.21.0.20
+    environment:
+      - MCP_SERVER_NAME=workspace-simple-mcp
+      - MCP_SERVER_VERSION=1.0.0
+      - REGISTRY_URL=http://workspace-mcp-registry:8080
+      - WORKSPACE_MODE=true
+      - TZ=${TZ:-UTC}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /workspace:/workspace:ro
+    depends_on:
+      - workspace-mcp-registry
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:3000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  workspace-mcp-gateway:
+    image: alpine/socat:latest
+    container_name: "workspace-mcp-gateway-${WORKSPACE_HASH:-default}"
+    networks:
+      workspace-mcp-network:
+        ipv4_address: 172.21.0.5
+    ports:
+      - "9090:8090"
+    environment:
+      - TZ=${TZ:-UTC}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    command: ["TCP-LISTEN:8090,fork,reuseaddr", "TCP:workspace-simple-mcp:3000"]
+    depends_on:
+      - workspace-simple-mcp
+    restart: unless-stopped
+
+volumes:
+  workspace-mcp-data:
+    driver: local

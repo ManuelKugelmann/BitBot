@@ -1,0 +1,2 @@
+- do not create extensive code when thinking about specs. no code, bulletpoints and pseudocode are enough
+- if a tool is missing, install it if claude has the necessary rights. ask the user to install it if not. provide a how-to using apt or curl or wget.

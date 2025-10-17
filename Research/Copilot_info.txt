@@ -1,0 +1,286 @@
+Project: BitBot - Copilot Analysis & Gap Filling
+==================================
+
+Continuation of info.txt with gap analysis and detailed proposals based on legacy implementation review and modern AI agent ecosystem research.
+
+RESEARCH FINDINGS & GAP ANALYSIS:
+----------------------------------
+
+BB Command Shorthand Research:
+- "bb" is used by BitBucket CLI tool, but not widely adopted
+- Alternative: "bt" (bitbot) or keep "bitbot" for clarity
+- Recommendation: Start with "bitbot", add "bb" alias later if desired
+
+PATH Setup & Installation:
+- Windows: Add to both System PATH and WSL PATH
+- Location: /mnt/c/BitBot/global/bitbot (accessible from both environments)
+- First run: bitbot install creates shortcuts, PATH entries, WSL integration
+- Auto-detection: Check if running in WSL vs native Windows/Mac/Linux
+
+VS Code DevContainer Integration Research:
+- VS Code detects existing containers via .devcontainer/devcontainer.json
+- If container already running: VS Code connects to existing instance
+- Container reuse: VS Code "Attach to Running Container" workflow
+- Terminal integration: All VS Code terminals auto-route to container
+
+Terminal History Persistence:
+- VS Code stores terminal history in workspace .vscode/settings.json
+- BitBot approach: Mount ~/.bash_history per workspace hash
+- Location: .bitbot/terminal-history/ with workspace-specific files
+
+Docker-in-Docker Separation Strategy:
+- BitBot Docker: Uses host Docker socket (/var/run/docker.sock)
+- User Docker: Separate Docker-in-Docker daemon in container
+- Network isolation: BitBot containers on isolated network
+- Volume separation: BitBot volumes vs user development volumes
+
+MISSING FEATURES IDENTIFIED:
+----------------------------------
+
+Agent Configuration System:
+- .bitbot/agent.yml: Agent type, model settings, MCP services
+- Agent switching: bitbot claude, bitbot open, bitbot custom
+- Agent startup scripts: Language-specific initialization
+- Agent health monitoring and auto-restart
+
+Workspace Template System:
+- Templates: web-dev, python, rust, ml, basic
+- Template components: Dockerfile additions, VS Code extensions, MCP services
+- Custom templates: User-defined in ~/.bitbot/templates/
+- Template marketplace: Shareable configurations
+
+Security & Isolation Enhancements:
+- Container user namespaces (non-root execution)
+- Capability restrictions per mode (sketch/work/setup)
+- Network policies and firewall rules
+- Audit logging for security events
+- Secret management for API keys
+
+Session Management Improvements:
+- Session naming: workspace-based with incremental numbers
+- Session persistence: tmux session state across container restarts
+- Multi-session support: Multiple concurrent sessions per workspace
+- Session discovery: List and connect to existing sessions
+
+Configuration Hierarchy:
+- Global config: ~/.bitbot/config.yml
+- Workspace config: .bitbot/workspace.yml
+- Agent config: .bitbot/agent.yml
+- Override precedence: agent > workspace > global
+
+PROPOSED BITBOT ARGUMENTS:
+----------------------------------
+
+Core Operations:
+bitbot                    # Smart launch - resume or new session
+bitbot new                # Force new session
+bitbot resume [name]      # Resume specific session
+bitbot list               # List active sessions/containers
+bitbot stop [name]        # Stop specific session
+bitbot kill               # Stop all BitBot containers
+
+Quick Mode Selection:
+bitbot sketch             # Restricted mode - /sketch write only
+bitbot work               # Default mode - workspace except .devcontainer
+bitbot setup              # Full access mode
+
+Agent Selection:
+bitbot claude             # Claude Code agent
+bitbot open               # OpenCode agent
+bitbot custom [name]      # Custom agent
+
+Configuration:
+bitbot config             # Interactive configuration wizard
+bitbot install            # Setup PATH and integrations
+bitbot doctor             # System diagnostics
+bitbot version            # Version information
+
+Templates:
+bitbot template [name]    # Apply workspace template
+bitbot templates          # List available templates
+
+Advanced:
+bitbot logs [service]     # View logs (agent, mcp, container)
+bitbot shell              # Direct container shell access
+bitbot export             # Export workspace configuration
+bitbot import [file]      # Import workspace configuration
+
+WORKSPACE FIRST-RUN WIZARD SPECIFICATION:
+----------------------------------
+
+Wizard Flow:
+1. Welcome & workspace detection
+2. Development stack selection
+3. AI agent configuration
+4. Template selection (optional)
+5. MCP services selection
+6. Security mode preference
+7. VS Code integration setup
+8. Final configuration review
+
+Tech Stack Options:
+- Languages: Python, Node.js, Rust, Go, Java, .NET, PHP
+- Frameworks: React, Vue, Django, FastAPI, Express, Next.js
+- Databases: PostgreSQL, MySQL, MongoDB, Redis
+- Tools: Docker, Git, Make, Terraform
+
+AI Guiding Documents Generation:
+- CLAUDE.md: Project context and coding guidelines
+- ARCHITECTURE.md: System design and patterns
+- CONVENTIONS.md: Code style and best practices
+- TASKS.md: Current work and priorities
+- Template-based generation with workspace context
+
+MCP Services Catalog:
+Per-Workspace Services:
+- file-system: File operations and search
+- git-helper: Git operations and history
+- code-analyzer: Code quality and metrics
+- test-runner: Test execution and reporting
+- docs-generator: Documentation generation
+
+Global Services:
+- auth-manager: API key and secret management
+- service-registry: MCP service discovery
+- backup-service: Workspace backup and restore
+- monitoring: Performance and usage metrics
+
+External Services:
+- GitHub/GitLab integration
+- Cloud provider CLIs
+- CI/CD integrations
+- External APIs and databases
+
+CONTAINER COMPOSITION STRATEGY:
+----------------------------------
+
+Base Container Layers:
+1. OS Base: Ubuntu 22.04 LTS with timezone support
+2. Development Tools: git, curl, tmux, zsh, vim/nano
+3. Language Runtimes: Node.js, Python, .NET Core, Go
+4. Container Tools: Docker CLI, docker-compose
+5. AI Agent Layer: Configured agent with MCP clients
+
+Composable Extensions:
+- Language-specific toolchains (pip, npm, cargo, etc.)
+- Database clients and drivers
+- Cloud CLI tools (aws, gcloud, azure)
+- Development utilities (jq, yq, httpie)
+- Monitoring and debugging tools
+
+Volume Mount Strategy:
+- Workspace: /workspace (project files)
+- BitBot Config: /opt/bitbot (read-only BitBot scripts)
+- Agent Config: /home/bitbot/.config (agent configurations)
+- Terminal History: /home/bitbot/.bash_history (persistent)
+- Docker Socket: /var/run/docker.sock (Docker access)
+
+NETWORK ARCHITECTURE:
+----------------------------------
+
+Network Separation:
+- bitbot-global: 172.20.0.0/16 (global MCP services)
+- bitbot-workspace-{hash}: 172.21.x.0/24 (workspace services)
+- docker-user: 172.22.0.0/16 (user Docker workflows)
+- Bridge networks for controlled inter-network communication
+
+Port Allocation:
+- Global MCP Registry: 8080
+- Global MCP Gateway: 8090
+- Workspace MCP Registry: 9080
+- Workspace MCP Gateway: 9090
+- User applications: 3000-3999, 8000-8999
+
+Security Policies:
+- Sketch mode: No external network access except AI agent
+- Work mode: Standard internet access, no BitBot network access
+- Setup mode: Full network access including BitBot networks
+
+PERFORMANCE & RESOURCE MANAGEMENT:
+----------------------------------
+
+Startup Optimization:
+- Pre-built base images with layer caching
+- Lazy loading of language-specific tools
+- Background MCP service warmup
+- Container reuse across sessions
+
+Resource Limits:
+- Base container: 2GB RAM, 1 CPU core
+- MCP services: 512MB RAM each
+- Auto-scaling based on workspace complexity
+- Disk usage monitoring and cleanup
+
+Caching Strategy:
+- Package manager caches (npm, pip, cargo)
+- Docker layer caching
+- Git repository caching
+- AI agent model caching
+
+SECURITY ENHANCEMENTS:
+----------------------------------
+
+Container Security:
+- Non-root user execution (bitbot:bitbot user)
+- Capability dropping (no CAP_SYS_ADMIN unless setup mode)
+- Read-only root filesystem where possible
+- Temporary filesystem for writable areas
+
+Secret Management:
+- Environment variable injection for API keys
+- Encrypted storage for sensitive configuration
+- Secret rotation support
+- Audit trail for secret access
+
+Access Control:
+- File system permissions by mode
+- Network access policies
+- Container escape prevention
+- Resource usage limits
+
+TESTING & VALIDATION STRATEGY:
+----------------------------------
+
+Automated Testing:
+- Platform compatibility tests (Windows/Mac/Linux)
+- Container startup and lifecycle tests
+- MCP service communication tests
+- AI agent integration tests
+- Security boundary validation tests
+
+Performance Testing:
+- Startup time benchmarks
+- Resource usage monitoring
+- Stress testing with multiple workspaces
+- Network performance validation
+
+Security Testing:
+- Container escape attempts
+- Permission escalation tests
+- Network isolation validation
+- Secret exposure checks
+
+IMPLEMENTATION PRIORITIES:
+----------------------------------
+
+Sprint 1 (Weeks 1-2): Foundation
+- Universal bitbot command with platform detection
+- Basic container lifecycle management
+- Simple workspace detection and session management
+
+Sprint 2 (Weeks 3-4): AI Integration
+- Claude Code integration with MCP services
+- Basic agent configuration system
+- Global and workspace MCP service architecture
+
+Sprint 3 (Weeks 5-6): Developer Experience
+- VS Code DevContainer integration
+- Workspace templates and first-run wizard
+- Configuration management system
+
+Sprint 4 (Weeks 7-8): Security & Polish
+- Complete security mode implementation
+- Performance optimization
+- Documentation and release preparation
+
+This continuation fills the identified gaps and provides detailed specifications for implementing a production-ready BitBot system that addresses all the requirements while maintaining security and usability.

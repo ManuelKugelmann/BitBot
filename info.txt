@@ -1,0 +1,109 @@
+Project: BitBot
+==================================
+
+A reasonably safe containerized environment to work with CLI ai agents (even in yolo or dangerouslyskippermissions mode)
+----------------------------------
+
+- we are running on WSL2 first, but want to be compatible to Linux, Mac and Windows
+- legacy implementations and devcontainers that can be inspected as inspiration
+- we are interested in running claude-code, claude-flow and open-code (and potentially others - an universal setup would be nice)
+- fresh implementation using SPARC method
+
+SPARC:
+----------------------------------
+Phase 0: Research & Disovery
+Parallel Web Research: Uses BatchTool and WebFetchTool for comprehensive domain research
+Technology Stack Analysis: Researches best practices and framework comparisons
+Implementation Patterns: Gathers code examples and architectural patterns
+Competitive Analysis: Studies existing solutions and industry trends
+Phase 1: Specification
+Requirements Analysis: Extracts functional and non-functional requirements
+User Stories: Defines acceptance criteria and system boundaries
+Technical Constraints: Identifies technology stack and deployment requirements
+Performance Targets: Establishes SLAs and scalability goals
+Phase 2: Pseudocode
+High-Level Architecture: Defines major components and data flow
+Algorithm Design: Core business logic and optimization strategies
+Test Strategy: TDD approach with comprehensive test planning
+Error Handling: Recovery strategies and validation algorithms
+Phase 3: Architecture
+Component Architecture: Detailed specifications and interface definitions
+Data Architecture: Database design and access patterns
+Infrastructure Architecture: Deployment and CI/CD pipeline design
+Security Architecture: Access controls and compliance requirements
+Phase 4: Refinement (TDD Implementation)
+Parallel Development Tracks: Backend, frontend, and integration tracks
+TDD London School: Red-Green-Refactor cycles with behavior testing
+Quality Gates: Automated linting, analysis, and security scans
+Performance Optimization: Benchmarking and critical path optimization
+Phase 5: Completion
+System Integration: End-to-end testing and requirement validation
+Documentation: API docs, deployment guides, and runbooks
+Production Readiness: Monitoring, alerting, and security review
+Deployment: Automated deployment with validation
+
+
+First let's gather and research infos on the specification.
+Research the web on each point for guidance.
+
+- single command "bitbot" that works on all platforms
+- bb is already taken and not an alternative. maybe btbt is ok ?
+    -> executable bash script or .exe that launches the bash script in WSL in $PATH
+- first run sets up the $PATH (both WSL and Windows point to the same location - might be a WSL folder for cross platform compatibility)
+- first run set up other stuff: tbd
+- the global setup and the workspace setup should be guided CLI processes - is there a good tool for that or is bash enough ?
+- every call of bitbot should launch into a CLI with an ai agent system working on the current workspace defined by the current working directory
+- the CLI ai agent should run inside a devcontainer
+- the devcontainer should follow vscode conventions and be runnable via vscode or directly via docker (launched by the host bitbot command)
+- for each workspace only a single container should be launched (the container name should be based on the workspace name and a | separated random name)
+    - all vscode terminals automatically run inside that (mabye add a terminal option that opens a terminal and runs inner bitbot immediately?)
+    - every call of bitbot on the host should launch into a terminal inside the devcontainer for the current workspace and launch bitbot there
+    - tbd: what does vscode do if there already is a docker launched devcontainer for the workspace? how to use that?
+- every bitbot session should be tmuxed to be easily resumable
+- a bitbot run should offer a choice of all currently open but detached sessions or a new session
+- the main ai agent should be configureable and be launched by the bitbot command in --resume mode
+- tbd: maybe some info from parent workspaces can be useful inside sub workspaces ?
+- the container time and timezone should match the host
+- the container should run a standard linux environment with a sensible alround toolset
+- MCPs can be per-workspace or bitbot global or external
+    - per-workspace: running inside the devcontainer or in a compose with it
+    - shared global: running globally on the host
+    - external: not managed by bitbot
+- network bridge to host is ok (e.g. to access outside MCPs)
+- the container should be able to run docker containers inside e.g. for per-workspace MCPs and docker based workflows
+- docker access inside the container should be separate for
+    a) BitBot component containers running inside the container incl. MCPs
+    b) Docker containers of the user
+    Docker usage inside the container should work for the user as simple as possible (what works outside the devcontainer should work inside) while still limiting what the ai agent can break.
+- the devcontainer should mount shared global configuration folders for the ai agents (these reside in the hosts bitbot folder)
+- terminal history should be persisted for each workspace separately (how does vscode handle this?)
+- the logged in user "user" inside the container should be restricted, except in setup mode where it is elevated
+- bitbot should provide a workspace-first-run wizard that gives some options to choose
+    - components for the tech stack inside the dev container
+    - building blocks to compose a CLAUDE.md or similar ai guiding docs
+    - MCPs
+    - tbd.
+- each workspace should be git controlled. setup a workspace-root git repo if not there. globally deny destructive git operations even in yolo mode
+- the devcontainer itself is disposeable, but its negative effects on the host system should be reasonably limited.
+- the workspace is a playground but completely destructive, unrecoverable operations should be blocked (reliably secure all git repos (also in sub directories) from destruction, maybe even snapshot/backup them on container launch ?)
+- make it easy to add additional protected  patterns (similar to .gitignore format ?)
+- maybe use different users to separate the modes ?
+- is there an more .devcontainer oriented cli launch option instead of docker ?
+- could bitbot run on github codespaces ? How to link in the 'global' settings ? in this case create repository-global settings from the defaults ?
+- bitbot from the terminal shpould provide an option to launch into a vscode session instead of a direct CLI session
+
+TECH:
+- as much as possible of the system should be composeable elements (setup scripts, docker containers, ...)
+- it should be easily extenable by adding new components
+- do not care for backwards compatibility during this development phase
+- bitbot will not provide its own MCP registry - there are already projects that solve this (get inspiration form Ccline and others autoconfig abilities)
+- bitbot should be portable and sotre all relevant data inside its own global folder or in the workspaces itself
+- the location of the global install folder should be flexible - it is the folder that bitbot is run first in.
+  it checks if it is in $PATH on each run and adds its own path if confirmed
+  and sets a persistent BITBOT_PATH env variable
+- the BITBOT_PATH variable is used by the containers to mount folders there.
+- bash history, etc. should be stored in a mounted subfolder of the .bitbot folder in the devcontainer
+- use bash scripts as main building blocks
+- make sure that GID and UID of the dev containers "user" match the user calling bitbot also in the direct docker launch w/o vscode
+- make as much logic shared between docker based launch and vscode launch - even if vscode provides that feature. doccument what the vscode feature would be in the replacement script
+- use existing tools instead of reinventing them

@@ -1,0 +1,63 @@
+Project: BitBot - Continuation of info.txt
+==========================================
+
+This document continues the planning for BitBot, filling in the gaps from the initial `info.txt` and the high-level proposal in `Gemini_BITBOT_PLANNING.md`.
+
+Research Findings
+-----------------
+
+*   **`bb` command:** The command `bb` is already used by several other tools (Bytebase, Bitbucket, etc.). To avoid conflicts, we will use the full `bitbot` command name.
+
+*   **VS Code and existing devcontainers:** VS Code can attach to any running Docker container using the "Dev Containers: Attach to Running Container..." command. This confirms that the desired workflow of starting the container with `bitbot` and then attaching VS Code is feasible.
+
+Addressing Open Questions from info.txt
+---------------------------------------
+
+*   **Parent Workspaces:** The idea of inheriting information from parent workspaces is interesting. This could be implemented by having `bitbot` look for a `.bitbot` directory in parent directories. If found, it could read the configuration from the parent workspace and merge it with the current workspace's configuration. This would allow for cascading configurations. For the MVP, we will focus on a single workspace, but this is a good feature to consider for future versions.
+
+*   **Timezone Synchronization:** The container's timezone should match the host's timezone. This can be achieved by mounting `/etc/localtime` from the host to the container and setting the `TZ` environment variable. This was done in the legacy `bitbot` and should be carried over to the new implementation.
+
+*   **Docker-in-Docker Security:** Providing Docker access inside the container is a powerful feature, but it has security implications. The default Docker-in-Docker approach of mounting the host's Docker socket (`/var/run/docker.sock`) gives the container root access to the host's Docker daemon. This is not ideal for a "reasonably safe" environment.
+
+    A better approach is to use a "Docker-out-of-Docker" (DooD) setup where the container's Docker CLI communicates with the host's Docker daemon, but with some form of isolation. Another option is to use a nested Docker setup (Docker-in-Docker) with a separate Docker daemon running inside the container, but this can be complex to set up and has its own security considerations.
+
+    For the MVP, we will provide Docker access by mounting the host's Docker socket, but we will clearly document the security implications. We will also add a "secure" mode to `bitbot` that disables Docker access inside the container. For future versions, we will investigate more secure solutions like rootless Docker or using a proxy to restrict the Docker API calls that can be made from within the container.
+
+*   **Terminal History Persistence:** Per-workspace terminal history is a great usability feature. VS Code's terminal history is managed by the shell inside the container. To persist it, we need to mount the shell's history file to a location on the host. For example, for `bash`, we can mount `~/.bash_history` to a file in the `.bitbot` directory of the workspace. This will be implemented in the devcontainer templates.
+
+Detailed Implementation Plan
+----------------------------
+
+*   **Project Structure:**
+    ```
+    bitbot/
+    ├── src/                # Core logic (Go or Rust)
+    ├── templates/          # Devcontainer templates
+    │   ├── generic/
+    │   ├── nodejs/
+    │   └── python/
+    ├── scripts/            # Installation and helper scripts
+    ├── .gitignore
+    └── README.md
+    ```
+
+*   **Core Logic (Go vs. Rust):**
+    *   **Go:** Faster compilation, simpler concurrency model, large standard library. Good for CLI tools.
+    *   **Rust:** More focused on safety and performance, steeper learning curve. Good for systems programming.
+
+    For the MVP, **Go** seems like a good choice. It's well-suited for building CLI tools and has good support for interacting with the Docker API.
+
+*   **Devcontainer Templates:**
+    *   Each template will have a `devcontainer.json` file and a `Dockerfile`.
+    *   The `devcontainer.json` will be pre-configured with common settings for the specific development environment.
+    *   The `Dockerfile` will install the necessary tools and dependencies.
+    *   The templates will be designed to be easily customizable by the user.
+
+Security Considerations
+---------------------
+
+*   **Docker-in-Docker:** As mentioned above, this is a potential security risk. The MVP will include a "secure" mode to disable it.
+*   **Filesystem Permissions:** The "sketch", "work," and "setup" modes will be implemented using Docker's volume mounting options (e.g., read-only mounts).
+*   **Network Security:** The global and workspace MCPs will be exposed on localhost by default. We will need to document how to secure these endpoints if they need to be exposed to the network.
+
+This document provides the next level of detail for the `bitbot` plan. The next step is to start the implementation.

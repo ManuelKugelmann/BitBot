@@ -1,0 +1,1811 @@
+Project: BitBot - Phase 0 Research & Discovery (COMPLETE)
+================================================================
+
+This document extends the original info.txt with comprehensive Phase 0 research findings.
+It provides detailed guidance for moving BitBot from Phase 0 into Phase 1 (Specification).
+
+TABLE OF CONTENTS
+-----------------
+1. Executive Summary
+2. Phase 0 Research Findings Summary
+3. Detailed Specifications (Filling TBD Gaps)
+4. Command-Line Interface Design
+5. Architecture Recommendations
+6. Technology Stack Decisions
+7. Security & Safety Architecture
+8. Distribution & Installation Strategy
+9. Additional Features for MVP
+10. Implementation Roadmap
+11. Next Steps: Phase 1 Specification
+
+
+================================================================
+1. EXECUTIVE SUMMARY
+================================================================
+
+BitBot is a cross-platform containerized development environment for safely running AI coding agents (Claude Code, claude-flow, open-code) with MCP (Model Context Protocol) service integration.
+
+CORE VALUE PROPOSITION:
+- Single `bitbot` command works on Windows (WSL2), macOS, and Linux
+- Provides Docker-isolated safety boundary for AI code generation
+- Supports both VS Code DevContainer and direct tmux-based workflows
+- Dual-layer MCP architecture (global + workspace-specific services)
+- Multiple permission modes (sketch/work/setup) for graduated trust
+- Resumable sessions with tmux for interrupted workflow recovery
+
+CURRENT STATUS:
+- ~85-90% implementation complete in Legacy_Bitbot/
+- Core architecture validated and working
+- Comprehensive test suite in place
+- Ready for Phase 1 specification refinement
+
+PHASE 0 RESEARCH COMPLETED:
+✅ Container-based development environment patterns (DevContainer spec, Codespaces, Gitpod)
+✅ AI agent safety architectures (Claude Code, Aider, Cursor, Devin)
+✅ Model Context Protocol (MCP) architecture and best practices
+✅ Cross-platform CLI tool design patterns
+✅ Session management and persistence (tmux vs screen vs zellij)
+✅ Docker-in-Docker patterns and security considerations
+✅ Workspace isolation and permission strategies
+✅ Official devcontainer CLI tools (@devcontainers/cli, DevPod)
+
+KEY DISCOVERY: Official @devcontainers/cli exists and can replace custom Docker orchestration,
+reducing maintenance burden while keeping BitBot's unique value (tmux, MCP, modes, safety).
+
+Research reports available at:
+- container-dev-environment-research.md
+- AI_AGENT_SAFETY_ARCHITECTURE.md
+- MCP_ARCHITECTURE_RESEARCH.md
+- terminal-session-management-research.md
+- docker-in-docker-research.md
+- CONTAINER_ISOLATION_RESEARCH.md
+
+
+================================================================
+2. PHASE 0 RESEARCH FINDINGS SUMMARY
+================================================================
+
+2.1 CONTAINER DEVELOPMENT ENVIRONMENTS
+--------------------------------------
+Key Finding: VS Code DevContainer specification is the industry standard
+
+BEST PRACTICES IDENTIFIED:
+- Hash-based workspace identification (SHA-256 of sorted labels)
+- Multi-stage Dockerfile builds reduce image size by 60-70%
+- Lifecycle hooks enable sophisticated initialization (onCreateCommand, postStartCommand, etc.)
+- Features system allows modular capability addition
+- Prebuild strategies reduce startup from 4-10 minutes to 5-10 seconds
+- Named volumes outperform bind mounts 5-10x on macOS/Windows
+
+RECOMMENDATIONS FOR BITBOT:
+✓ Use stable hash-based container naming (already implemented)
+✓ Implement lifecycle hooks for first-run setup
+✓ Support features for optional capabilities
+✓ Use multi-stage builds (already implemented)
+✓ Consider prebuild/image caching for common configurations
+
+IMPORTANT CLARIFICATION - Volumes vs Bind Mounts:
+The research mentions named volumes are faster on macOS/Windows (5-10x), which is true
+for general Docker usage. However, for BitBot's specific needs, BIND MOUNTS INSIDE THE
+WORKSPACE are recommended:
+
+✓ .bitbot/history/         - Shell history (travels with project)
+✓ .bitbot/tmux-resurrect/  - Session persistence (travels with project)
+✓ .bitbot/logs/            - Audit logs (travels with project)
+
+WHY: These bind mounts are truly portable - when you clone/backup/migrate the workspace,
+all state travels with it. Named volumes would require separate backup/restore and don't
+integrate with Git/rsync/zip workflows.
+
+EXCEPTION: Use named volumes only for truly container-specific state that shouldn't be
+in the workspace (rare for BitBot's design)
+
+
+2.2 AI AGENT SAFETY ARCHITECTURES
+----------------------------------
+Key Finding: Layered security is essential - no single defense is sufficient
+
+SAFETY PATTERNS FROM INDUSTRY LEADERS:
+- Claude Code: Sandboxed execution, read-only by default, patched CVEs
+- Aider: Git-integrated safety net, automatic commits for rollback
+- Cursor: Tiered permissions (auto-approve, prompt, always require approval)
+- Devin: Fully sandboxed with human approval gates for critical operations
+- GitHub Copilot Workspace: Cloud-based with explicit approval workflow
+
+SECURITY FINDINGS:
+⚠ 43% of MCP servers vulnerable to command injection (Backslash Security 2024)
+⚠ 100% of MCP servers lacked authentication (Knostic research)
+⚠ Denylist-based security easily bypassed (Cursor CVE-2024-0349)
+
+DEFENSE IN DEPTH LAYERS:
+1. Input validation (sanitize all AI inputs)
+2. Allowlist-based permissions (not denylist)
+3. Container isolation (Docker + optional gVisor/Firecracker)
+4. Filesystem restrictions (read-only mounts, path validation)
+5. Network isolation (egress filtering)
+6. Syscall filtering (seccomp profiles)
+7. Audit logging (OpenTelemetry standard)
+8. Rollback mechanisms (Git auto-commits, snapshots)
+
+RECOMMENDATIONS FOR BITBOT:
+✓ Implement three-tier permission system (already planned: sketch/work/setup)
+✓ Container isolation (already implemented)
+✓ Add Git auto-commit safety net for rollback
+✓ Implement audit logging for AI actions
+✓ Use allowlist-based tool permissions
+✓ Add dangerous operation detection (destructive commands, production access)
+
+
+2.3 MODEL CONTEXT PROTOCOL (MCP)
+---------------------------------
+Key Finding: MCP is the emerging standard for AI tool integration
+
+PROTOCOL ESSENTIALS:
+- Three primitives: Tools (actions), Resources (data), Prompts (templates)
+- Two client capabilities: Roots (filesystem context), Sampling (AI delegation)
+- Transport layers: stdio (local), HTTP+SSE (remote)
+- Message format: JSON-RPC 2.0
+
+ARCHITECTURE PATTERNS:
+- Client-side service discovery (MCP client discovers servers)
+- Server-side registry (centralized service catalog)
+- Gateway pattern (socat-based TCP routing)
+
+SECURITY REQUIREMENTS:
+- Zero trust model (authenticate everything)
+- OAuth 2.0/OIDC for authentication
+- Container isolation per MCP server
+- Secrets management (never hardcode credentials)
+- Input validation and sanitization
+
+DEPLOYMENT PATTERNS:
+- Local: subprocess via stdio
+- Containerized: Docker Compose with health checks
+- Remote: HTTP+SSE with load balancing
+
+RECOMMENDATIONS FOR BITBOT:
+✓ Dual-layer MCP architecture (already implemented)
+  - Global MCP services: ports 8080/8090 (registry + gateway)
+  - Workspace MCP services: ports 9080/9090 (registry + gateway)
+✓ Service discovery via registry (already implemented)
+✓ Docker Compose for service orchestration (already implemented)
+⚠ Add authentication to MCP servers (not yet implemented)
+⚠ Add input validation to all MCP tools (not yet implemented)
+
+
+2.4 CROSS-PLATFORM CLI TOOL DESIGN
+-----------------------------------
+Key Finding: Bash scripts with minimal wrappers is the pragmatic approach
+
+DISTRIBUTION STRATEGIES ANALYZED:
+- GitHub CLI (gh): Pre-compiled binaries, multiple package managers
+- Docker CLI: Bundled installer with automatic PATH setup
+- kubectl: Single binary, direct download option
+- npm: JavaScript + platform-specific binaries via optionalDependencies
+- Rust tools: Static binaries via cargo-dist
+
+PLATFORM DETECTION:
+- WSL2: grep -qEi "microsoft" /proc/version
+- macOS: [[ "$(uname)" == "Darwin" ]]
+- Linux: [[ "$(uname)" == "Linux" ]] && not WSL
+
+PATH SETUP STRATEGIES:
+- User-level: ~/.local/bin (Linux), ~/bin (macOS) - no sudo required
+- System-wide: /usr/local/bin - requires sudo
+- WSL2 special: /mnt/c/BitBot for cross-environment access
+
+INSTALLATION METHODS:
+1. curl | bash installer (fastest, most convenient)
+2. Manual download + ./install.sh (inspectable)
+3. Package managers (future: brew, choco, apt)
+
+RECOMMENDATIONS FOR BITBOT:
+✓ Main implementation: Bash script (already done)
+✓ Windows wrapper: Minimal Go .exe that calls bash script in WSL
+✓ Installation: curl | bash quick installer
+✓ PATH setup: Automated during first-run
+✓ Shorthand: `bb` alias for `bitbot`
+
+
+2.5 SESSION MANAGEMENT & PERSISTENCE
+-------------------------------------
+Key Finding: tmux is the best choice for BitBot
+
+COMPARISON RESULTS:
+- tmux: Mature ecosystem, excellent container integration, 350KB footprint
+- GNU screen: Legacy, less feature-rich, aging codebase
+- zellij: Modern (Rust), UI-focused, larger footprint (5MB+), newer ecosystem
+
+TMUX ADVANTAGES FOR BITBOT:
+✓ Small footprint (critical for container images)
+✓ Extensive scripting capabilities
+✓ tmux-resurrect plugin for session save/restore
+✓ tmux-continuum for automatic persistence
+✓ Native support for layouts and pane management
+✓ fzf integration for session selection
+
+SESSION PERSISTENCE PATTERNS:
+- Volume-mounted ~/.tmux/resurrect directory
+- Automatic save every 15 minutes (tmux-continuum)
+- Restore on container start
+- Per-workspace history isolation
+
+RECOMMENDATIONS FOR BITBOT:
+✓ Use tmux (already implemented)
+✓ Add tmux-resurrect for session persistence
+✓ Implement fzf-based session picker
+✓ Per-workspace history isolation with WORKSPACE_NAME env var
+✓ Graceful shutdown handler in entrypoint script
+
+
+2.6 DOCKER-IN-DOCKER PATTERNS
+------------------------------
+Key Finding: Sysbox runtime provides secure DinD without privileged mode
+
+SECURITY ANALYSIS:
+⚠ Traditional DinD with --privileged gives root-level host access
+⚠ Shared kernel means all nested containers can exploit kernel vulnerabilities
+⚠ Container escapes possible via /proc, /sys manipulation
+
+ALTERNATIVES EVALUATED:
+- Kaniko: Builds images without Docker daemon (no privileged mode needed)
+- BuildKit: Rootless builds, better caching
+- Podman: Daemonless, rootless by default
+- Sysbox: Runtime that enables secure system containers (best for DinD)
+
+SECURITY RECOMMENDATIONS:
+1. Maximum Security: Use Kaniko for image builds only
+2. Recommended: Use Sysbox runtime for full Docker functionality without privileged
+3. Development: Standard DinD DevContainer feature (requires privileged)
+4. Simple: Docker socket mounting (fastest but least isolated)
+
+RECOMMENDATIONS FOR BITBOT:
+✓ Default: Docker socket mounting (already implemented) - good for MVP
+⚠ Future: Add Sysbox support as optional security enhancement
+⚠ Document security implications of Docker socket access
+⚠ Add Kaniko support for builds without privileged mode
+
+
+2.7 WORKSPACE ISOLATION & PERMISSIONS
+--------------------------------------
+Key Finding: Docker Compose profiles enable elegant multi-mode switching
+
+ISOLATION TECHNIQUES:
+- Mount modes: read-only vs read-write bind mounts
+- Linux namespaces: User namespaces with UID/GID mapping
+- Capabilities: Drop all, add minimal required
+- Security profiles: AppArmor/SELinux/Seccomp
+- Filesystem restrictions: Read-only root + tmpfs overlays
+
+MULTI-MODE IMPLEMENTATION PATTERNS:
+1. Docker Compose profiles (sketch, work, setup) - RECOMMENDED
+2. Environment-based configuration (BITBOT_MODE=sketch)
+3. Runtime mode switching (bitbot --mode sketch)
+4. Separate compose files per mode
+
+MODE IMPLEMENTATION MATRIX:
+┌──────────────┬─────────────┬─────────────┬─────────────┐
+│ Capability   │ Sketch      │ Work        │ Setup       │
+├──────────────┼─────────────┼─────────────┼─────────────┤
+│ /workspace   │ Read-only   │ Read-write  │ Read-write  │
+│ /sketch      │ Read-write  │ N/A         │ N/A         │
+│ .devcontainer│ Read-only   │ Read-only   │ Read-write  │
+│ Docker       │ No access   │ Via socket  │ Full DinD   │
+│ Network      │ Restricted  │ Full        │ Full        │
+│ Capabilities │ Minimal     │ Standard    │ Extended    │
+└──────────────┴─────────────┴─────────────┴─────────────┘
+
+SAFETY PATTERNS:
+- Git dirty state protection (warn on uncommitted changes)
+- Automatic snapshots before destructive operations
+- Version control integration (pre-commit hooks)
+- Audit logging with timestamps
+
+RECOMMENDATIONS FOR BITBOT:
+✓ Implement sketch/work/setup modes (already planned)
+✓ Use Docker Compose profiles for mode switching
+✓ Add Git safety checks (dirty state warnings)
+✓ Implement audit logging to ~/.bitbot/logs/
+✓ Add mode transition safeguards (work → sketch warns about losing access)
+
+
+================================================================
+3. DETAILED SPECIFICATIONS (FILLING TBD GAPS)
+================================================================
+
+This section addresses all "tbd:" items from the original info.txt.
+
+3.1 TBD: Is there a tool called bb?
+------------------------------------
+RESEARCH RESULT: Multiple tools use "bb":
+- Bitbucket CLI (deprecated)
+- Babashka (Clojure interpreter)
+- bb (minimal build system)
+
+DECISION: ✓ SAFE TO USE "bb" as BitBot shorthand
+- Low collision risk (tools above are niche)
+- Common pattern (kubectl → k, docker → d)
+- Easy to remember and type
+
+IMPLEMENTATION:
+- Create symlink: bb → bitbot during installation
+- Add alias suggestion to shell config: alias bb='bitbot'
+
+
+3.2 TBD: First run setup details
+---------------------------------
+FIRST RUN CHECKLIST:
+
+1. PLATFORM DETECTION
+   - Detect OS: WSL2, macOS, Linux, Windows
+   - Detect Docker: Docker Desktop vs Docker Engine
+   - Validate Docker availability and version
+
+2. INSTALLATION DIRECTORY SETUP
+   WSL2:     /mnt/c/BitBot (accessible from both Windows & WSL)
+   macOS:    /usr/local/bitbot or ~/.local/bitbot
+   Linux:    ~/.local/bitbot
+
+3. PATH CONFIGURATION
+   - Detect shell: bash, zsh, fish
+   - Add to appropriate config file (.bashrc, .zshrc, etc.)
+   - Create backup before modification
+
+4. MODE SELECTION WIZARD
+   ┌─────────────────────────────────────────┐
+   │ Welcome to BitBot!                      │
+   │                                         │
+   │ Choose your workflow:                   │
+   │                                         │
+   │  1) VS Code DevContainer (Recommended)  │
+   │     - Integrates with VS Code           │
+   │     - Full IDE experience               │
+   │     - Automatic container management    │
+   │                                         │
+   │  2) Direct Docker + tmux                │
+   │     - Command-line focused              │
+   │     - Lightweight and fast              │
+   │     - tmux session management           │
+   │                                         │
+   │ Choice [1]:                             │
+   └─────────────────────────────────────────┘
+
+5. WORKSPACE INITIALIZATION
+   - Create .bitbot/ directory in workspace
+   - Generate workspace hash (SHA-256 of workspace path)
+   - Store configuration: .bitbot/config.json
+   - Initialize workspace MCP config if needed
+
+6. GLOBAL CONFIGURATION
+   - Create global config directory:
+     ~/.config/bitbot/ (Linux/WSL)
+     ~/Library/Application Support/bitbot/ (macOS)
+   - Store global MCP configurations
+   - Store AI agent configurations (Claude Code, etc.)
+   - Create shared shell history directory
+
+7. DOCKER IMAGE CHECK
+   - Check if base image exists
+   - Offer to pull/build if missing
+   - Show progress bar during pull
+
+8. COMPLETION MESSAGE
+   ┌─────────────────────────────────────────┐
+   │ ✓ BitBot setup complete!                │
+   │                                         │
+   │ Run 'bitbot' in any project directory   │
+   │ Use 'bb' for short                      │
+   │                                         │
+   │ Docs: https://docs.bitbot.dev           │
+   └─────────────────────────────────────────┘
+
+
+3.3 TBD: VS Code container reuse behavior
+------------------------------------------
+RESEARCH RESULT: VS Code DevContainer behavior
+
+HOW VS CODE DETECTS EXISTING CONTAINERS:
+1. Container naming: vsc-{folder-name}-{hash}
+   - Hash based on: devcontainer.json path + devcontainer ID + local folder
+2. Label matching: vsc.local.folder pointing to workspace
+3. Running state check: Prefer running containers, can reuse stopped
+
+VS CODE BEHAVIOR WHEN CONTAINER EXISTS:
+- Running container: Attaches without restart
+- Stopped container: Asks to restart or rebuild
+- Missing container: Creates new one
+
+INTEGRATION WITH BITBOT:
+- Use compatible naming: bitbot-dev-{workspace-hash}
+- Add labels for VS Code compatibility:
+  vsc.local.folder: /workspace/path
+  vsc.quality: stable
+  devcontainer.local_folder: /workspace/path
+  devcontainer.config_file: /workspace/.devcontainer/devcontainer.json
+
+WORKFLOW:
+1. User runs `bitbot` in terminal → creates/attaches to container
+2. User opens VS Code → VS Code detects existing container via labels
+3. VS Code attaches to same container
+4. All terminals share the same container environment
+
+TERMINAL OPTIONS IN VS CODE:
+- Default terminal: Opens inside devcontainer automatically
+- Bitbot terminal: Add VS Code task that runs `bitbot` command
+
+
+3.4 TBD: Parent workspace context inheritance
+----------------------------------------------
+RESEARCH RESULT: Monorepo patterns and nested workspace handling
+
+USE CASES:
+- Monorepo: /project → /project/service-a, /project/service-b
+- Nested projects: /client → /client/packages/ui
+- Shared configuration: parent .gitignore, .editorconfig, etc.
+
+IMPLEMENTATION OPTIONS:
+
+OPTION 1: Inherit Parent MCP Services (RECOMMENDED)
+- Child workspace can access parent's MCP services
+- Parent MCP services exposed via network to child containers
+- Environment variable: BITBOT_PARENT_MCP=tcp://parent-ip:9090
+
+OPTION 2: Shared Configuration Volume
+- Mount parent workspace as read-only: /parent:ro
+- Child can reference parent configs: /parent/.eslintrc
+- Opt-in via: bitbot --inherit-parent
+
+OPTION 3: Context Linking
+- Create .bitbot/parent symlink → parent workspace
+- CLI flag: bitbot --parent-context
+- Parent's global config accessible but not workspace
+
+SECURITY CONSIDERATIONS:
+⚠ Parent access increases attack surface
+⚠ Only allow read-only access to parent
+⚠ Require explicit opt-in (not automatic)
+
+RECOMMENDATION:
+- Start without parent context (simpler)
+- Add as advanced feature in v2
+- Document monorepo patterns using shared global MCP services
+
+
+3.5 TBD: Docker access separation for BitBot components vs user workflows
+--------------------------------------------------------------------------
+RESEARCH RESULT: Namespace isolation and Sysbox runtime
+
+CHALLENGE:
+- BitBot needs Docker for MCP containers
+- User needs Docker for workflows (builds, tests, etc.)
+- Want to prevent user from breaking BitBot's containers
+
+IMPLEMENTATION STRATEGIES:
+
+OPTION 1: Docker Socket Sharing (Current Implementation)
+✓ Simple: Mount same Docker socket
+✓ Fast: Direct access, no overhead
+✗ No Isolation: User can see/kill BitBot containers
+✗ Security: Full Docker access = root on host
+
+OPTION 2: Docker Context Separation (RECOMMENDED)
+- Two Docker contexts: "bitbot" and "user"
+- BitBot containers tagged: com.bitbot.managed=true
+- Wrapper script filters docker commands
+- User context excludes BitBot-managed containers
+
+Example:
+```bash
+# BitBot internal
+docker --context bitbot compose up mcp-registry
+
+# User workflow (filtered)
+bitbot docker build .  # Wrapper filters out bitbot containers
+```
+
+OPTION 3: Nested Docker with Sysbox (Maximum Isolation)
+- BitBot uses host Docker via context
+- User gets separate Docker daemon inside container
+- Full isolation, but requires Sysbox runtime
+- More complex setup
+
+OPTION 4: Two Docker Sockets
+- Host Docker socket: /var/run/docker.sock (BitBot only)
+- User Docker socket: DinD inside container at /var/run/docker-user.sock
+- Environment variable: DOCKER_HOST=unix:///var/run/docker-user.sock
+
+RECOMMENDATION FOR BITBOT:
+Phase 1 (MVP): Docker socket sharing (current)
+  - Document that user has full Docker access
+  - Namespace BitBot containers: bitbot-*
+  - Add protection wrapper: bitbot docker ... (filtered commands)
+
+Phase 2 (Enhanced): Docker context separation
+  - Wrapper script enforces context
+  - Protect BitBot-managed containers
+  - User-friendly error messages
+
+Phase 3 (Advanced): Sysbox runtime option
+  - Full isolation for security-conscious users
+  - Document as advanced setup
+
+
+================================================================
+4. COMMAND-LINE INTERFACE DESIGN
+================================================================
+
+4.1 PRIMARY COMMAND: bitbot
+----------------------------
+
+USAGE:
+  bitbot [OPTIONS] [COMMAND] [ARGS...]
+
+GLOBAL OPTIONS:
+  --mode MODE          Container mode: sketch, work, setup (default: work)
+  --resume            Resume existing session (skip session picker)
+  --new               Force new session (skip session picker)
+  --rebuild           Rebuild container image before starting
+  --pull              Pull latest base image before starting
+  --detach, -d        Start container in detached mode
+  --help, -h          Show help message
+  --version, -v       Show version information
+  --debug             Enable debug logging
+
+COMMANDS:
+  (default)           Enter workspace container (starts if needed, shows session picker)
+  init                Initialize workspace for BitBot
+  start               Start workspace container
+  stop                Stop workspace container
+  restart             Restart workspace container
+  rm                  Remove workspace container
+  logs                Show container logs
+  status              Show workspace status (container running, sessions, etc.)
+  sessions            List tmux sessions in container
+  attach [SESSION]    Attach to specific tmux session
+  exec COMMAND        Execute command in container
+  update              Update BitBot to latest version
+  config              Manage BitBot configuration
+  mcp                 Manage MCP services (list, start, stop, add)
+  docker [ARGS...]    Run Docker command (filtered to protect BitBot containers)
+  setup               Run first-time setup wizard
+
+EXAMPLES:
+  # Start BitBot in current workspace (default work mode)
+  bitbot
+
+  # Start in sketch mode (limited write access)
+  bitbot --mode sketch
+
+  # Start in setup mode (full access to .devcontainer)
+  bitbot --mode setup
+
+  # Resume last session without picker
+  bitbot --resume
+
+  # Force new session
+  bitbot --new
+
+  # Initialize new workspace
+  bitbot init
+
+  # Check status
+  bitbot status
+
+  # List sessions
+  bitbot sessions
+
+  # Attach to specific session
+  bitbot attach session-name
+
+  # Run command in container
+  bitbot exec ls -la
+
+  # Manage MCP services
+  bitbot mcp list
+  bitbot mcp start simple-mcp
+  bitbot mcp add filesystem ./mcp-filesystem
+
+  # Use Docker safely
+  bitbot docker ps
+  bitbot docker build -t myapp .
+
+  # Update BitBot
+  bitbot update
+
+
+4.2 SHORTHAND ALIAS: bb
+------------------------
+  bb              Alias for bitbot
+  bb -h           Show help
+  bb status       Quick status check
+
+
+4.3 CONTAINER MODES: --mode flag
+---------------------------------
+
+┌─────────────────────────────────────────────────────────────┐
+│ MODE: sketch (Lowest permissions)                           │
+├─────────────────────────────────────────────────────────────┤
+│ Use case: Quick experiments, AI-generated code testing      │
+│                                                              │
+│ Permissions:                                                 │
+│   /workspace      Read-only                                  │
+│   /sketch         Read-write (tmpfs, destroyed on exit)      │
+│   .devcontainer   Read-only                                  │
+│   Docker          No access                                  │
+│   Network         Restricted (no external access)            │
+│                                                              │
+│ Safety features:                                             │
+│   - Cannot modify workspace files                            │
+│   - Changes lost on exit (ephemeral)                         │
+│   - No production access possible                            │
+│   - Perfect for "YOLO mode" AI experiments                   │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ MODE: work (Default, balanced permissions)                  │
+├─────────────────────────────────────────────────────────────┤
+│ Use case: Normal development with AI assistance             │
+│                                                              │
+│ Permissions:                                                 │
+│   /workspace      Read-write (except .devcontainer)          │
+│   .devcontainer   Read-only (prevents accidental changes)    │
+│   Docker          Via socket (can run containers)            │
+│   Network         Full access                                │
+│                                                              │
+│ Safety features:                                             │
+│   - Git dirty state warnings                                 │
+│   - Dangerous operation detection                            │
+│   - Audit logging of all AI actions                          │
+│   - Automatic backup before destructive operations           │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ MODE: setup (Full permissions)                              │
+├─────────────────────────────────────────────────────────────┤
+│ Use case: Container configuration, .devcontainer changes     │
+│                                                              │
+│ Permissions:                                                 │
+│   /workspace      Read-write (including .devcontainer)       │
+│   .devcontainer   Read-write                                 │
+│   Docker          Full DinD (can build images)               │
+│   Network         Full access                                │
+│                                                              │
+│ Safety features:                                             │
+│   - Confirmation prompts for destructive operations          │
+│   - Automatic backup of .devcontainer before changes         │
+│   - Audit logging with elevated marker                       │
+└─────────────────────────────────────────────────────────────┘
+
+
+4.4 SESSION MANAGEMENT
+----------------------
+
+SESSION PICKER (default behavior):
+┌─────────────────────────────────────────────────────────────┐
+│ Select a session (or create new):                           │
+│                                                              │
+│  > [New Session]                                             │
+│    session-0 (attached)                                      │
+│    session-1 (detached, 2h ago)                              │
+│    session-feature-auth (detached, 1d ago)                   │
+│                                                              │
+│  Type to filter... (uses fzf)                                │
+└─────────────────────────────────────────────────────────────┘
+
+BEHAVIOR:
+- Default: Show picker with all sessions + "New Session" option
+- --resume: Skip picker, attach to last active session
+- --new: Skip picker, create new session
+- Session names: auto-generated or user-specified
+
+SESSION NAMING:
+- Auto: session-0, session-1, session-2...
+- Named: bitbot --session feature-auth
+- Special: bitbot --session vscode (for VS Code integration)
+
+
+================================================================
+5. ARCHITECTURE RECOMMENDATIONS
+================================================================
+
+5.1 RECOMMENDED ARCHITECTURE REFINEMENTS
+-----------------------------------------
+
+CURRENT ARCHITECTURE (Legacy_Bitbot):
+✓ Dual-layer MCP architecture (global + workspace)
+✓ Docker Compose for service orchestration
+✓ Multi-stage Dockerfile with .NET 8.0 + Node.js 20
+✓ tmux session management
+✓ Workspace hash-based container naming
+
+RECOMMENDED ENHANCEMENTS:
+
+1. ADD: Mode-Specific Docker Compose Profiles
+   - compose.yml with profiles: sketch, work, setup
+   - Single file, mode selected at runtime
+   - Cleaner than multiple compose files
+
+2. ADD: Lifecycle Hooks
+   - onCreateCommand: Run on first container creation
+   - postStartCommand: Run every container start
+   - postAttachCommand: Run after attaching to container
+   Example use: Initialize MCP services, restore tmux sessions
+
+3. ADD: Features System (VS Code DevContainer features)
+   - Optional capabilities as features
+   - Example: "ghcr.io/devcontainers/features/docker-in-docker"
+   - User can customize in .devcontainer/devcontainer.json
+
+4. ADD: Security Profiles
+   - AppArmor profile for work mode
+   - Stricter seccomp profile for sketch mode
+   - Audit logging with OpenTelemetry
+
+5. ADD: Health Checks
+   - Container health check: tmux server running
+   - MCP service health checks: registry responds
+   - Automatic recovery on failure
+
+6. ADD: Pre-built Image Registry
+   - Push pre-built base images to GitHub Container Registry
+   - Users pull instead of building (5-10 minute savings)
+   - Option to build locally if needed
+
+
+5.2 DIRECTORY STRUCTURE
+------------------------
+
+HOST SYSTEM:
+/mnt/c/BitBot/ (WSL) or ~/.local/bitbot/ (Linux/macOS)
+├── bin/
+│   ├── bitbot                 # Main bash script
+│   ├── bitbot.exe             # Windows wrapper (Go)
+│   └── bb                     # Symlink to bitbot
+├── lib/
+│   ├── bitbot-core.sh         # Core logic
+│   ├── platform-detect.sh     # Platform detection
+│   ├── docker-check.sh        # Docker validation
+│   ├── session-manager.sh     # tmux session management
+│   ├── mcp-manager.sh         # MCP service management
+│   └── mode-manager.sh        # Mode switching logic
+├── global/
+│   ├── mcp/
+│   │   └── docker-compose.yml # Global MCP services
+│   ├── config/
+│   │   ├── claude-code/       # Claude Code global config
+│   │   ├── aider/             # Aider global config
+│   │   └── shared.json        # Shared AI agent settings
+│   └── shell/
+│       ├── .zshrc.shared      # Shared shell config
+│       └── history/           # Per-workspace shell history
+├── devcontainer-base/
+│   ├── Dockerfile.base        # Base image
+│   ├── docker-compose.yml     # Workspace container (with profiles)
+│   ├── devcontainer.json      # VS Code template
+│   └── bitbot/
+│       ├── bitbot             # Inner container script
+│       ├── entrypoint.sh      # Container entrypoint
+│       ├── workspace-mcp.sh   # Workspace MCP manager
+│       └── tmux.conf          # tmux configuration
+├── shared/                    # Shared MCP service implementations
+│   ├── registry/
+│   ├── simple-mcp/
+│   └── tools/
+└── templates/                 # New workspace templates
+    ├── python/
+    ├── nodejs/
+    ├── dotnet/
+    └── custom/
+
+WORKSPACE STRUCTURE:
+/path/to/project/
+├── .bitbot/
+│   ├── config.json            # Workspace configuration
+│   ├── workspace-hash.txt     # Stable workspace identifier
+│   ├── mode-history.log       # Mode switch audit log
+│   ├── history/               # Shell history (bind mounted, portable)
+│   ├── tmux-resurrect/        # tmux session data (bind mounted, portable)
+│   ├── logs/                  # Audit logs (bind mounted, portable)
+│   └── mcp/
+│       └── docker-compose.yml # Workspace-specific MCP services
+├── .devcontainer/
+│   ├── devcontainer.json      # Generated on first run
+│   └── Dockerfile             # Optional custom extensions
+├── .gitignore                 # Should include .bitbot/ (except config.json)
+└── (project files)
+
+NOTE: All state is stored in .bitbot/ subdirectories for true portability.
+When you clone/backup the workspace, all history and state travels with it.
+
+
+5.3 CONTAINER ARCHITECTURE
+---------------------------
+
+┌─────────────────────────────────────────────────────────────┐
+│ HOST MACHINE                                                 │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │ Global MCP Services (ports 8080, 8090)                 │ │
+│  │  - MCP Registry                                        │ │
+│  │  - MCP Gateway                                         │ │
+│  │  - Shared MCP Servers (filesystem, git, etc.)         │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                             ↓                                │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │ DevContainer: bitbot-dev-{workspace-hash}              │ │
+│  │                                                        │ │
+│  │  ┌──────────────────────────────────────────────────┐ │ │
+│  │  │ AI Agent (Claude Code, Aider, etc.)              │ │ │
+│  │  │  - Runs in tmux session                          │ │ │
+│  │  │  - Accesses MCP services                         │ │ │
+│  │  │  - Isolated by mode permissions                  │ │ │
+│  │  └──────────────────────────────────────────────────┘ │ │
+│  │                                                        │ │
+│  │  ┌──────────────────────────────────────────────────┐ │ │
+│  │  │ Workspace MCP Services (ports 9080, 9090)        │ │ │
+│  │  │  - MCP Registry (workspace-specific)             │ │ │
+│  │  │  - MCP Gateway                                   │ │ │
+│  │  │  - Project-specific MCP servers                  │ │ │
+│  │  └──────────────────────────────────────────────────┘ │ │
+│  │                                                        │ │
+│  │  ┌──────────────────────────────────────────────────┐ │ │
+│  │  │ tmux Server                                      │ │ │
+│  │  │  - Multiple sessions (session-0, session-1...)  │ │ │
+│  │  │  - Persistent via tmux-resurrect                │ │ │
+│  │  │  - History per workspace                        │ │ │
+│  │  └──────────────────────────────────────────────────┘ │ │
+│  │                                                        │ │
+│  │  Volumes (Bind Mounts):                                 │ │
+│  │   - /workspace → /project (mode-dependent perms)     │ │
+│  │   - /root/.zsh_history → /project/.bitbot/history/  │ │
+│  │   - /root/.tmux → /project/.bitbot/tmux-resurrect/  │ │
+│  │   - /bitbot/logs → /project/.bitbot/logs/           │ │
+│  │   - /bitbot-config → ~/.config/bitbot (read-only)   │ │
+│  │   - /var/run/docker.sock (Docker socket)            │ │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+
+
+================================================================
+6. TECHNOLOGY STACK DECISIONS
+================================================================
+
+6.0 LEVERAGING OFFICIAL DEVCONTAINER TOOLS
+-------------------------------------------
+
+IMPORTANT DISCOVERY: Official tools exist for devcontainer management from CLI
+
+OPTION 1: @devcontainers/cli (Official Microsoft Reference Implementation)
+--------------------------------------------------------------------------
+Repository: https://github.com/devcontainers/cli
+Package: npm install -g @devcontainers/cli
+
+WHAT IT PROVIDES:
+✓ Official reference implementation of Dev Containers spec
+✓ devcontainer up - spins up containers with devcontainer.json settings
+✓ devcontainer exec - executes commands with proper env/user context
+✓ devcontainer build - builds/pre-builds container images
+✓ devcontainer read-configuration - outputs workspace settings
+✓ Lifecycle management for postCreateCommand, etc.
+✓ Same behavior as VS Code Remote-Containers
+
+KEY COMMANDS:
+  devcontainer up --workspace-folder .
+  devcontainer exec --workspace-folder . bash
+  devcontainer build --workspace-folder .
+
+PROS FOR BITBOT:
+✓ Official, standards-compliant tool
+✓ Maintained by VS Code/DevContainers team
+✓ Lightweight (npm package)
+✓ Full control over session management layer
+✓ Less maintenance burden (Docker orchestration handled)
+✓ Direct devcontainer.json support
+
+CONS:
+✗ No built-in tmux/session management
+✗ Less abstraction (closer to raw Docker)
+✗ No workspace management features
+✗ Requires Node.js/npm
+
+
+OPTION 2: DevPod (Loft Labs)
+-----------------------------
+Website: https://devpod.sh
+Repository: https://github.com/loft-sh/devpod
+
+WHAT IT PROVIDES:
+✓ High-level devcontainer workspace manager
+✓ Multi-backend support (local Docker, SSH, cloud providers)
+✓ Desktop GUI + CLI
+✓ Workspace lifecycle management
+✓ Auto-shutdown, prebuilds, credential sync
+✓ Cross-IDE compatibility (VS Code, JetBrains, SSH)
+✓ Client-only (no server backend)
+✓ 5-10x cheaper than GitHub Codespaces
+
+KEY COMMANDS:
+  devpod up .                    # Start workspace
+  devpod ssh default             # SSH into workspace
+  devpod list                    # List workspaces
+  devpod stop default            # Stop workspace
+
+PROS FOR BITBOT:
+✓ Higher-level workspace abstraction
+✓ Built-in workspace management
+✓ Multi-backend flexibility
+✓ Active development and community
+
+CONS:
+✗ Additional layer of abstraction
+✗ Less direct control
+✗ Still no native tmux session management
+✗ Heavier dependency
+
+
+RECOMMENDATION FOR BITBOT:
+--------------------------
+
+HYBRID APPROACH (Recommended):
+Use @devcontainers/cli as foundation, add BitBot features on top
+
+Architecture:
+┌─────────────────────────────────────────────────────────┐
+│ BitBot CLI (bash)                                       │
+│  - Session picker (fzf)                                 │
+│  - Mode switching (sketch/work/setup)                   │
+│  - MCP service management                               │
+│  - tmux session orchestration                           │
+│  - Audit logging                                        │
+└─────────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────┐
+│ @devcontainers/cli                                      │
+│  - Container lifecycle (up, down, rebuild)              │
+│  - devcontainer.json parsing                            │
+│  - Image building                                       │
+│  - Lifecycle hooks (postCreateCommand, etc.)            │
+└─────────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────┐
+│ Docker / Docker Compose                                 │
+└─────────────────────────────────────────────────────────┘
+
+INTEGRATION EXAMPLE:
+#!/bin/bash
+# BitBot wraps devcontainer CLI
+
+# Start container using official CLI
+devcontainer up --workspace-folder "$WORKSPACE_DIR"
+
+# Get container ID
+CONTAINER_ID=$(devcontainer up --workspace-folder "$WORKSPACE_DIR" | grep "container ID")
+
+# Launch BitBot session management inside
+devcontainer exec --workspace-folder "$WORKSPACE_DIR" \
+  bash -c "tmux new-session -A -s bitbot-session"
+
+BENEFITS:
+✓ Standards compliance (official tool)
+✓ Less maintenance (container logic handled by MS)
+✓ Focus BitBot on unique value: session management, MCP, modes
+✓ Easier to keep up with devcontainer spec changes
+✓ Better VS Code compatibility
+
+CONSIDERATIONS:
+⚠ Requires Node.js/npm (already needed for Claude Code)
+⚠ Need to ensure @devcontainers/cli supports all required features
+⚠ May need to contribute upstream for missing features
+
+ALTERNATIVE: Keep custom Docker/Compose implementation
+If @devcontainers/cli proves insufficient, current approach is solid.
+Decision point: Phase 1 prototype to validate integration feasibility.
+
+
+6.1 FINALIZED TECHNOLOGY STACK
+-------------------------------
+
+CONTAINER RUNTIME:
+✓ Docker / Docker Desktop (Windows/macOS) or Docker Engine (Linux)
+✓ Docker Compose v2 (plugin, not standalone)
+
+CONTAINER BASE:
+✓ .NET 8.0 SDK as base (already in use)
+  - Provides: .NET runtime, build tools, common utilities
+✓ Node.js 20.x LTS (for Claude Code and npm-based tools)
+✓ Python 3.11+ (for MCP services)
+
+SHELL & TERMINAL:
+✓ zsh (better interactive experience than bash)
+✓ tmux (session management)
+✓ fzf (session picker, fuzzy finding)
+
+AI AGENTS (Supported):
+✓ Claude Code (npm package, primary)
+✓ Aider (Python package)
+✓ Open Code (TBD: pending availability)
+- Extensible: Additional agents can be added via config
+
+MCP SERVICES:
+✓ Python-based MCP servers (official SDK)
+✓ TypeScript/JavaScript MCP servers (official SDK)
+✓ Docker Compose for orchestration
+
+SCRIPTING:
+✓ Bash for host-side scripts (maximum compatibility)
+✓ Bash for container-side scripts (no extra dependencies)
+✓ Go for minimal Windows .exe wrapper
+
+DISTRIBUTION:
+✓ Bash scripts + minimal wrappers
+✓ GitHub Releases for versioned archives
+✓ curl | bash installer for quick setup
+✓ Future: Package managers (brew, choco, apt)
+
+LOGGING & OBSERVABILITY:
+✓ Structured logging to ~/.bitbot/logs/
+✓ OpenTelemetry (future enhancement)
+✓ JSON format for machine-readable logs
+
+TESTING:
+✓ Bash automated test suite (already implemented)
+✓ ShellCheck for static analysis
+✓ Integration tests for workflows
+
+
+6.2 REJECTED ALTERNATIVES
+--------------------------
+
+❌ Podman instead of Docker
+   Reason: Docker Desktop is industry standard, better WSL2 integration
+
+❌ Python for main CLI implementation
+   Reason: Adds dependency, bash is universal on target platforms
+
+❌ Rust/Go for main CLI implementation
+   Reason: Requires compilation, harder to modify, bash sufficient
+
+❌ Screen instead of tmux
+   Reason: tmux has better ecosystem, more features, active development
+
+❌ Zellij instead of tmux
+   Reason: Newer, larger footprint, smaller ecosystem (may reconsider in future)
+
+❌ Separate Docker daemon (DinD) by default
+   Reason: Complexity, performance overhead, security no better without Sysbox
+
+❌ Kubernetes for orchestration
+   Reason: Massive overkill for single-machine dev environment
+
+
+================================================================
+7. SECURITY & SAFETY ARCHITECTURE
+================================================================
+
+7.1 THREAT MODEL
+----------------
+
+THREATS IN SCOPE:
+1. AI agent generates malicious code (intentional or hallucinated)
+2. AI agent accidentally deletes important files
+3. AI agent modifies .devcontainer breaking environment
+4. User runs AI in YOLO mode without understanding risks
+5. MCP service vulnerability exploited by AI
+6. Supply chain attack via malicious MCP server
+
+THREATS OUT OF SCOPE:
+1. Compromised Docker daemon on host
+2. Host kernel vulnerabilities
+3. Physical access to machine
+4. Social engineering of user
+
+
+7.2 DEFENSE LAYERS
+------------------
+
+LAYER 1: INPUT VALIDATION
+- Sanitize all AI inputs before execution
+- Validate file paths (no ../ escapes, no /etc access)
+- Validate commands (no rm -rf /, no dd if=/dev/zero)
+
+LAYER 2: ALLOWLIST-BASED PERMISSIONS
+- Allowed tools: git, npm, dotnet, common dev tools
+- Denied tools: curl | bash, eval, exec without review
+- Configurable per workspace: .bitbot/allowed-tools.json
+
+LAYER 3: CONTAINER ISOLATION
+- Docker container as primary boundary
+- Limited capabilities (drop CAP_SYS_ADMIN, etc.)
+- Seccomp profile to restrict syscalls
+
+LAYER 4: FILESYSTEM RESTRICTIONS
+- Mode-based mount permissions (sketch/work/setup)
+- Read-only .devcontainer in work mode
+- Path validation in AI tool calls
+
+LAYER 5: NETWORK ISOLATION
+- Egress filtering in sketch mode (no internet)
+- MCP services only accessible via localhost
+- No production database access from dev containers
+
+LAYER 6: SYSCALL FILTERING
+- Seccomp profiles per mode
+- Block dangerous syscalls: ptrace, mount, reboot
+
+LAYER 7: AUDIT LOGGING
+- Log all AI actions with timestamps
+- Log mode switches with reason
+- Log MCP tool invocations
+- Structured JSON format for analysis
+
+LAYER 8: ROLLBACK MECHANISMS
+- Git auto-commits before AI operations
+- Snapshots before destructive operations
+- Easy rollback: bitbot rollback [timestamp]
+
+
+7.3 DANGEROUS OPERATION DETECTION
+----------------------------------
+
+COMMAND ANALYSIS:
+- Regex patterns for destructive commands
+- Behavioral anomaly detection (too many files modified)
+- Step-up authentication for high-risk operations
+
+ALWAYS REQUIRE CONFIRMATION:
+✓ rm -rf, rm *
+✓ DROP TABLE, DELETE FROM without WHERE
+✓ git push --force to main/master
+✓ Production deployments (kubectl apply, terraform apply)
+✓ Modifying .bitbot/ or .devcontainer/
+✓ Installing system packages (apt, yum)
+
+AUTO-APPROVE IN WORK MODE:
+✓ File edits in workspace
+✓ Git commits, branch creation
+✓ Running tests
+✓ Starting dev servers
+✓ Installing project dependencies (npm install, dotnet restore)
+
+DENY IN SKETCH MODE:
+✗ Any filesystem writes outside /sketch
+✗ Network access
+✗ Docker commands
+✗ MCP tool calls
+
+
+7.4 AUDIT LOGGING SCHEMA
+-------------------------
+
+LOG FORMAT: JSON Lines (.jsonl)
+
+EXAMPLE LOG ENTRY:
+{
+  "timestamp": "2025-01-15T10:23:45.123Z",
+  "level": "info",
+  "event": "ai_command",
+  "workspace": "/mnt/c/Projects/myapp",
+  "workspace_hash": "a3f2b9c1",
+  "container": "bitbot-dev-a3f2b9c1",
+  "mode": "work",
+  "session": "session-0",
+  "agent": "claude-code",
+  "command": "git commit -m 'Add feature'",
+  "approved": true,
+  "approval_method": "auto",
+  "result": "success",
+  "duration_ms": 234
+}
+
+LOG ROTATION:
+- Rotate daily: bitbot-2025-01-15.jsonl
+- Keep 30 days by default (configurable)
+- Compress old logs: bitbot-2025-01-01.jsonl.gz
+
+
+================================================================
+8. DISTRIBUTION & INSTALLATION STRATEGY
+================================================================
+
+8.1 RELEASE ARTIFACTS
+----------------------
+
+GITHUB RELEASE STRUCTURE:
+bitbot-v1.0.0/
+├── bitbot-linux-amd64.tar.gz
+├── bitbot-linux-arm64.tar.gz
+├── bitbot-darwin-amd64.tar.gz
+├── bitbot-darwin-arm64.tar.gz
+├── bitbot-windows-amd64.zip
+├── checksums.txt (SHA256 of all archives)
+└── checksums.txt.sig (GPG signature)
+
+ARCHIVE CONTENTS:
+bitbot/
+├── bin/
+│   ├── bitbot              # Main bash script
+│   ├── bitbot.exe          # Windows wrapper (only in Windows archive)
+│   └── bb                  # Symlink
+├── lib/                    # Helper scripts
+├── global/                 # Global MCP services
+├── devcontainer-base/      # Container definitions
+├── shared/                 # Shared MCP implementations
+├── templates/              # Workspace templates
+├── LICENSE
+└── README.md
+
+
+8.2 INSTALLATION METHODS
+-------------------------
+
+METHOD 1: Quick Install (Recommended)
+curl -fsSL https://install.bitbot.dev | bash
+
+Behavior:
+- Detects platform (WSL2, macOS, Linux)
+- Downloads appropriate archive
+- Extracts to ~/.local/bitbot or /usr/local/bitbot
+- Adds to PATH in shell config
+- Runs first-time setup wizard
+- Verifies Docker availability
+
+METHOD 2: Manual Download
+1. Download archive from GitHub Releases
+2. Extract: tar -xzf bitbot-linux-amd64.tar.gz
+3. Run installer: cd bitbot && ./install.sh
+4. Follow prompts
+
+METHOD 3: Package Managers (Future)
+# macOS
+brew install bitbot
+
+# Windows
+choco install bitbot
+winget install bitbot
+
+# Linux
+sudo apt install bitbot       # Debian/Ubuntu
+sudo yum install bitbot       # RHEL/CentOS
+sudo pacman -S bitbot         # Arch
+
+# Universal (if distributed via npm)
+npm install -g bitbot
+
+
+8.3 WINDOWS INSTALLATION
+-------------------------
+
+WINDOWS .EXE WRAPPER (Go):
+```go
+// bitbot.exe - Minimal Windows wrapper
+package main
+
+import (
+    "os"
+    "os/exec"
+    "path/filepath"
+)
+
+func main() {
+    // Get directory of this executable
+    exePath, _ := os.Executable()
+    exeDir := filepath.Dir(exePath)
+    scriptPath := filepath.Join(exeDir, "bitbot")
+
+    // Run in WSL
+    cmd := exec.Command("wsl", "bash", scriptPath)
+    cmd.Args = append(cmd.Args, os.Args[1:]...)
+    cmd.Stdin = os.Stdin
+    cmd.Stdout = os.Stdout
+    cmd.Stderr = os.Stderr
+
+    if err := cmd.Run(); err != nil {
+        os.Exit(1)
+    }
+}
+```
+
+Build command:
+GOOS=windows GOARCH=amd64 go build -o bitbot.exe -ldflags "-s -w" bitbot.go
+
+SIZE: ~1-2MB statically linked Go executable
+
+
+8.4 UPDATE MECHANISM
+--------------------
+
+COMMAND: bitbot update
+
+BEHAVIOR:
+1. Check current version: cat ~/.local/bitbot/VERSION
+2. Fetch latest version from GitHub API
+3. Compare versions
+4. If newer available:
+   a. Show changelog
+   b. Ask for confirmation
+   c. Download new archive
+   d. Backup current installation
+   e. Extract new version
+   f. Verify installation
+   g. Clean up old backup (keep last 2)
+
+AUTO-UPDATE CHECK:
+- Check on startup (once per day max)
+- Show notification if update available
+- Don't auto-update without confirmation
+
+
+================================================================
+9. ADDITIONAL FEATURES FOR MVP
+================================================================
+
+Based on research and competitive analysis, these features should be added to MVP:
+
+9.1 WORKSPACE TEMPLATES
+-----------------------
+FEATURE: Quickly initialize new projects with best practices
+
+USAGE:
+  bitbot init --template python
+  bitbot init --template nodejs
+  bitbot init --template dotnet
+
+TEMPLATES INCLUDED:
+- python (Flask/FastAPI boilerplate)
+- nodejs (Express/Next.js boilerplate)
+- dotnet (ASP.NET Core boilerplate)
+- empty (minimal .devcontainer only)
+
+Each template includes:
+- Pre-configured .devcontainer/
+- Sample .bitbot/config.json
+- Recommended MCP services
+- .gitignore with BitBot exclusions
+
+
+9.2 HEALTH CHECKS & STATUS
+---------------------------
+FEATURE: Monitor container and service health
+
+COMMAND: bitbot status
+
+OUTPUT:
+┌─────────────────────────────────────────┐
+│ Workspace: /mnt/c/Projects/myapp        │
+│ Container: bitbot-dev-a3f2b9c1          │
+│ Status: Running (uptime: 2h 34m)        │
+│ Mode: work                              │
+├─────────────────────────────────────────┤
+│ Sessions:                               │
+│  ✓ session-0 (attached)                 │
+│  ✓ session-1 (detached)                 │
+├─────────────────────────────────────────┤
+│ Global MCP Services:                    │
+│  ✓ registry (port 8080)                 │
+│  ✓ gateway (port 8090)                  │
+│  ✓ simple-mcp                           │
+├─────────────────────────────────────────┤
+│ Workspace MCP Services:                 │
+│  ✓ registry (port 9080)                 │
+│  ✓ gateway (port 9090)                  │
+│  ✗ custom-mcp (not running)             │
+└─────────────────────────────────────────┘
+
+
+9.3 MCP SERVICE MANAGEMENT
+---------------------------
+FEATURE: Easy management of MCP services
+
+COMMANDS:
+  bitbot mcp list                    List all MCP services
+  bitbot mcp start SERVICE           Start a service
+  bitbot mcp stop SERVICE            Stop a service
+  bitbot mcp restart SERVICE         Restart a service
+  bitbot mcp logs SERVICE            Show service logs
+  bitbot mcp add URL                 Add new MCP service from URL
+  bitbot mcp remove SERVICE          Remove service
+
+EXAMPLE WORKFLOW:
+# Add custom MCP service
+bitbot mcp add https://github.com/user/my-mcp-server
+
+# This downloads, configures, and starts the MCP service
+# Adds to .bitbot/mcp/docker-compose.yml
+
+
+9.4 SNAPSHOT & ROLLBACK
+------------------------
+FEATURE: Easy rollback to previous state
+
+COMMANDS:
+  bitbot snapshot [NAME]             Create a snapshot
+  bitbot snapshots                   List snapshots
+  bitbot rollback [SNAPSHOT]         Rollback to snapshot
+
+IMPLEMENTATION:
+- Git-based: Create automatic commits
+- Each AI operation tagged: refs/bitbot/snapshot-{timestamp}
+- Rollback: git reset --hard refs/bitbot/snapshot-123456
+- Show diff before rolling back
+
+
+9.5 CONFIGURATION PROFILES
+---------------------------
+FEATURE: Switch between different configurations
+
+USAGE:
+  bitbot --profile production
+  bitbot --profile staging
+
+PROFILE LOCATIONS:
+- .bitbot/profiles/production.json
+- .bitbot/profiles/staging.json
+
+PROFILE CONTENTS:
+{
+  "mode": "work",
+  "mcp_services": ["production-db", "cache"],
+  "env": {
+    "DATABASE_URL": "...",
+    "API_KEY": "..."
+  },
+  "restrictions": {
+    "require_approval": ["deploy", "migrate"]
+  }
+}
+
+
+9.6 WORKSPACE SYNC
+-------------------
+FEATURE: Sync BitBot configuration across team
+
+USAGE:
+  bitbot sync push           Push .bitbot/ config to Git
+  bitbot sync pull           Pull .bitbot/ config from Git
+
+BEHAVIOR:
+- Push: Commits .bitbot/ (excluding secrets) to workspace repo
+- Pull: Updates local .bitbot/ from repo
+- Enables team to share MCP services, templates, configurations
+
+
+9.7 DRY RUN MODE
+----------------
+FEATURE: Preview what AI agent will do without executing
+
+USAGE:
+  bitbot --dry-run
+
+BEHAVIOR:
+- AI generates commands as normal
+- Commands are logged but not executed
+- Show what would happen
+- Useful for learning, testing, demos
+
+
+9.8 INTERACTIVE MODE WIZARD
+----------------------------
+FEATURE: User-friendly wizard for first-time users
+
+TRIGGERED:
+- First run in new workspace
+- bitbot init command
+
+WIZARD FLOW:
+1. Detect project type (Python, Node.js, .NET, etc.)
+2. Suggest template
+3. Configure MCP services (which ones to enable)
+4. Choose AI agent (Claude Code, Aider, etc.)
+5. Set default mode (sketch, work, setup)
+6. Generate .devcontainer/
+7. Start container
+
+
+9.9 SHELL INTEGRATION
+----------------------
+FEATURE: Enhanced shell experience
+
+FEATURES:
+- Tab completion for bitbot commands
+- Shell prompt showing current mode
+- Shortcut commands in shell
+
+IMPLEMENTATION:
+# .bashrc / .zshrc additions
+eval "$(bitbot completion bash)"     # Tab completion
+
+# Custom prompt showing mode
+PS1='[bitbot:${BITBOT_MODE}] ${PS1}'
+
+# Shell functions
+alias bbw='bitbot --mode work'
+alias bbs='bitbot --mode sketch'
+alias bbsetup='bitbot --mode setup'
+
+
+================================================================
+10. IMPLEMENTATION ROADMAP
+================================================================
+
+10.1 PHASES
+-----------
+
+PHASE 1: MVP Completion (4-6 weeks)
+Refine existing implementation, add missing features
+
+DECISION POINT: Choose container orchestration approach
+□ Prototype integration with @devcontainers/cli (recommended)
+□ OR continue with custom Docker/Compose implementation
+□ Evaluate: feature completeness, complexity, maintainability
+□ Document decision and rationale
+
+Tasks:
+□ [If using @devcontainers/cli] Create wrapper integration layer
+□ [If custom] Refine existing Docker Compose implementation
+□ Implement sketch/work/setup modes with Docker Compose profiles
+□ Add mode switching safeguards and confirmation prompts
+□ Implement session picker with fzf integration
+□ Add audit logging to ~/.bitbot/logs/
+□ Create curl | bash installer
+□ Build Windows .exe wrapper in Go
+□ Add `bb` shorthand alias
+□ Implement bitbot status command
+□ Implement bitbot mcp management commands
+□ Add workspace templates (python, nodejs, dotnet, empty)
+□ Documentation: comprehensive README, getting started guide
+□ Testing: validate on WSL2, macOS, Linux
+
+PHASE 2: Security & Safety Enhancements (2-3 weeks)
+Add defense layers and safety features
+
+Tasks:
+□ Implement dangerous operation detection
+□ Add Git auto-commit safety net
+□ Implement snapshot & rollback functionality
+□ Add AppArmor/Seccomp security profiles
+□ Implement MCP service authentication
+□ Add input validation for all AI commands
+□ Implement allowlist-based tool permissions
+□ Documentation: security architecture, threat model
+
+PHASE 3: Distribution & Polish (2-3 weeks)
+Package and distribute for easy adoption
+
+Tasks:
+□ Create GitHub Actions CI/CD pipeline
+□ Build multi-platform releases (Linux, macOS, Windows)
+□ Publish to GitHub Container Registry (pre-built images)
+□ Create Homebrew formula (macOS)
+□ Create Chocolatey package (Windows)
+□ Create installation video walkthrough
+□ Website with documentation
+□ Example projects and tutorials
+
+PHASE 4: Advanced Features (4-6 weeks)
+Add nice-to-have features for power users
+
+Tasks:
+□ Configuration profiles
+□ Workspace sync functionality
+□ Dry run mode
+□ Interactive mode wizard
+□ Shell integration (tab completion, prompt)
+□ Parent workspace context inheritance
+□ Sysbox runtime support (secure DinD)
+□ OpenTelemetry observability integration
+□ MCP service marketplace integration
+
+
+10.2 RELEASE PLAN
+-----------------
+
+v0.9.0 (Beta) - MVP Completion
+- Core functionality complete
+- Documentation complete
+- Tested on all platforms
+- Limited public beta (100 users)
+
+v1.0.0 (GA) - General Availability
+- Security enhancements complete
+- Production-ready
+- Public release
+- Package manager distribution
+
+v1.1.0 - Polish & Usability
+- Advanced features from Phase 4
+- Community feedback incorporated
+- Performance optimizations
+
+v1.2.0 - Ecosystem Expansion
+- Additional AI agent support
+- MCP service marketplace
+- Community templates and plugins
+
+
+================================================================
+11. NEXT STEPS: PHASE 1 SPECIFICATION
+================================================================
+
+With Phase 0 (Research & Discovery) now complete, the next step is to create detailed Phase 1 specifications.
+
+11.1 PHASE 1 DELIVERABLES
+--------------------------
+
+1. FUNCTIONAL REQUIREMENTS DOCUMENT
+   - User stories with acceptance criteria
+   - Detailed command specifications
+   - Mode behavior specifications
+   - Error handling requirements
+   - Performance requirements
+
+2. NON-FUNCTIONAL REQUIREMENTS
+   - Performance targets (container startup time, etc.)
+   - Security requirements (threat model, compliance)
+   - Usability requirements (first-run experience, etc.)
+   - Compatibility requirements (OS versions, Docker versions)
+   - Scalability requirements (workspace limits, etc.)
+
+3. TECHNICAL CONSTRAINTS
+   - Minimum Docker version: 20.10+
+   - Minimum Docker Compose version: 2.0+
+   - Supported platforms: Ubuntu 20.04+, macOS 12+, Windows 11 WSL2
+   - Supported shells: bash 4+, zsh 5+
+   - Container size budget: Base image < 2GB
+
+4. API & INTERFACE SPECIFICATIONS
+   - CLI command reference (detailed for every command)
+   - Configuration file schemas (.bitbot/config.json)
+   - MCP service interface specifications
+   - Environment variable reference
+   - Exit codes and error messages
+
+5. USER STORIES
+   Examples:
+   - As a developer, I want to start BitBot with one command so that I can quickly begin working with AI assistance
+   - As a security-conscious user, I want sketch mode so that I can experiment with AI without risk to my codebase
+   - As a team member, I want to share BitBot configuration so that my team has consistent MCP services
+
+6. ACCEPTANCE CRITERIA
+   For each user story, define:
+   - Given (preconditions)
+   - When (action)
+   - Then (expected outcome)
+
+7. PERFORMANCE TARGETS
+   - Container startup: < 5 seconds (with cached image)
+   - Session attach: < 1 second
+   - Mode switch: < 2 seconds
+   - MCP service start: < 3 seconds
+
+8. TEST PLAN
+   - Unit tests for bash functions
+   - Integration tests for workflows
+   - Cross-platform tests (WSL2, macOS, Linux)
+   - Performance tests (startup time, etc.)
+   - Security tests (permission enforcement, etc.)
+
+
+11.2 RECOMMENDED APPROACH
+--------------------------
+
+1. Review all Phase 0 research documents
+2. Prioritize features for MVP (use MoSCoW method)
+   - Must have
+   - Should have
+   - Could have
+   - Won't have (for MVP)
+3. Write detailed user stories with acceptance criteria
+4. Create wireframes/mockups for CLI interactions
+5. Define all configuration file schemas
+6. Specify error messages and exit codes
+7. Create test plan with coverage targets
+8. Review with stakeholders
+9. Move to Phase 2: Pseudocode
+
+
+11.3 QUESTIONS TO ANSWER IN PHASE 1
+------------------------------------
+
+ARCHITECTURAL DECISIONS:
+1. Do we integrate with @devcontainers/cli or keep custom implementation?
+2. If @devcontainers/cli, what features are missing that we need?
+3. Can @devcontainers/cli support our mode switching (sketch/work/setup)?
+4. Does @devcontainers/cli provide enough container introspection?
+
+COMPATIBILITY & SUPPORT:
+5. What is the minimum Docker version we support?
+6. Do we support Podman as an alternative to Docker?
+7. What AI agents do we support in MVP? (Just Claude Code, or also Aider?)
+8. Do we support Windows native (non-WSL) in MVP?
+
+BEHAVIOR & DEFAULTS:
+9. What is the default mode if user doesn't specify?
+10. How do we handle existing .devcontainer/ in workspace?
+11. What happens if user has conflicting Docker containers?
+12. Do we support nested BitBot workspaces?
+
+FEATURES & CONTENT:
+13. What MCP services are included by default?
+14. What templates are included in MVP?
+15. Should we support DevPod as an alternative backend in the future?
+
+
+================================================================
+APPENDIX: DETAILED RESEARCH REFERENCES
+================================================================
+
+The following comprehensive research documents were created during Phase 0:
+
+1. container-dev-environment-research.md (70+ pages)
+   - DevContainer specification
+   - GitHub Codespaces architecture
+   - Gitpod workspace patterns
+   - VS Code Remote Containers
+   - Best practices and optimization
+
+2. AI_AGENT_SAFETY_ARCHITECTURE.md (53,000+ tokens)
+   - AI coding assistant analysis (Claude Code, Aider, Cursor, Devin)
+   - Safety architecture patterns
+   - Permission and approval models
+   - Sandbox and isolation techniques
+   - YOLO mode vs Safe mode
+   - Rollback and recovery strategies
+   - Multi-agent coordination
+
+3. MCP_ARCHITECTURE_RESEARCH.md (63,000+ tokens)
+   - MCP protocol specification
+   - Service discovery patterns
+   - Tool integration
+   - Security and isolation
+   - Deployment patterns
+   - Multi-tenant architecture
+
+4. cross-platform-cli-research.md (Inline in this document, Section 2.4)
+   - Bash script portability
+   - WSL2 integration patterns
+   - Installation and PATH setup
+   - Platform detection
+   - Distribution strategies
+
+5. terminal-session-management-research.md (Comprehensive report)
+   - tmux vs screen vs zellij
+   - Session persistence and resumability
+   - Multi-session orchestration
+   - Automation and scripting
+   - Container integration
+   - History management
+
+6. docker-in-docker-research.md (Detailed security analysis)
+   - DinD architecture
+   - Security comparison (DinD vs socket mounting)
+   - Privileged vs unprivileged containers
+   - Network and storage isolation
+   - Alternatives (Kaniko, BuildKit, Podman, Sysbox)
+
+7. CONTAINER_ISOLATION_RESEARCH.md (60+ pages)
+   - Mount modes and permissions
+   - Linux namespaces
+   - Capabilities and security profiles
+   - User mapping strategies
+   - Multi-mode architecture patterns
+   - Filesystem restrictions
+   - Safety and recovery patterns
+
+
+================================================================
+END OF PHASE 0 RESEARCH DOCUMENTATION
+================================================================
+
+This completes the Phase 0 Research & Discovery phase for BitBot.
+
+Next Action: Begin Phase 1 Specification
+- Create functional requirements document
+- Write detailed user stories
+- Define acceptance criteria
+- Specify configurations and interfaces
+
+Author: Claude (AI Assistant)
+Date: 2025-01-15
+Version: 1.0
+Status: Phase 0 Complete, Ready for Phase 1

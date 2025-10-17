@@ -1,0 +1,66 @@
+# Build outputs
+build/
+dist/
+out/
+target/
+bin/
+obj/
+*.o
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Dependencies
+node_modules/
+vendor/
+.pnp/
+.pnp.js
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~.nib
+*.cache
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets.yml
+credentials.json
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Test coverage
+coverage/
+*.cover
+.coverage
+htmlcov/
+
+# Package manager lock files (uncomment if needed)
+# package-lock.json
+# yarn.lock
+# Gemfile.lock
