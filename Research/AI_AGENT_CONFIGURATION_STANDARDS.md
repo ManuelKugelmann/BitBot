@@ -9,6 +9,12 @@ The AI coding assistant landscape is consolidating around **AGENTS.md** as an em
 
 **Key Finding:** Use AGENTS.md as the primary configuration file and maintain tool-specific files (.claude, .github/copilot-instructions.md, etc.) for advanced features.
 
+**New Developments:**
+- **VS Code Open Source Initiative:** Microsoft open-sourced GitHub Copilot Chat extension (June 2025)
+- **Native Agent Mode:** VS Code now includes built-in agentic capabilities with MCP support (April 2025)
+- **Open Source Extensions:** Continue.dev and Cline lead the free, model-agnostic agentic coding space
+- **Multi-Agent Orchestration:** Claude Flow enables coordinating multiple AI agents for complex workflows
+
 ---
 
 ## Universal Standards
@@ -318,16 +324,379 @@ See ./AGENTS.md for project instructions
 
 ---
 
+### 6. VS Code Agentic Extensions
+
+**Vendor:** Open Source Community
+**Platform:** VS Code / VSCodium
+**Status:** Microsoft announced open-sourcing GitHub Copilot Chat extension (June 2025)
+
+#### Overview
+
+VS Code has become a platform for multiple agentic AI extensions. The six most-installed agentic AI tools include: Cline, BLACKBOXAI Agent, Continue, Codex, Roo Code, and Qodo Gen.
+
+**Key Development:** VS Code now includes native Agent Mode (April 2025) supporting Model Context Protocol (MCP), enabling extensions to create autonomous coding agents.
+
+#### Popular Agentic Extensions
+
+##### Continue.dev (Open Source, Recommended)
+
+**Status:** Open source, model-agnostic
+**Configuration Location:** VS Code settings + `~/.continue/config.json`
+
+**File Structure:**
+```
+~/.continue/
+  └── config.json                   # Main configuration file
+```
+
+**Configuration:**
+```json
+{
+  "models": [
+    {
+      "title": "Claude 3.5 Sonnet",
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet-20241022",
+      "apiKey": "YOUR_API_KEY"
+    }
+  ],
+  "tabAutocompleteModel": {
+    "provider": "openai",
+    "model": "gpt-4",
+    "apiKey": "YOUR_API_KEY"
+  },
+  "contextProviders": [
+    { "name": "code" },
+    { "name": "terminal" },
+    { "name": "diff" }
+  ]
+}
+```
+
+**Key Features:**
+- **Model Agnostic:** OpenAI, Anthropic, local models via Ollama
+- **Tool Policies:** Configure automatic vs. permission-based tool usage
+- **Agent Mode:** Switch from chat to autonomous agent mode
+- **Open Source:** No vendor lock-in, pay only for API calls
+- **MCP Integration:** Access to community MCP tools
+
+**Setup:**
+1. Install from VS Code Extensions marketplace
+2. Open Continue tab, click gear icon → Open Config
+3. Configure API keys and model preferences
+4. Optionally create tool policies for automation
+
+##### Cline (formerly Claude Dev)
+
+**Status:** Open source, frontier model access
+**Configuration:** In-extension settings + workspace configuration
+
+**Key Features:**
+- **Plan Mode:** Review multi-step plans before execution
+- **MCP Integration:** Create custom tools via Model Context Protocol
+- **Zero Vendor Lock-in:** Switch between Claude, Gemini, DeepSeek, GPT
+- **Complete Transparency:** Open source, see exactly what it does
+- **Free Extension:** Pay only for AI model API usage
+
+**Workspace Configuration:**
+Cline doesn't use traditional config files but stores settings in VS Code workspace settings:
+```json
+{
+  "cline.apiProvider": "anthropic",
+  "cline.apiKey": "YOUR_API_KEY",
+  "cline.model": "claude-3-5-sonnet-20241022"
+}
+```
+
+**Setup:**
+1. Install from VS Code Extensions (search "Cline")
+2. Click robot icon in Activity Bar to activate
+3. Select "Use your own API key" option
+4. Connect preferred model provider
+
+##### Roo Code
+
+**Status:** Commercial + Free tier
+**Type:** Autonomous coding agent in VS Code
+
+**Key Features:**
+- "Whole dev team of AI agents in your editor"
+- Multi-agent collaboration for different coding tasks
+- Integration with various AI model providers
+
+**Configuration:** Similar to Cline, uses VS Code settings for API configuration
+
+#### VS Code Agent Mode (Native)
+
+**Introduced:** April 2025
+**Status:** Available to all VS Code users
+
+**Features:**
+- **Autonomous Pair Programmer:** Multi-step coding tasks
+- **Codebase Analysis:** Understanding project structure
+- **File Edits:** Proposes and applies changes
+- **Terminal Commands:** Executes build, test, deploy operations
+- **MCP Support:** Standardized context protocol (inspired by LSP)
+
+**Configuration:**
+Agent mode is configured through VS Code settings and the MCP configuration system:
+
+```json
+{
+  "chat.agent.mode": "enabled",
+  "chat.agent.mcpServers": {
+    "custom-server": {
+      "command": "node",
+      "args": ["/path/to/mcp-server.js"]
+    }
+  }
+}
+```
+
+**MCP Tools:**
+- Run locally or as remote services
+- Configured via JSON or programmatically by extensions
+- Standard protocol for providing context to LLMs
+
+---
+
+### 7. VSCodium + Agentic Extensions
+
+**Vendor:** Community (VS Code without Microsoft telemetry)
+**Key Difference:** Uses Open VSX Registry instead of VS Code Marketplace
+
+#### Compatibility
+
+**Extension Availability:**
+- Not all VS Code extensions available directly
+- Popular agentic extensions (Continue, Cline) can be installed
+- Manual .vsix installation supported
+
+#### Installation Process
+
+**Method 1: Open VSX Registry**
+1. Open Extensions panel in VSCodium
+2. Search for "Continue" or "Cline"
+3. Install if available
+
+**Method 2: Manual .vsix Installation**
+1. Download .vsix file from VS Code Marketplace or GitHub releases
+2. Navigate to Extensions tab → three dots menu
+3. Click "Install from VSIX"
+
+#### Configuration
+
+**Same as VS Code:** Once installed, Continue and Cline use identical configuration:
+- `~/.continue/config.json` for Continue
+- VSCodium settings for Cline
+
+#### Limitations
+
+- GitHub Copilot's "Set up Copilot for free" doesn't work
+- Must use alternative extensions (Continue, Cline)
+- Some proprietary extensions unavailable
+
+#### Recommended Setup
+
+1. **Install VSCodium** for privacy-respecting development
+2. **Choose Extension:**
+   - **Continue** for maximum flexibility and model choice
+   - **Cline** for Claude-optimized workflow with MCP
+3. **Configure API Keys** from preferred provider (OpenAI, Anthropic, local Ollama)
+4. **Optional:** Install local LLMs via Ollama for offline coding assistance
+
+---
+
+### 8. Claude Flow
+
+**Type:** Agent orchestration platform for Claude Code
+**Status:** Advanced multi-agent system
+**GitHub:** https://github.com/ruvnet/claude-flow
+
+#### Overview
+
+Claude Flow is an orchestration platform that extends Claude Code's capabilities by coordinating multiple Claude AI assistants to work simultaneously on different project tasks. It transforms single-agent coding into multi-agent collaboration.
+
+**Ranking:** #1 in agent-based frameworks for Claude
+
+#### Architecture
+
+**Multi-Agent System:**
+- Deploy up to 10 concurrent AI agents
+- Specialized agents for different tasks:
+  - Research agents
+  - Coding agents
+  - Testing agents
+  - Deployment agents
+- Distributed swarm intelligence
+
+#### Configuration Files
+
+##### Project Structure
+```
+<project>/
+  ├── .claude-flow/                 # Claude Flow configuration
+  │   ├── config.yml               # Orchestration settings
+  │   ├── agents/                  # Agent definitions
+  │   └── workflows/               # Multi-agent workflows
+  ├── CLAUDE.md                    # Claude Code instructions
+  └── AGENTS.md                    # Universal AI instructions
+```
+
+##### .claude-flow/config.yml
+```yaml
+# Example Claude Flow configuration
+sparc_mode: true                   # SPARC development environment
+max_concurrent_agents: 5
+agents:
+  - name: researcher
+    role: research
+    model: claude-3-5-sonnet-20241022
+  - name: coder
+    role: implementation
+    model: claude-3-5-sonnet-20241022
+  - name: tester
+    role: testing
+    model: claude-3-opus-20240229
+
+workflows:
+  feature_development:
+    - researcher → design
+    - coder → implementation
+    - tester → validation
+```
+
+#### Installation & Setup
+
+**Prerequisites:**
+```bash
+# Install Claude Code (official from Anthropic)
+npm install -g @anthropic/claude-code
+
+# Install Claude Flow
+npm install -g claude-flow@alpha
+```
+
+**Initialize Project:**
+```bash
+# Navigate to project
+cd /path/to/project
+
+# Initialize Claude Flow with SPARC environment
+claude-flow init --sparc
+```
+
+**MCP Server Setup:**
+```bash
+# Add Claude Flow MCP server
+claude mcp add claude-flow
+
+# Start MCP server
+npx claude-flow@alpha mcp start
+```
+
+#### Key Features
+
+**Enterprise-Grade Architecture:**
+- Distributed swarm intelligence
+- Multi-agent coordination
+- Autonomous workflow execution
+
+**RAG Integration:**
+- Retrieval-Augmented Generation support
+- Context sharing between agents
+- Centralized knowledge base
+
+**MCP Protocol Support:**
+- Native Model Context Protocol integration
+- Standardized agent communication
+- Tool and context sharing
+
+**Conversational AI Systems:**
+- Natural language task delegation
+- Agent-to-agent communication
+- Human oversight and intervention points
+
+#### Workflow Example
+
+```yaml
+# .claude-flow/workflows/api-development.yml
+name: API Development Workflow
+trigger: manual
+agents:
+  - architect: Design API schema
+  - backend_dev: Implement endpoints
+  - security_reviewer: Audit for vulnerabilities
+  - tester: Create and run integration tests
+  - documenter: Generate API documentation
+
+sequence:
+  1. architect → creates schema
+  2. backend_dev → implements (parallel with security_reviewer)
+  3. security_reviewer → reviews code
+  4. tester → validates functionality
+  5. documenter → creates docs
+```
+
+#### Integration with Claude Code
+
+Claude Flow **extends** Claude Code, not replaces it:
+
+1. **Claude Code:** Single-agent development, direct file editing
+2. **Claude Flow:** Multi-agent orchestration, complex workflows
+
+**Combined Usage:**
+```bash
+# Use Claude Code for direct development
+claude code
+
+# Use Claude Flow for complex multi-step features
+claude-flow run workflow feature-name
+```
+
+#### Configuration Strategy
+
+**CLAUDE.md Integration:**
+```markdown
+# CLAUDE.md
+See AGENTS.md for general project instructions.
+
+## Claude Flow Configuration
+This project uses Claude Flow for multi-agent orchestration.
+
+### Workflows Available:
+- `feature-development`: Full feature implementation pipeline
+- `bug-fix`: Automated bug triage and resolution
+- `refactor`: Code quality improvement workflow
+
+### Agent Roles:
+See `.claude-flow/agents/` for specialized agent definitions.
+```
+
+#### Best Practices
+
+1. **Agent Specialization:** Define clear roles for each agent
+2. **Workflow Documentation:** Document multi-agent workflows in CLAUDE.md
+3. **Human Oversight:** Set intervention points for critical decisions
+4. **Cost Management:** Monitor API usage across multiple agents
+5. **Version Control:** Commit `.claude-flow/` configuration to repository
+
+---
+
 ## Comparison Matrix
 
-| Tool            | Primary Config File(s)                | Format        | Hierarchy | AGENTS.md Support | Version Control |
-|-----------------|---------------------------------------|---------------|-----------|-------------------|-----------------|
-| **AGENTS.md**   | `AGENTS.md`                          | Markdown      | Nested    | Native            | Yes             |
-| **Claude Code** | `CLAUDE.md`, `.claude/settings.json` | MD + JSON     | Merging   | Via reference     | Partial*        |
-| **Cursor**      | `.cursor/rules/*.mdc`                | MDC           | Flat      | Planned           | Yes             |
-| **GitHub Copilot** | `.github/copilot-instructions.md` | Markdown      | Nested    | Planned           | Yes             |
-| **Aider**       | `.aider.conf.yml`, `CONVENTIONS.md`  | YAML + MD     | Single    | Manual            | Yes (YAML), Recommended (MD) |
-| **Windsurf**    | `.windsurf/rules/*.md`               | Markdown      | Glob-based| Planned           | Yes             |
+| Tool              | Primary Config File(s)                  | Format        | Hierarchy   | AGENTS.md Support | Version Control |
+|-------------------|-----------------------------------------|---------------|-------------|-------------------|-----------------|
+| **AGENTS.md**     | `AGENTS.md`                            | Markdown      | Nested      | Native            | Yes             |
+| **Claude Code**   | `CLAUDE.md`, `.claude/settings.json`   | MD + JSON     | Merging     | Via reference     | Partial*        |
+| **Cursor**        | `.cursor/rules/*.mdc`                  | MDC           | Flat        | Planned           | Yes             |
+| **GitHub Copilot**| `.github/copilot-instructions.md`      | Markdown      | Nested      | Planned           | Yes             |
+| **Aider**         | `.aider.conf.yml`, `CONVENTIONS.md`    | YAML + MD     | Single      | Manual            | Yes (YAML), Rec (MD) |
+| **Windsurf**      | `.windsurf/rules/*.md`                 | Markdown      | Glob-based  | Planned           | Yes             |
+| **Continue.dev**  | `~/.continue/config.json`              | JSON          | Global only | Manual            | Optional        |
+| **Cline**         | VS Code workspace settings             | JSON          | Workspace   | Manual            | Yes             |
+| **VSCodium**      | Same as VS Code extensions             | JSON          | Same as ext | Same as ext       | Same as ext     |
+| **Claude Flow**   | `.claude-flow/config.yml`              | YAML          | Hierarchical| Via CLAUDE.md     | Yes             |
 
 \* `.claude/settings.json` is version controlled; `.claude/settings.local.json` is not
 
@@ -355,8 +724,11 @@ Ignore Patterns: .gitignore integration, custom ignore files
 
 ### 4. Tool-Specific Advanced Features
 - **Subagents:** Claude Code, Windsurf
+- **Multi-agent orchestration:** Claude Flow
 - **Directory-scoped rules:** GitHub Copilot, Windsurf
-- **Custom model selection:** Aider, Windsurf
+- **Custom model selection:** Aider, Windsurf, Continue.dev, Cline
+- **MCP Integration:** VS Code Agent Mode, Cline, Continue.dev, Claude Flow
+- **Local LLM support:** Continue.dev, Cline (via Ollama)
 
 ---
 
@@ -401,6 +773,23 @@ CLAUDE.md                           # Reference to AGENTS.md + Claude-specific n
 ```
 .github/
   └── copilot-instructions.md       # Can reference AGENTS.md
+```
+
+#### For VS Code Extension Users (Continue/Cline)
+```
+~/.continue/
+  └── config.json                   # Continue configuration (global)
+
+.vscode/
+  └── settings.json                 # Cline settings (workspace)
+```
+
+#### For Claude Flow (Advanced Multi-Agent)
+```
+.claude-flow/
+  ├── config.yml                    # Orchestration settings
+  ├── agents/                       # Agent definitions
+  └── workflows/                    # Multi-agent workflows
 ```
 
 ### 3. Update .gitignore
@@ -461,11 +850,23 @@ CLAUDE.md                           # Reference to AGENTS.md + Claude-specific n
 ## References
 
 ### Official Documentation
+
+#### Core Tools
 - [Claude Code Settings](https://docs.claude.com/en/docs/claude-code/settings)
 - [GitHub Copilot Instructions](https://docs.github.com/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot)
 - [Aider Documentation](https://aider.chat/docs/)
 - [Cursor Rules](https://docs.cursor.com/context/rules)
 - [Windsurf Documentation](https://docs.windsurf.com/)
+
+#### VS Code Agentic Extensions
+- [Continue.dev Documentation](https://docs.continue.dev/)
+- [Cline Documentation](https://docs.cline.bot/)
+- [VS Code Agent Mode](https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode)
+- [VS Code MCP Integration](https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview)
+
+#### Claude Flow
+- [Claude Flow GitHub Repository](https://github.com/ruvnet/claude-flow)
+- [Claude Flow Tutorial](https://deeplearning.fr/claude-flow-the-complete-beginners-guide-to-ai-powered-development/)
 
 ### AGENTS.md Resources
 - [AGENTS.md Specification (InfoQ)](https://www.infoq.com/news/2025/08/agents-md/)
@@ -476,6 +877,8 @@ CLAUDE.md                           # Reference to AGENTS.md + Claude-specific n
 - [Awesome Cursor Rules](https://github.com/PatrickJS/awesome-cursorrules)
 - [Claude Code Settings Examples](https://github.com/feiskyer/claude-code-settings)
 - [.claude Community Guide](https://dotclaude.com/)
+- [Continue.dev + Open WebUI](https://docs.openwebui.com/tutorials/integrations/continue-dev/)
+- [VSCodium Extension Installation Guide](https://milicendev.netlify.app/article/install-vs-codium-and-integrate-vs-code-extensions/)
 
 ---
 
@@ -558,6 +961,10 @@ Located in `.claude/agents/` for specialized tasks.
 
 ---
 
-**Document Version:** 1.0
+**Document Version:** 1.1
 **Last Updated:** October 2025
+**Changelog:**
+- v1.1: Added VS Code agentic extensions (Continue.dev, Cline, Roo Code), VSCodium support, Claude Flow multi-agent orchestration
+- v1.0: Initial research covering AGENTS.md standard and major AI coding tools
+
 **Maintained By:** BitBot Project Team
