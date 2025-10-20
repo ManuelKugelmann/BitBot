@@ -3,6 +3,12 @@
 **Date**: October 16, 2025
 **Focus**: Multi-mode containerized development with sketch/work/setup permission levels
 
+> **⚠️ HISTORICAL DOCUMENT**: This research explored a three-mode system (sketch/work/setup).
+> **FINAL DECISION (2025-10-17)**: Sketch mode was **removed** from BitBot design.
+> Current implementation uses **two modes only** (work/setup) with **Git-based safety** instead.
+> See **SPEC-02A (Git Safety Integration)** and **D-11 (Mode Count Decision)** for rationale.
+> This research remains valuable for understanding container isolation techniques.
+
 ---
 
 ## Table of Contents
