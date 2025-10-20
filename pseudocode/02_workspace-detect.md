@@ -21,9 +21,8 @@ bitbot command → Detect workspace → Prompt if needed → Return workspace pa
 ## Main Detection Function
 
 ```pseudocode
-FUNCTION detect_workspace(options) → workspace_path OR NULL:
-    # Future: --workspace flag to override detection
-    # MVP: Simple CWD → parent → initialize flow
+FUNCTION detect_workspace() → workspace_path OR NULL:
+    # MVP: Simple CWD → parent (auto-use) → return NULL
 
     # Step 1: Check current directory
     SET cwd = get_current_directory()
@@ -33,130 +32,50 @@ FUNCTION detect_workspace(options) → workspace_path OR NULL:
         RETURN cwd
     END IF
 
-    # Step 2: Check parent directory
+    # Step 2: Check parent directory (auto-use if found)
     SET parent = get_parent_directory(cwd)
 
     IF parent != "/" AND directory_exists(parent + "/.bitbot"):
-        # Found in parent, prompt user
-        CALL prompt_use_parent_workspace(parent, cwd, options) → use_parent
-
-        IF use_parent:
-            RETURN parent
-        ELSE:
-            # User chose to create new workspace in CWD
-            CALL initialize_workspace_in(cwd, options)
-            RETURN cwd
-        END IF
+        PRINT "[i] Using parent workspace: " + parent
+        PRINT "[i] (Current dir: " + cwd + ")"
+        RETURN parent
     END IF
 
     # Step 3: No workspace found
-    CALL prompt_initialize_workspace(cwd, options) → should_initialize
-
-    IF should_initialize:
-        CALL initialize_workspace_in(cwd, options)
-        RETURN cwd
-    ELSE:
-        # User declined, exit
-        RETURN NULL
-    END IF
+    RETURN NULL
 END FUNCTION
 ```
 
 ---
 
-## Prompt: Use Parent Workspace
+## Initialize Workspace (MVP: Minimal)
 
 ```pseudocode
-FUNCTION prompt_use_parent_workspace(parent_path, cwd, options) → boolean:
-    # Non-interactive mode: always use parent
-    IF options["--non-interactive"]:
-        PRINT "[i] Using parent workspace (non-interactive): " + parent_path
-        RETURN true
-    END IF
+FUNCTION initialize_workspace_in(path):
+    PRINT "[>] Initializing BitBot workspace: " + path
 
-    PRINT ""
-    PRINT "Found BitBot workspace in parent directory:"
-    PRINT "  " + parent_path
-    PRINT ""
-    PRINT "Current directory:"
-    PRINT "  " + cwd
-    PRINT ""
-
-    CALL prompt_yes_no("Use parent workspace?", default="yes") → response
-
-    RETURN response == "yes"
-END FUNCTION
-```
-
----
-
-## Prompt: Initialize Workspace
-
-```pseudocode
-FUNCTION prompt_initialize_workspace(cwd, options) → boolean:
-    # Non-interactive mode: fail
-    IF options["--non-interactive"]:
-        ERROR "No workspace found. Run 'bitbot init' to create one."
-        RETURN false
-    END IF
-
-    PRINT ""
-    PRINT "No BitBot workspace found."
-    PRINT ""
-    PRINT "Initialize workspace in current directory?"
-    PRINT "  " + cwd
-    PRINT ""
-
-    CALL prompt_yes_no("Initialize?", default="yes") → response
-
-    RETURN response == "yes"
-END FUNCTION
-```
-
----
-
-## Initialize Workspace
-
-```pseudocode
-FUNCTION initialize_workspace_in(path, options):
-    PRINT "[>] Initializing BitBot workspace in: " + path
-
-    # Create .bitbot directory structure
+    # Create minimal .bitbot structure
     CALL create_directory(path + "/.bitbot")
-    CALL create_directory(path + "/.bitbot/logs")
-    CALL create_directory(path + "/.bitbot/sessions")
     CALL create_directory(path + "/.bitbot/state")
-    CALL create_directory(path + "/.bitbot/mcp")
 
     # Create metadata.json
     SET metadata = {
         "version": "1.0",
         "created": current_iso8601_timestamp(),
-        "workspace_name": basename(path),
-        "workspace_hash": generate_hash(path),
-        "default_mode": "work",
-        "default_agent": null
+        "workspace_hash": generate_hash(path)
     }
 
     CALL write_json(path + "/.bitbot/metadata.json", metadata)
 
     # Check for existing .devcontainer
-    IF directory_exists(path + "/.devcontainer"):
-        PRINT "[i] Found existing .devcontainer, keeping it"
-    ELSE:
-        PRINT "[>] No .devcontainer found"
-
-        # Launch workspace setup wizard (SPEC-08)
-        CALL workspace_setup_wizard(path, options)
+    IF NOT directory_exists(path + "/.devcontainer"):
+        ERROR "No .devcontainer found. Please create one manually or copy from a template."
+        PRINT "Example: cp -r ~/.bitbot/templates/default/.devcontainer ."
+        EXIT 4
     END IF
 
-    PRINT "[+] Workspace initialized successfully"
-
-    # Log initialization
-    CALL audit_log("workspace_init", {
-        "path": path,
-        "timestamp": current_iso8601_timestamp()
-    })
+    PRINT "[+] Workspace initialized"
+    PRINT "[i] Run 'bitbot work' to start"
 END FUNCTION
 ```
 
@@ -342,28 +261,30 @@ END FUNCTION
 
 ---
 
-## Implementation Notes
+## Implementation Notes (MVP Simplified)
 
 **Key Behaviors**:
 1. CWD takes priority over parent
-2. Parent workspace requires user confirmation (interactive mode)
-3. No workspace found → prompt to initialize
-4. Non-interactive mode: use parent if found, else fail
+2. Parent workspace **automatically used** (no prompt)
+3. No workspace found → return NULL (caller handles init)
 
-**Future Feature**: `--workspace <path>` flag to override auto-detection
+**Simplifications for MVP**:
+- Removed non-interactive mode (future feature)
+- Removed workspace prompts (auto-use parent)
+- Removed `--workspace` flag (future feature)
+- Minimal `.bitbot/` structure (metadata.json only)
+- No template wizard (requires existing .devcontainer)
 
-**Edge Cases Handled**:
-- Symlinks: Follow and resolve to canonical path
-- Multiple .bitbot in hierarchy: Use closest (CWD > parent)
-- Temporary filesystem: Warn but allow
-- Different filesystem: Allow (no special handling)
-- Permission issues: Error and exit
+**Edge Cases**:
+- Symlinks: Follow to canonical path
+- Multiple .bitbot: Use closest (CWD > parent)
+- Permission issues: Error and exit 1
+- Corrupted metadata: Warn but continue
 
 **Error Handling**:
-- No workspace in non-interactive → error + exit 4
+- No .devcontainer during init → error + exit 4
 - Permission denied → error + exit 1
-- Corrupted metadata → warn but continue
 
 **Next Steps**:
-- Implement container launch (03_container-launch.md)
-- Implement workspace initialization wizard (part of 06_first-run.md)
+- Container launch (03_container-launch.md)
+- First-run simplified (06_first-run.md)

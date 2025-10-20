@@ -1,67 +1,44 @@
-# Session Management Pseudocode
+# Session Management Pseudocode (MVP: Single Session)
 
 **Component**: Session Management (tmux integration)
 **Implements**: SPEC-04 (Session Management), SPEC-00 D-06
-**Purpose**: Manage tmux sessions for resumability and context preservation
+**Purpose**: Single tmux session per container for resumability
 
 ---
 
-## Overview
+## Overview (MVP Simplified)
 
 ```
-Container Entry → Session Detection → [Resume | Create New] → tmux Session
-                                          ↓
-                              List Detached → Prompt Choice
+Container Entry → Create or Attach Single Session → tmux
 ```
 
-**Decision**: tmux with auto-timestamped sessions, hidden from user
+**MVP Decision**: One auto-named session per container, no selection
 
 ---
 
-## Session Entry Point
+## Session Entry Point (MVP)
 
 ```pseudocode
-FUNCTION enter_session(container_name, options):
-    # Called when attaching to container
+FUNCTION enter_session(container_name):
+    # MVP: Simple single-session management
 
-    # Get session preference
-    SET session_name = options["--session"] OR NULL
-    SET non_interactive = options["--non-interactive"] OR false
+    # Generate session name (auto-timestamped)
+    SET session_name = "session-" + current_timestamp()  # e.g., session-20251020-143022
 
     # List existing sessions
     CALL list_tmux_sessions(container_name) → sessions
 
-    IF session_name is set:
-        # Explicit session requested
-        IF session_exists(container_name, session_name):
-            CALL attach_tmux_session(container_name, session_name)
-        ELSE:
-            CALL create_tmux_session(container_name, session_name)
-        END IF
-
-    ELSE IF length(sessions) == 0:
+    IF length(sessions) == 0:
         # No sessions: Create new
-        CALL create_new_session(container_name, non_interactive)
-
-    ELSE IF length(sessions) == 1:
-        # One session: Auto-attach
-        PRINT "[>] Attaching to session: " + sessions[0].name
-        CALL attach_tmux_session(container_name, sessions[0].name)
+        PRINT "[>] Creating session: " + session_name
+        CALL create_tmux_session(container_name, session_name)
+        CALL attach_tmux_session(container_name, session_name)
 
     ELSE:
-        # Multiple sessions: Prompt
-        IF non_interactive:
-            ERROR "Multiple sessions found. Specify with --session <name>"
-            EXIT 1
-        END IF
-
-        CALL prompt_session_selection(sessions) → chosen
-
-        IF chosen == "new":
-            CALL create_new_session(container_name, non_interactive)
-        ELSE:
-            CALL attach_tmux_session(container_name, chosen.name)
-        END IF
+        # Session exists: Attach to first one
+        SET existing_session = sessions[0].name
+        PRINT "[>] Attaching to session: " + existing_session
+        CALL attach_tmux_session(container_name, existing_session)
     END IF
 END FUNCTION
 ```
@@ -427,36 +404,38 @@ END FUNCTION
 
 ---
 
-## Implementation Notes
+## Implementation Notes (MVP Simplified)
+
+**MVP Scope**:
+- Single session per container (no multi-session support)
+- Auto-generated timestamp names
+- No session selection menu
+- No metadata tracking
+- No session listing command
 
 **Key Behaviors**:
-- Auto-generated session names with timestamps
-- Optional user-provided names/tags
-- Single session: Auto-attach
-- Multiple sessions: Prompt user
-- Session metadata stored in `.bitbot/sessions/`
-- Bash history per session
+- First entry: Create new session with auto name
+- Subsequent entries: Attach to existing session
+- Detach: Session keeps running in container background
+- Resume: Auto-attach to existing session
 
-**Session Lifecycle**:
-1. Create → Generate name → Save metadata → Launch tmux
-2. Active → Update activity timestamp
-3. Detach → Keep running in background
-4. Resume → List → Prompt → Attach
-5. Kill → Clean up metadata
+**Simplifications**:
+- Removed session selection prompts
+- Removed custom session naming
+- Removed session metadata (`.bitbot/sessions/`)
+- Removed non-interactive mode handling
+- Removed age display and status tracking
 
-**Metadata Tracking**:
-- Created timestamp
-- Last activity
-- Mode (work/setup)
-- User
-- Custom tags/notes (future)
+**Session Lifecycle (MVP)**:
+1. Create → Auto-name → Launch tmux
+2. Detach → Keep running
+3. Resume → Attach to existing
 
 **User Experience**:
-- Sessions are transparent (user doesn't need to know about tmux)
-- Clear indication of session status (attached/detached)
-- Age display for easy identification
-- Context preservation across detach/attach
+- tmux is transparent to user
+- Single session: No confusion
+- Detach with `Ctrl+b d`, reattach with `bitbot work`
 
 **Next Steps**:
-- Implement first-run wizard (06_first-run.md)
-- Implement UID synchronization (07_uid-sync.md)
+- First-run simplified (06_first-run.md)
+- UID sync (07_uid-sync.md)

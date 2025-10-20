@@ -93,75 +93,34 @@ END FUNCTION
 
 ---
 
-## Host Command Handling
+## Host Command Handling (MVP: 5 Commands)
 
 ```pseudocode
 FUNCTION handle_host_commands(command, flags, options):
-    # Validate prerequisites
+    # Validate Docker prerequisites
     CALL validate_prerequisites()
 
-    # Log command
-    CALL log_command(command, flags, options, "host")
-
-    # Route command
+    # Route to MVP commands only
     SWITCH command:
-        CASE "" OR "smart-launch":
-            CALL smart_launch(flags, options)
-
-        CASE "work":
+        CASE "" OR "work":
+            # Default: launch work mode
             CALL launch_work_mode(flags, options)
 
         CASE "setup":
             CALL launch_setup_mode(flags, options)
 
-        CASE "vscode":
-            CALL launch_vscode(flags, options)
-
-        CASE "list":
-            CALL list_sessions(flags, options)
-
-        CASE "stop":
-            CALL stop_session(flags, options)
-
-        CASE "kill":
-            CALL kill_all_containers(flags, options)
-
         CASE "init":
-            CALL initialize_workspace(flags, options)
+            CALL initialize_workspace_command(options)
 
-        CASE "config":
-            CALL configure_bitbot(flags, options)
+        CASE "help" OR "-h" OR "--help":
+            CALL show_help()
 
-        CASE "mcp":
-            CALL manage_mcp_services(flags, options)
-
-        CASE "agent":
-            CALL manage_ai_agents(flags, options)
-
-        CASE "doctor":
-            CALL run_diagnostics(flags, options)
-
-        CASE "metadata":
-            CALL show_metadata(flags, options)
-
-        CASE "session":
-            CALL manage_sessions(flags, options)
-
-        CASE "backup":
-            CALL manage_backups(flags, options)
-
-        CASE "template":
-            CALL manage_templates(flags, options)
-
-        CASE "help":
-            CALL show_help(flags, options)
-
-        CASE "version":
+        CASE "version" OR "-v" OR "--version":
             CALL show_version()
 
         DEFAULT:
             ERROR "Unknown command: " + command
-            PRINT "Run 'bitbot help' for usage"
+            PRINT "Run 'bitbot help' for available commands"
             EXIT 2
     END SWITCH
 END FUNCTION
@@ -169,223 +128,61 @@ END FUNCTION
 
 ---
 
-## Smart Launch Logic
+## Initialize Workspace Command (MVP)
 
 ```pseudocode
-FUNCTION smart_launch(flags, options):
-    # Smart launch: Resume or create session
+FUNCTION initialize_workspace_command(options):
+    # Initialize workspace in current directory
 
-    CALL list_detached_sessions() → sessions
+    SET cwd = get_current_directory()
 
-    IF length(sessions) == 0:
-        # No sessions: start work mode
-        PRINT "[>] No active sessions, starting work mode..."
-        CALL launch_work_mode(flags, options)
-
-    ELSE IF length(sessions) == 1:
-        # One session: auto-attach
-        PRINT "[>] Attaching to session: " + sessions[0].name
-        CALL attach_session(sessions[0].id)
-
-    ELSE:
-        # Multiple sessions: prompt user
-        IF flags["--non-interactive"]:
-            ERROR "Multiple sessions found. Specify session with --session"
-            EXIT 1
-        END IF
-
-        CALL prompt_session_choice(sessions) → chosen_session
-
-        IF chosen_session == "new":
-            CALL launch_work_mode(flags, options)
-        ELSE:
-            CALL attach_session(chosen_session.id)
-        END IF
-    END IF
-END FUNCTION
-```
-
----
-
-## Session Listing
-
-```pseudocode
-FUNCTION list_detached_sessions() → session_list:
-    # List all detached sessions for current workspace
-
-    SET workspace_hash = get_workspace_hash(WORKSPACE_PATH)
-    SET work_container = "bitbot-work-" + workspace_hash
-    SET setup_container = "bitbot-setup-" + workspace_hash
-
-    SET sessions = empty_list
-
-    # Check work container
-    IF container_exists(work_container) AND container_is_running(work_container):
-        SET work_sessions = list_tmux_sessions_in_container(work_container)
-
-        FOR EACH session IN work_sessions:
-            IF NOT session.attached:
-                SET session.container = work_container
-                SET session.mode = "work"
-                APPEND session to sessions
-            END IF
-        END FOR
-    END IF
-
-    # Check setup container
-    IF container_exists(setup_container) AND container_is_running(setup_container):
-        SET setup_sessions = list_tmux_sessions_in_container(setup_container)
-
-        FOR EACH session IN setup_sessions:
-            IF NOT session.attached:
-                SET session.container = setup_container
-                SET session.mode = "setup"
-                APPEND session to sessions
-            END IF
-        END FOR
-    END IF
-
-    RETURN sessions
-END FUNCTION
-```
-
----
-
-## Launch VS Code
-
-```pseudocode
-FUNCTION launch_vscode(flags, options):
-    # Launch VS Code attached to container
-
-    SET mode = options["mode"] OR "work"
-
-    # Get container name
-    SET workspace_hash = get_workspace_hash(WORKSPACE_PATH)
-    SET container_name = "bitbot-" + mode + "-" + workspace_hash
-
-    # Check if container exists
-    IF NOT container_exists(container_name):
-        PRINT "[>] Container not running, starting " + mode + " mode..."
-        CALL launch_work_mode(flags, options)  # or launch_setup_mode
-        # Container will be created, continue
-    END IF
-
-    # Launch VS Code
-    CALL launch_vscode_into_container(container_name)
-END FUNCTION
-```
-
----
-
-## Container Management Commands
-
-```pseudocode
-FUNCTION stop_session(flags, options):
-    # Stop current session
-
-    SET session_name = options["--session"]
-
-    IF session_name is NULL:
-        ERROR "Please specify session with --session <name>"
-        EXIT 2
-    END IF
-
-    # Find session
-    CALL list_detached_sessions() → sessions
-
-    SET found = NULL
-    FOR EACH session IN sessions:
-        IF session.name == session_name:
-            SET found = session
-            BREAK
-        END IF
-    END FOR
-
-    IF found is NULL:
-        ERROR "Session not found: " + session_name
+    # Check if already initialized
+    IF directory_exists(cwd + "/.bitbot"):
+        ERROR "Workspace already initialized in: " + cwd
         EXIT 1
     END IF
 
-    # Kill session
-    PRINT "[>] Stopping session: " + session_name
-    CALL kill_tmux_session(found.container, session_name)
-    PRINT "[+] Session stopped"
-END FUNCTION
+    # Call workspace initialization (from 02_workspace-detect.md)
+    CALL initialize_workspace_in(cwd)
 
-FUNCTION kill_all_containers(flags, options):
-    # Stop all BitBot containers for workspace
-
-    SET workspace_hash = get_workspace_hash(WORKSPACE_PATH)
-
-    PRINT "[>] Stopping all BitBot containers..."
-
-    # Stop work container
-    SET work_container = "bitbot-work-" + workspace_hash
-    IF container_exists(work_container):
-        CALL stop_container(work_container)
-    END IF
-
-    # Stop setup container
-    SET setup_container = "bitbot-setup-" + workspace_hash
-    IF container_exists(setup_container):
-        CALL stop_container(setup_container)
-    END IF
-
-    PRINT "[+] All containers stopped"
+    PRINT ""
+    PRINT "Next steps:"
+    PRINT "  bitbot work    # Launch work mode"
 END FUNCTION
 ```
 
 ---
 
-## Help Display
+## Help Display (MVP Simplified)
 
 ```pseudocode
-FUNCTION show_help(flags, options):
-    PRINT "BitBot - Secure Development Environment Manager"
+FUNCTION show_help():
+    PRINT "BitBot - Secure Development Environment Manager (MVP)"
     PRINT ""
     PRINT "Usage: bitbot [command] [flags]"
     PRINT ""
-    PRINT "Container Management:"
-    PRINT "  bitbot               Smart launch (resume or new session)"
-    PRINT "  bitbot work          Launch work mode"
-    PRINT "  bitbot setup         Launch setup mode (requires approval)"
-    PRINT "  bitbot vscode        Launch VS Code"
-    PRINT "  bitbot list          List active sessions"
-    PRINT "  bitbot stop          Stop session"
-    PRINT "  bitbot kill          Stop all containers"
-    PRINT ""
-    PRINT "Workspace:"
+    PRINT "Commands:"
+    PRINT "  bitbot [work]        Launch work mode (default)"
+    PRINT "  bitbot setup         Launch setup mode"
     PRINT "  bitbot init          Initialize workspace"
-    PRINT "  bitbot metadata      Show workspace metadata"
-    PRINT "  bitbot template      Manage templates"
-    PRINT ""
-    PRINT "Configuration:"
-    PRINT "  bitbot config        Interactive configuration"
-    PRINT "  bitbot mcp           Manage MCP services"
-    PRINT "  bitbot agent         Manage AI agents"
-    PRINT ""
-    PRINT "Utilities:"
-    PRINT "  bitbot doctor        Run diagnostics"
-    PRINT "  bitbot backup        Manage backups"
     PRINT "  bitbot help          Show this help"
     PRINT "  bitbot version       Show version"
     PRINT ""
-    PRINT "Flags:"
-    PRINT "  --non-interactive    No prompts (for automation)"
-    PRINT "  --session <name>     Target specific session"
+    PRINT "Setup Mode Requirements:"
+    PRINT "  --allow-socket       Grant Docker socket access"
+    PRINT "  --reason \"...\"       Reason for setup mode (audit)"
     PRINT ""
     PRINT "Examples:"
-    PRINT "  bitbot work                              # Start work mode"
-    PRINT "  bitbot setup --allow-socket --reason \"...\"  # Setup mode"
-    PRINT "  bitbot vscode                            # Launch VS Code"
-    PRINT "  bitbot stop --session 2025-10-20_14-30   # Stop session"
+    PRINT "  bitbot                                     # Launch work mode"
+    PRINT "  bitbot work                                # Launch work mode"
+    PRINT "  bitbot setup --allow-socket --reason \"...\" # Setup mode"
+    PRINT "  bitbot init                                # Initialize workspace"
     PRINT ""
-    PRINT "Documentation: https://docs.bitbot.dev/"
+    PRINT "For advanced features, see: https://docs.bitbot.dev/"
 END FUNCTION
 
 FUNCTION show_version():
-    SET version = read_file("~/.bitbot/VERSION") OR "unknown"
-    PRINT "BitBot version " + version
+    PRINT "BitBot MVP v0.1.0"
 END FUNCTION
 ```
 
@@ -463,34 +260,6 @@ END FUNCTION
 
 ---
 
-## Logging & Audit
-
-```pseudocode
-FUNCTION log_command(command, flags, options, context):
-    SET timestamp = current_iso8601_timestamp()
-    SET log_entry = {
-        "timestamp": timestamp,
-        "command": command,
-        "flags": flags,
-        "options": options,
-        "context": context,
-        "user": get_current_user(),
-        "workspace": WORKSPACE_PATH
-    }
-
-    APPEND_JSON log_entry TO "~/.bitbot/audit.log"
-END FUNCTION
-
-FUNCTION audit_log(action, details):
-    SET timestamp = current_iso8601_timestamp()
-    SET entry = timestamp + " " + action + " " + JSON_stringify(details)
-
-    APPEND entry TO WORKSPACE_PATH + "/.bitbot/logs/audit.log"
-END FUNCTION
-```
-
----
-
 ## Exit Codes
 
 ```pseudocode
@@ -505,29 +274,31 @@ EXIT_LOCK_FAILED = 5       # Could not acquire lock
 
 ---
 
-## Implementation Notes
+## Implementation Notes (MVP Simplified)
 
-**Key Decisions**:
-- Host-only script (no container command handling)
-- First-run detection and wizard launch
-- Workspace detection required for most commands
-- All container management operations
-- Smart launch with session resumption
-- Comprehensive help and validation
+**MVP Scope**:
+- 5 commands only: work, setup, init, help, version
+- No session management (single session per container)
+- No audit logging (future feature)
+- No non-interactive mode (future feature)
+- Basic error handling only
 
-**Command Categories**:
-- Container management: work, setup, vscode, list, stop, kill
-- Workspace: init, metadata, template
-- Configuration: config, mcp, agent
-- Utilities: doctor, backup, help, version
+**Key Simplifications**:
+- Removed smart launch (default to `bitbot work`)
+- Removed session listing/stopping
+- Removed VS Code launch command
+- Removed config/mcp/agent/backup commands
+- Removed audit logging
+- Auto-use parent workspace (no prompt)
 
-**Error Handling**:
-- Trap SIGINT/SIGTERM for graceful cleanup
-- Validate prerequisites before operations
-- Clear error messages with exit codes
-- Lock mechanism prevents concurrent operations
+**MVP Commands**:
+1. `bitbot` or `bitbot work` - Launch work mode
+2. `bitbot setup --allow-socket --reason "..."` - Launch setup mode
+3. `bitbot init` - Initialize workspace
+4. `bitbot help` - Show help
+5. `bitbot version` - Show version
 
 **Next Steps**:
-- Implement container script (01B_cli-entry-container.md)
-- Separate installation and PATH setup
-- Platform-specific launchers (Windows .ps1, etc.)
+- Simplify container entry (01B_cli-entry-container.md)
+- Simplify session management (05_session-management.md)
+- Simplify first-run (06_first-run.md)
