@@ -1,32 +1,30 @@
 # Line Ending Strategy for Mixed Windows/Linux Project
 # Git config: core.autocrlf = false (keep line endings as-is)
-# This file explicitly specifies line endings per file type
+#
+# Strategy: Only convert files that MUST have specific endings
+# Everything else is left exactly as-is (no conversion)
 
-# Default: Let git detect text files but don't normalize line endings
-* text=auto
-
-# Unix scripts - always LF
+# CRITICAL: Unix scripts MUST have LF (bash requirement)
 *.sh text eol=lf
 *.bash text eol=lf
 
 # BitBot bash launcher (no extension)
 test-windows-launch/scripts/bitbot text eol=lf
+scripts/bitbot text eol=lf
 
-# Windows scripts - always CRLF
+# CRITICAL: Windows scripts MUST have CRLF (PowerShell/CMD requirement)
 *.ps1 text eol=crlf
 *.bat text eol=crlf
 *.cmd text eol=crlf
 
-# Claude tools - always LF
+# Claude tools - bash scripts, must have LF
 .claude/tools/** text eol=lf
 
-# Documentation - LF (standard for cross-platform)
-*.md text eol=lf
-*.txt text eol=lf
-
-# JSON/Config - LF (standard)
-*.json text eol=lf
-*.jsonc text eol=lf
+# Everything else: Keep as-is (no conversion)
+# - Documentation files (.md, .txt): Stored as committed
+# - JSON/Config files (.json): Stored as committed
+# - DevContainer files: Stored as committed
+# - Any other text files: Stored as committed
 
 # Binary files - never touch
 *.png binary

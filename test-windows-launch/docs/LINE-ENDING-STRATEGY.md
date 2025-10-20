@@ -39,26 +39,26 @@ With `core.autocrlf = false`:
 
 ### 2. .gitattributes Rules
 
-```gitattributes
-# Default: Detect text files but don't normalize
-* text=auto
+**Strategy**: Only convert files that MUST have specific endings
 
-# Unix scripts - always LF
+```gitattributes
+# CRITICAL: Unix scripts MUST have LF (bash requirement)
 *.sh text eol=lf
 *.bash text eol=lf
 
-# Windows scripts - always CRLF
+# CRITICAL: Windows scripts MUST have CRLF (PowerShell/CMD requirement)
 *.ps1 text eol=crlf
 *.bat text eol=crlf
 *.cmd text eol=crlf
 
-# Documentation - LF (cross-platform standard)
-*.md text eol=lf
+# Everything else: Keep as-is (no conversion)
 
 # Binary files - never touch
 *.exe binary
 *.dll binary
 ```
+
+**Key point**: Only shell scripts and Windows scripts have forced line endings. Everything else (JSON, Markdown, etc.) is kept exactly as committed.
 
 ---
 
@@ -66,11 +66,12 @@ With `core.autocrlf = false`:
 
 | File Type | Line Ending | Why |
 |-----------|-------------|-----|
-| `.sh`, `.bash` | **LF** | Unix shell scripts (bash, sh require LF) |
-| `bitbot` (no ext) | **LF** | Bash script executed in WSL |
-| `.ps1`, `.bat`, `.cmd` | **CRLF** | Windows scripts (PowerShell, CMD require CRLF) |
-| `.md`, `.txt` | **LF** | Cross-platform documentation standard |
-| `.json`, `.jsonc` | **LF** | JSON standard |
+| `.sh`, `.bash` | **LF** (forced) | Unix shell scripts (bash, sh require LF) |
+| `bitbot` (no ext) | **LF** (forced) | Bash script executed in WSL |
+| `.ps1`, `.bat`, `.cmd` | **CRLF** (forced) | Windows scripts (PowerShell, CMD require CRLF) |
+| `.md`, `.txt` | **As-is** | Kept exactly as committed |
+| `.json`, `.jsonc` | **As-is** | Kept exactly as committed |
+| DevContainer files | **As-is** | Kept exactly as committed |
 | `.exe`, `.dll`, `.zip` | **Binary** | Never convert |
 
 ---
