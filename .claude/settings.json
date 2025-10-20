@@ -1,0 +1,49 @@
+{
+  "tools": [
+    {
+      "name": "fix-line-endings",
+      "description": "Fix CRLF (Windows) to LF (Unix) line endings in files",
+      "command": ".claude/tools/fix-line-endings.sh",
+      "autoApprove": true,
+      "args": {
+        "files": {
+          "type": "array",
+          "description": "File paths to fix",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "check-bash-syntax",
+      "description": "Check bash script syntax without executing",
+      "command": ".claude/tools/check-bash-syntax.sh",
+      "autoApprove": true,
+      "args": {
+        "files": {
+          "type": "array",
+          "description": "Bash scripts to check",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "fix-and-check-bash",
+      "description": "Fix line endings and check syntax in one step (recommended)",
+      "command": ".claude/tools/fix-and-check-bash.sh",
+      "autoApprove": true,
+      "args": {
+        "files": {
+          "type": "array",
+          "description": "Bash scripts to fix and verify",
+          "required": true
+        }
+      }
+    }
+  ],
+
+  "permissions": {
+    "allow": [
+      ".claude/tools/**"
+    ]
+  }
+}

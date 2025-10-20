@@ -2,856 +2,857 @@
 
 **Feature ID**: SPEC-05
 **Priority**: P0 (Critical - Blocking)
-**Status**: Draft
-**Depends On**: SPEC-01 (Container Orchestration), SPEC-02 (Security Modes), SPEC-04 (Session Management)
-**Created**: 2025-10-17
-**Last Updated**: 2025-10-17
+**Status**: Approved
+**Depends On**: None
+**Created**: 2025-10-20
+**Last Updated**: 2025-10-20
 
 ---
 
 ## Executive Summary
 
-Bash-based CLI with minimal Windows launcher. Short command style for common workflows. Platform detection for Linux, macOS, and Windows/WSL2.
+Context-aware `bitbot` command that behaves differently on host vs inside containers. Bash-based core with Windows launcher that uses dedicated BitBot-Alpine WSL distro to avoid Docker Desktop corruption issues. Inline execution with VS Code detection for seamless development workflow.
 
-**Key Design**: Bash core + Windows .exe launcher + short commands + platform detection = unified cross-platform experience.
-
----
-
-## 1. Architecture
-
-### 1.1 Implementation Strategy
-
-**Core**: Bash scripts (main implementation)
-**Windows**: Minimal .exe launcher → calls bash in WSL2
-**macOS/Linux**: Direct bash execution
-
-**Rationale**:
-- Simpler to implement than Go/Rust
-- Legacy BitBot already 85% complete in bash
-- No compilation needed for core
-- Windows launcher provides native experience
-
-### 1.2 File Structure
-
-```
-/opt/bitbot/
-├── bin/
-│   ├── bitbot                    # Main bash script
-│   ├── bitbot-core.sh            # Core functions
-│   ├── bitbot-session.sh         # Session management
-│   ├── bitbot-mcp.sh             # MCP commands
-│   └── bitbot.exe                # Windows launcher (minimal)
-│
-├── lib/
-│   ├── platform.sh               # Platform detection
-│   ├── docker.sh                 # Docker operations
-│   ├── workspace.sh              # Workspace management
-│   └── utils.sh                  # Utility functions
-│
-└── config/
-    └── default-config.yml        # Default configuration
-```
+**Key Decisions**:
+- **D-03**: Context-aware CLI (host vs container behavior)
+- **D-04**: Inline WSL execution with VS Code detection  
+- **D-12**: BitBot-Alpine WSL distro for Windows corruption immunity
 
 ---
 
-## 2. Command Structure
+## 1. CLI Architecture Overview
 
-### 2.1 Short Command Style
+### 1.1 Platform-Specific Implementation
 
-**Primary commands**:
-```bash
-bitbot                  # Smart launch (work mode, CLI)
-bitbot work             # Launch work mode (CLI)
-bitbot setup            # Launch setup mode (CLI)
-bitbot work --vscode    # Launch work mode (VS Code)
-bitbot setup --vscode   # Launch setup mode (VS Code)
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Cross-Platform CLI Architecture                             │
+│                                                             │
+│ ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
+│ │ Windows     │  │ macOS       │  │ Linux               │ │
+│ │             │  │             │  │                     │ │
+│ │ bitbot.exe  │  │ bitbot      │  │ bitbot              │ │
+│ │ bitbot.ps1  │  │ (bash)      │  │ (bash)              │ │
+│ │     ↓       │  │             │  │                     │ │
+│ │ BitBot-     │  │             │  │                     │ │
+│ │ Alpine WSL  │  │             │  │                     │ │
+│ │     ↓       │  │             │  │                     │ │
+│ │ bitbot      │  │             │  │                     │ │
+│ │ (bash)      │  │             │  │                     │ │
+│ └─────────────┘  └─────────────┘  └─────────────────────┘ │
+│        │               │                    │              │
+│        └───────────────┼────────────────────┘              │
+│                        ▼                                   │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ Common Bash Core                                        │ │
+│ │ • Container orchestration                               │ │
+│ │ • Session management                                    │ │
+│ │ • Context detection (host vs container)                │ │
+│ │ • Command routing                                       │ │
+│ └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Session commands**:
-```bash
-bitbot session new <name>
-bitbot session attach <name>
-bitbot session list
-bitbot session kill <name>
-bitbot session save
-bitbot session restore
+### 1.2 Context-Aware Command Behavior
+
+**Host Context** (Container management):
+- `bitbot` → Smart launch (config default)
+- `bitbot work` → Launch work container
+- `bitbot setup` → Launch setup container  
+- `bitbot vscode` → Launch VS Code (config default mode)
+- `bitbot done` → Not applicable on host
+
+**Container Context** (AI/workspace management):
+- `bitbot` → Launch default AI agent
+- `bitbot <agent>` → Launch specific agent (claude, open, custom)
+- `bitbot done` → Review changes → git push → exit
+- Container management commands → Error (use host)
+
+---
+
+## 2. Windows Implementation
+
+### 2.1 Windows Path Corruption Root Cause
+
+**Problem**: VS Code on Windows expects container labels with Windows path format (`C:\...`), but calling `devcontainer` (Node.js script) from WSL creates WSL path format (`/mnt/c/...`), causing container discovery failures and duplicates.
+
+**Root Cause**:
+- `devcontainer` (Node.js script) → WSL paths in labels (`/mnt/c/...`) ❌
+- `devcontainer.cmd` (Windows wrapper) → Windows paths in labels (`C:\...`) ✅
+
+**Solution**: Always use `devcontainer.cmd` wrapper on Windows, regardless of WSL distro.
+
+**Critical Understanding**: Path corruption is **NOT** about which WSL distro is used. It happens in ANY WSL distro (Ubuntu, Alpine, Debian) when calling `devcontainer` without the `.cmd` wrapper.
+
+### 2.2 Windows Multi-Entry-Point Strategy
+
+BitBot on Windows supports **three entry points** to accommodate different user workflows:
+
+#### Entry Point 1: PowerShell Launcher (Recommended)
+
+**Use cases**: Native Windows users, PowerShell workflows, automation scripts
+
+**Implementation** (`bitbot.ps1`):
+```powershell
+#!/usr/bin/env pwsh
+# BitBot Windows PowerShell Launcher
+
+param([Parameter(ValueFromRemainingArguments)]$BitBotArgs)
+
+$WorkspacePath = (Get-Location).Path
+
+# Detect execution context
+$IsVSCodeTerminal = $env:TERM_PROGRAM -eq "vscode"
+
+# Option 1: VS Code Direct DevContainer Opening (simplest, see SPEC-06 Decision Direct DevContainer Opening)
+. "$PSScriptRoot\Open-VSCodeDevContainer.ps1"
+Open-VSCodeDevContainer -WorkspacePath $WorkspacePath
+
+# Option 2: Method 3 (bash-centric, CLI builds)
+# wsl bash -c "cmd.exe /c 'cd /d $WorkspacePath && devcontainer.cmd up --workspace-folder .'"
+
+# Option 3: Call bash core in any WSL distro
+# wsl bash -c "/opt/bitbot/bitbot-core.sh $BitBotArgs"
 ```
 
-**MCP commands**:
-```bash
-bitbot mcp list
-bitbot mcp logs <service>
-bitbot mcp restart <service>
-bitbot mcp start
-bitbot mcp stop
+---
+
+#### Entry Point 2: CMD Batch Launcher
+
+**Use cases**: Legacy Windows scripts, batch file integration, simple wrappers
+
+**Implementation** (`bitbot.cmd`):
+```batch
+@echo off
+REM BitBot Windows CMD Launcher
+
+set WORKSPACE=%CD%
+
+REM Method 2: Direct devcontainer.cmd call (Windows paths)
+devcontainer.cmd up --workspace-folder "%WORKSPACE%"
+
+REM Launch VS Code
+code "%WORKSPACE%"
 ```
 
-**Utility commands**:
+---
+
+#### Entry Point 3: WSL Bash Launcher (BitBot Core)
+
+**Use cases**: Bash-centric users (99% of BitBot), cross-platform consistency, optional Alpine isolation
+
+**Implementation** (`bitbot` bash script in WSL):
 ```bash
-bitbot status           # Show workspace/container status
-bitbot stop             # Stop workspace containers
-bitbot restart          # Restart workspace
-bitbot logs             # Show BitBot logs
-bitbot version          # Show version
-bitbot help             # Show help
+#!/bin/bash
+# BitBot Bash Core (runs in ANY WSL distro)
+
+# Get Windows path for devcontainer.cmd
+workspace_win=$(wslpath -w "$PWD")
+
+# Option 1: Method 3 (cmd.exe interop for CLI builds)
+cmd.exe /c "cd /d $workspace_win && devcontainer.cmd up --workspace-folder ."
+
+# Option 2: Direct URI approach (preferred, see SPEC-06)
+# source /opt/bitbot/lib/vscode-devcontainer-utils.sh
+# open_vscode_devcontainer "$workspace_win"
 ```
 
-### 2.2 Command Routing
+**Key Insight**: All three entry points use `devcontainer.cmd` wrapper (or Direct URI) to ensure Windows path labels.
 
-**Main dispatcher** (`bin/bitbot`):
+### 2.3 BitBot-Alpine: Optional Isolation Layer
+
+**Purpose**: BitBot-Alpine provides a clean, isolated WSL environment for BitBot, but is **optional** - users can run BitBot in their default WSL distro (Ubuntu, Debian, etc.).
+
+**What BitBot-Alpine Provides**:
+- ✅ **Isolation**: Separate from user's default WSL distro
+- ✅ **Clean environment**: Only BitBot dependencies (~8MB)
+- ✅ **Easy reset**: `wsl --unregister BitBot-Alpine` to start fresh
+- ✅ **No interference**: User's WSL environment stays untouched
+- ✅ **Convenience**: Pre-configured BitBot installation
+
+**What BitBot-Alpine Does NOT Provide**:
+- ❌ **Path corruption prevention** (`.cmd` wrapper prevents corruption, not the distro)
+- ❌ **Required for Method 3** (Method 3 works in any WSL distro)
+- ❌ **Special Docker Desktop handling** (all WSL distros work the same way)
+
+**Installation** (Optional):
+```powershell
+# Auto-install BitBot-Alpine on first run (if user chooses isolation)
+if (!(wsl -l -v | Select-String "BitBot-Alpine")) {
+    Write-Host "Installing BitBot isolated environment (8 MB)..."
+
+    # Download Alpine Linux rootfs
+    $AlpineUrl = "https://dl-cdn.alpinelinux.org/alpine/v3.19/releases/x86_64/alpine-minirootfs-3.19.0-x86_64.tar.gz"
+    $TempFile = "$env:TEMP\alpine-minirootfs.tar.gz"
+    Invoke-WebRequest -Uri $AlpineUrl -OutFile $TempFile
+
+    # Install as BitBot-Alpine (non-default)
+    wsl --import BitBot-Alpine "$env:USERPROFILE\.bitbot\wsl" $TempFile
+
+    # Configure BitBot environment (minimal - no Docker/Node.js needed!)
+    wsl -d BitBot-Alpine sh -c "
+        apk add --no-cache bash git coreutils &&
+        mkdir -p /opt/bitbot &&
+        echo 'export PATH=/opt/bitbot/bin:\$PATH' >> /root/.bashrc
+    "
+
+    Remove-Item $TempFile
+    Write-Host "✓ BitBot isolated environment ready"
+    Write-Host "  Size: ~8MB (no Docker/Node.js - uses Windows devcontainer.cmd)"
+}
+```
+
+**User Choice**:
+```powershell
+# Option A: Use BitBot-Alpine (isolation)
+wsl -d BitBot-Alpine /opt/bitbot/bitbot work vscode
+
+# Option B: Use default WSL distro (Ubuntu, etc.)
+wsl /opt/bitbot/bitbot work vscode
+
+# Both work identically - choice is preference for isolation
+
+    // Execute and return exit code
+    return system(command);
+}
+```
+
+### 2.3 PATH Integration
+
+**Windows PATH Setup**:
+```powershell
+# Add BitBot to Windows PATH
+$BitBotPath = "$env:USERPROFILE\.bitbot\bin"
+$CurrentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+
+if ($CurrentPath -notlike "*$BitBotPath*") {
+    [Environment]::SetEnvironmentVariable(
+        "PATH",
+        "$CurrentPath;$BitBotPath",
+        "User"
+    )
+    Write-Host "✓ Added BitBot to PATH"
+}
+```
+
+**WSL PATH Configuration**:
 ```bash
-#!/usr/bin/env bash
+# In BitBot-Alpine ~/.bashrc
+export PATH="/root/.bitbot/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-# Load core
-source /opt/bitbot/bin/bitbot-core.sh
+# Prioritize WSL tools over Windows tools
+export PATH="/usr/local/bin:/usr/bin:/bin:/mnt/c/Windows/System32:$PATH"
+```
 
-# Parse command
-COMMAND="${1:-}"
-shift
+---
+
+## 3. macOS and Linux Implementation
+
+### 3.1 Native Bash Implementation
+
+**Installation**:
+```bash
+#!/bin/bash
+# Install BitBot on macOS/Linux
+
+BITBOT_HOME="${HOME}/.bitbot"
+BITBOT_BIN="${BITBOT_HOME}/bin"
+
+# Create directory structure
+mkdir -p "$BITBOT_BIN"
+
+# Download/clone BitBot
+git clone https://github.com/ManuelKugelmann/BitBot.git "$BITBOT_HOME"
+
+# Make executable
+chmod +x "$BITBOT_BIN/bitbot"
+
+# Add to PATH (bash/zsh)
+if ! grep -q "bitbot" "$HOME/.bashrc" 2>/dev/null; then
+    echo 'export PATH="$HOME/.bitbot/bin:$PATH"' >> "$HOME/.bashrc"
+fi
+
+if [ -f "$HOME/.zshrc" ]; then
+    if ! grep -q "bitbot" "$HOME/.zshrc"; then
+        echo 'export PATH="$HOME/.bitbot/bin:$PATH"' >> "$HOME/.zshrc"
+    fi
+fi
+
+echo "✓ BitBot installed. Reload shell or run: source ~/.bashrc"
+```
+
+### 3.2 Platform Detection
+
+**Runtime Platform Detection**:
+```bash
+#!/bin/bash
+# /opt/bitbot/platform-detect.sh
+
+detect_platform() {
+    case "$(uname -s)" in
+        Linux*)
+            if [ -f /proc/version ] && grep -q "Microsoft\|microsoft" /proc/version; then
+                echo "wsl"
+            else
+                echo "linux"
+            fi
+            ;;
+        Darwin*)
+            echo "macos"
+            ;;
+        CYGWIN*|MINGW*|MSYS*)
+            echo "windows"
+            ;;
+        *)
+            echo "unknown"
+            ;;
+    esac
+}
+
+# Container detection
+detect_container() {
+    if [ -f "/.dockerenv" ]; then
+        echo "docker"
+    elif [ -n "${BITBOT_MODE}" ]; then
+        echo "bitbot-container"
+    else
+        echo "host"
+    fi
+}
+
+export BITBOT_PLATFORM=$(detect_platform)
+export BITBOT_CONTEXT=$(detect_container)
+```
+
+---
+
+## 4. Core Bash Implementation
+
+### 4.1 Main CLI Entry Point
+
+**bitbot command** (`~/.bitbot/bin/bitbot`):
+```bash
+#!/bin/bash
+# BitBot Cross-Platform CLI
+
+set -e
+
+# Source platform detection and utilities
+BITBOT_HOME="${BITBOT_HOME:-$HOME/.bitbot}"
+source "$BITBOT_HOME/lib/platform.sh"
+source "$BITBOT_HOME/lib/utils.sh"
+
+# Determine execution context
+CONTEXT=$(detect_container)
+PLATFORM=$(detect_platform)
+
+case "$CONTEXT" in
+    "host")
+        # Host context - container management
+        exec "$BITBOT_HOME/lib/host-commands.sh" "$@"
+        ;;
+    "bitbot-container")
+        # Container context - AI/workspace management
+        exec "$BITBOT_HOME/lib/container-commands.sh" "$@"
+        ;;
+    *)
+        echo "❌ Unable to determine BitBot context"
+        echo "   Platform: $PLATFORM"
+        echo "   Context: $CONTEXT"
+        exit 1
+        ;;
+esac
+```
+
+### 4.2 Host Commands Implementation
+
+**Host command handler** (`~/.bitbot/lib/host-commands.sh`):
+```bash
+#!/bin/bash
+# BitBot Host Commands
+
+COMMAND="${1:-smart-launch}"
+WORKSPACE_PATH="$(pwd)"
+WORKSPACE_HASH=$(echo -n "$WORKSPACE_PATH" | sha256sum | cut -c1-8)
+
+export WORKSPACE_PATH WORKSPACE_HASH
 
 case "$COMMAND" in
-  ""|work|setup)
-    cmd_mode "$COMMAND" "$@"
-    ;;
-  session)
-    cmd_session "$@"
-    ;;
-  mcp)
-    cmd_mcp "$@"
-    ;;
-  status|stop|restart|logs|version|help)
-    cmd_utility "$COMMAND" "$@"
-    ;;
-  *)
-    error "Unknown command: $COMMAND"
-    show_help
-    exit 1
-    ;;
+    # Smart launch - use config default or work mode
+    smart-launch|"")
+        DEFAULT_MODE=$(get_config "default_mode" "work")
+        DEFAULT_INTERFACE=$(get_config "default_interface" "cli")
+
+        if [ "$DEFAULT_INTERFACE" = "vscode" ]; then
+            exec "$0" "$DEFAULT_MODE" vscode
+        else
+            exec "$0" "$DEFAULT_MODE"
+        fi
+        ;;
+
+    # Work container management
+    work)
+        if [ "$2" = "vscode" ]; then
+            start_work_container_vscode
+        else
+            start_work_container_cli
+        fi
+        ;;
+
+    # Setup container management  
+    setup)
+        check_setup_safety || exit 1
+
+        if [ "$2" = "vscode" ]; then
+            start_setup_container_vscode
+        else
+            start_setup_container_cli
+        fi
+        ;;
+
+    # VS Code launcher
+    vscode)
+        MODE="${2:-$(get_config "default_mode" "work")}"
+        exec "$0" "$MODE" vscode
+        ;;
+
+    # CLI launcher
+    cli)
+        MODE="${2:-$(get_config "default_mode" "work")}"
+        exec "$0" "$MODE"
+        ;;
+
+    # Container status and management
+    status)
+        show_container_status
+        ;;
+
+    stop)
+        stop_containers "$2"
+        ;;
+
+    kill)
+        kill_all_containers
+        ;;
+
+    # Configuration
+    config)
+        run_configuration_wizard "$@"
+        ;;
+
+    # First-run setup
+    install)
+        run_first_time_setup
+        ;;
+
+    # System diagnostics
+    doctor)
+        run_system_diagnostics
+        ;;
+
+    # Container context error
+    done)
+        echo "❌ 'bitbot done' only available inside containers"
+        echo "   Use 'bitbot stop' to stop containers from host"
+        exit 1
+        ;;
+
+    *)
+        echo "❌ Unknown command: $COMMAND"
+        echo ""
+        echo "BitBot Host Commands:"
+        echo "  bitbot                 Smart launch (config default)"
+        echo "  bitbot work            Launch work container"
+        echo "  bitbot setup           Launch setup container"
+        echo "  bitbot vscode [mode]   Launch VS Code"
+        echo "  bitbot status          Show container status"
+        echo "  bitbot config          Configuration wizard"
+        echo "  bitbot doctor          System diagnostics"
+        echo ""
+        exit 1
+        ;;
+esac
+```
+
+### 4.3 Container Commands Implementation
+
+**Container command handler** (`~/.bitbot/lib/container-commands.sh`):
+```bash
+#!/bin/bash
+# BitBot Container Commands
+
+COMMAND="${1:-default-agent}"
+MODE="${BITBOT_MODE:-work}"
+
+case "$COMMAND" in
+    # Launch default AI agent
+    default-agent|"")
+        DEFAULT_AGENT=$(get_config "default_agent" "none")
+
+        if [ "$DEFAULT_AGENT" = "none" ]; then
+            echo "No default AI agent configured."
+            echo "Available agents:"
+            list_available_agents
+            echo ""
+            echo "Configure: bitbot config"
+        else
+            launch_ai_agent "$DEFAULT_AGENT"
+        fi
+        ;;
+
+    # Launch specific AI agents
+    claude)
+        launch_ai_agent "claude-code"
+        ;;
+
+    open)
+        launch_ai_agent "opencode"
+        ;;
+
+    custom)
+        AGENT_NAME="$2"
+        if [ -z "$AGENT_NAME" ]; then
+            echo "Usage: bitbot custom <agent-name>"
+            echo "Available custom agents:"
+            list_custom_agents
+            exit 1
+        fi
+        launch_custom_agent "$AGENT_NAME"
+        ;;
+
+    # Session management
+    session)
+        exec /opt/bitbot/session-manager.sh "${@:2}"
+        ;;
+
+    # Git safety and workspace commands
+    status)
+        show_workspace_status
+        ;;
+
+    git)
+        exec /opt/bitbot/git-commands.sh "${@:2}"
+        ;;
+
+    # Container exit with safety checks
+    done)
+        exec /opt/bitbot/container-exit.sh
+        ;;
+
+    # Host context error
+    work|setup|vscode|install|doctor)
+        echo "❌ '$COMMAND' only available on host"
+        echo "   Exit container with 'bitbot done' first"
+        exit 1
+        ;;
+
+    *)
+        echo "❌ Unknown command: $COMMAND"
+        echo ""
+        echo "BitBot Container Commands ($MODE mode):"
+        echo "  bitbot                 Launch default AI agent"
+        echo "  bitbot claude          Launch Claude Code"
+        echo "  bitbot open            Launch OpenCode"
+        echo "  bitbot custom <name>   Launch custom agent"
+        echo "  bitbot session         Session management"
+        echo "  bitBot done            Review changes and exit"
+        echo ""
+        exit 1
+        ;;
 esac
 ```
 
 ---
 
-## 3. Platform Detection
+## 5. Command Examples and Workflows
 
-### 3.1 Platform Identification
+### 5.1 Typical Development Workflows
 
-**Detection** (`lib/platform.sh`):
-```bash
-#!/usr/bin/env bash
-
-detect_platform() {
-  local os=$(uname -s)
-  local arch=$(uname -m)
-
-  case "$os" in
-    Linux*)
-      if grep -qi microsoft /proc/version; then
-        echo "wsl2"
-      else
-        echo "linux"
-      fi
-      ;;
-    Darwin*)
-      echo "macos"
-      ;;
-    CYGWIN*|MINGW*|MSYS*)
-      echo "windows"
-      ;;
-    *)
-      echo "unknown"
-      ;;
-  esac
-}
-
-BITBOT_PLATFORM=$(detect_platform)
-```
-
-### 3.2 Platform-Specific Paths
-
-**Path translation** (Windows/WSL):
-```bash
-# Windows path to WSL path
-translate_path() {
-  local path="$1"
-  local platform="$2"
-
-  if [[ "$platform" == "wsl2" ]]; then
-    # C:\Projects\MyApp → /mnt/c/Projects/MyApp
-    if [[ "$path" =~ ^[A-Za-z]:\\ ]]; then
-      local drive="${path:0:1}"
-      local rest="${path:3}"
-      echo "/mnt/${drive,,}/${rest//\\//}"
-    else
-      echo "$path"
-    fi
-  else
-    echo "$path"
-  fi
-}
-```
-
-**Docker socket path**:
-```bash
-get_docker_socket() {
-  case "$BITBOT_PLATFORM" in
-    wsl2)
-      echo "/var/run/docker.sock"
-      ;;
-    macos)
-      echo "/var/run/docker.sock"
-      ;;
-    linux)
-      echo "/var/run/docker.sock"
-      ;;
-  esac
-}
-```
-
----
-
-## 4. Windows Integration
-
-### 4.1 Windows Launcher
-
-**Purpose**: Minimal .exe to call bash in WSL2
-
-**Implementation** (C# or Go):
-```csharp
-// bitbot.exe (minimal C# launcher)
-using System;
-using System.Diagnostics;
-
-class BitBotLauncher {
-    static void Main(string[] args) {
-        // Check WSL installed
-        if (!IsWSLInstalled()) {
-            Console.Error.WriteLine("Error: WSL2 not installed");
-            Console.Error.WriteLine("Install: https://aka.ms/wsl2");
-            Environment.Exit(1);
-        }
-
-        // Build command
-        var command = "bash /opt/bitbot/bin/bitbot " + string.Join(" ", args);
-
-        // Execute in WSL
-        var psi = new ProcessStartInfo {
-            FileName = "wsl.exe",
-            Arguments = $"-e {command}",
-            UseShellExecute = false
-        };
-
-        var process = Process.Start(psi);
-        process.WaitForExit();
-        Environment.Exit(process.ExitCode);
-    }
-
-    static bool IsWSLInstalled() {
-        try {
-            var psi = new ProcessStartInfo {
-                FileName = "wsl.exe",
-                Arguments = "--status",
-                RedirectStandardOutput = true,
-                UseShellExecute = false
-            };
-            var process = Process.Start(psi);
-            process.WaitForExit();
-            return process.ExitCode == 0;
-        } catch {
-            return false;
-        }
-    }
-}
-```
-
-### 4.2 Windows Installation
-
-**Installation script** (`install.ps1`):
+**Windows Development Workflow**:
 ```powershell
-# BitBot Windows Installation
-Write-Host "Installing BitBot for Windows..."
+# From PowerShell or Command Prompt
+PS C:\Projects\MyProject> bitbot
 
-# Check WSL2
-if (!(Get-Command wsl -ErrorAction SilentlyContinue)) {
-    Write-Error "WSL2 not found. Install from: https://aka.ms/wsl2"
-    exit 1
-}
+# BitBot detects Windows, launches via BitBot-Alpine WSL
+# Auto-detects VS Code terminal, stays inline
+# Launches work container, attaches to session
 
-# Copy bitbot.exe to PATH
-$installPath = "$env:LOCALAPPDATA\BitBot"
-New-Item -ItemType Directory -Force -Path $installPath
-Copy-Item "bitbot.exe" "$installPath\bitbot.exe"
+# Inside container - AI agent commands available
+bitbot claude        # Launch Claude Code
+bitbot done         # Review changes, commit, exit
+```
 
-# Add to PATH
-$path = [Environment]::GetEnvironmentVariable("PATH", "User")
-if ($path -notlike "*$installPath*") {
-    [Environment]::SetEnvironmentVariable(
-        "PATH",
-        "$path;$installPath",
-        "User"
-    )
-}
+**macOS/Linux Development Workflow**:
+```bash
+# From Terminal
+$ cd ~/projects/myproject
+$ bitbot
 
-# Install bash scripts in WSL
-wsl -e bash -c "curl -fsSL https://bitbot.sh/install.sh | bash"
+# Direct bash execution on host
+# Launches work container
+# Attaches to session
 
-Write-Host "BitBot installed! Run: bitbot"
+# Inside container
+$ bitbot open       # Launch OpenCode
+$ bitbot done      # Exit with safety checks
+```
+
+### 5.2 VS Code Integration Examples
+
+**VS Code Terminal (Windows)**:
+```powershell
+# Detected automatically as VS Code terminal
+PS C:\Projects\MyProject> bitbot vscode work
+# Launches work container + opens VS Code DevContainer
+```
+
+**VS Code DevContainer Attachment**:
+```bash
+# From host terminal
+$ bitbot work vscode
+
+# BitBot:
+# 1. Starts work container
+# 2. Launches: code --remote "attach-container+bitbot-work-a1b2c3d4" /workspace
+# 3. VS Code opens with full DevContainer integration
+```
+
+### 5.3 Setup Mode Examples
+
+**Infrastructure Changes**:
+```bash
+# Host - enter setup mode
+$ bitbot setup
+# Git safety check: warns about uncommitted changes
+# Prompts for confirmation
+# Launches setup container with Docker socket access
+
+# Inside setup container
+$ bitbot status      # Shows workspace and git status  
+$ code .devcontainer/devcontainer.json
+$ bitbot done       # Commits changes, rebuilds work container, exits
 ```
 
 ---
 
-## 5. Core Commands Implementation
+## 6. Configuration and Defaults
 
-### 5.1 Mode Launch Commands
+### 6.1 User Configuration
 
-**bitbot work** (`bitbot-core.sh`):
-```bash
-cmd_mode() {
-  local mode="${1:-work}"  # Default to work
-  shift
-
-  # Parse flags
-  local vscode=false
-  local attach_session=""
-
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --vscode)
-        vscode=true
-        shift
-        ;;
-      --attach)
-        attach_session="$2"
-        shift 2
-        ;;
-      *)
-        error "Unknown option: $1"
-        exit 1
-        ;;
-    esac
-  done
-
-  # Get workspace hash
-  local workspace_hash=$(calculate_workspace_hash "$(pwd)")
-
-  # Start MCP services
-  start_workspace_mcp_services "$workspace_hash"
-
-  # Start container
-  if [[ "$mode" == "work" ]]; then
-    start_work_container "$workspace_hash" "$vscode" "$attach_session"
-  elif [[ "$mode" == "setup" ]]; then
-    start_setup_container "$workspace_hash" "$vscode" "$attach_session"
-  fi
-}
-```
-
-**start_work_container**:
-```bash
-start_work_container() {
-  local workspace_hash="$1"
-  local vscode="$2"
-  local attach_session="$3"
-
-  local container_name="bitbot-dev-${workspace_hash}"
-
-  # Check if container exists
-  if ! docker ps -a --filter "name=$container_name" --format '{{.Names}}' | grep -q "^${container_name}$"; then
-    # Create container
-    docker-compose -f .bitbot/docker-compose.work.yml up -d
-  fi
-
-  # Start if stopped
-  if ! docker ps --filter "name=$container_name" --format '{{.Names}}' | grep -q "^${container_name}$"; then
-    docker start "$container_name"
-  fi
-
-  # Attach
-  if [[ "$vscode" == "true" ]]; then
-    # Launch VS Code
-    code --remote "attach-container+${container_name}" /workspace
-  else
-    # Attach to tmux session
-    local session="${attach_session:-main}"
-    docker exec -it "$container_name" tmux attach -t "work-${session}"
-  fi
-}
-```
-
-### 5.2 Session Commands
-
-**bitbot session** (`bitbot-session.sh`):
-```bash
-cmd_session() {
-  local subcommand="$1"
-  shift
-
-  case "$subcommand" in
-    new)
-      session_new "$@"
-      ;;
-    attach)
-      session_attach "$@"
-      ;;
-    list)
-      session_list "$@"
-      ;;
-    kill)
-      session_kill "$@"
-      ;;
-    save)
-      session_save "$@"
-      ;;
-    restore)
-      session_restore "$@"
-      ;;
-    *)
-      error "Unknown session command: $subcommand"
-      exit 1
-      ;;
-  esac
-}
-```
-
-**session_new**:
-```bash
-session_new() {
-  local name="$1"
-  local mode=$(get_current_mode)
-
-  if [[ -z "$name" ]]; then
-    error "Usage: bitbot session new <name>"
-    exit 1
-  fi
-
-  local session_name="${mode}-${name}"
-
-  # Create tmux session
-  tmux new-session -d -s "$session_name" -c /workspace
-
-  echo "Created session: $session_name"
-  echo "Attach with: bitbot session attach $name"
-}
-```
-
-### 5.3 MCP Commands
-
-**bitbot mcp** (`bitbot-mcp.sh`):
-```bash
-cmd_mcp() {
-  local subcommand="$1"
-  shift
-
-  case "$subcommand" in
-    list)
-      mcp_list "$@"
-      ;;
-    logs)
-      mcp_logs "$@"
-      ;;
-    restart)
-      mcp_restart "$@"
-      ;;
-    start)
-      mcp_start "$@"
-      ;;
-    stop)
-      mcp_stop "$@"
-      ;;
-    *)
-      error "Unknown mcp command: $subcommand"
-      exit 1
-      ;;
-  esac
-}
-```
-
-**mcp_list**:
-```bash
-mcp_list() {
-  local workspace_hash=$(calculate_workspace_hash "$(pwd)")
-
-  echo "Global MCP Services:"
-  curl -s http://localhost:8080/api/services?scope=global | jq -r '.services[] | "\(.name)\t\(.health)"'
-
-  echo ""
-  echo "Workspace MCP Services:"
-  curl -s "http://localhost:9080/api/services?workspace=${workspace_hash}" | jq -r '.services[] | "\(.name)\t\(.health)"'
-}
-```
-
----
-
-## 6. Workspace Detection
-
-### 6.1 Workspace Hash Calculation
-
-**Generate workspace hash**:
-```bash
-calculate_workspace_hash() {
-  local workspace_path="$1"
-
-  # Normalize path
-  local normalized=$(realpath "$workspace_path")
-
-  # Calculate SHA-256 hash (first 8 chars)
-  echo -n "$normalized" | sha256sum | cut -c1-8
-}
-```
-
-### 6.2 Workspace Validation
-
-**Check if in workspace**:
-```bash
-validate_workspace() {
-  local workspace_path="$(pwd)"
-
-  # Check for .bitbot directory
-  if [[ ! -d ".bitbot" ]]; then
-    error "Not in a BitBot workspace"
-    echo "Initialize with: bitbot init"
-    exit 1
-  fi
-
-  # Check for .devcontainer
-  if [[ ! -d ".devcontainer" ]]; then
-    warn "No .devcontainer found, using default"
-  fi
-}
-```
-
-**Initialize workspace**:
-```bash
-cmd_init() {
-  local workspace_path="$(pwd)"
-
-  echo "Initializing BitBot workspace..."
-
-  # Create .bitbot structure
-  mkdir -p .bitbot/{setup,logs,sessions,state,mcp}
-
-  # Copy default configs
-  cp /opt/bitbot/templates/docker-compose.work.yml .bitbot/
-  cp /opt/bitbot/templates/docker-compose.setup.yml .bitbot/
-  cp /opt/bitbot/templates/mcp-docker-compose.yml .bitbot/mcp/docker-compose.yml
-
-  # Copy default .devcontainer if not exists
-  if [[ ! -d ".devcontainer" ]]; then
-    cp -r /opt/bitbot/templates/devcontainer .devcontainer
-  fi
-
-  echo "✓ BitBot workspace initialized"
-  echo "Run: bitbot work"
-}
-```
-
----
-
-## 7. Error Handling
-
-### 7.1 Error Types
-
-**User errors**:
-```bash
-# Missing argument
-error "Usage: bitbot session new <name>"
-
-# Invalid workspace
-error "Not in a BitBot workspace. Run: bitbot init"
-
-# Container not running
-error "Container not running. Start with: bitbot work"
-```
-
-**System errors**:
-```bash
-# Docker not running
-if ! docker ps &>/dev/null; then
-  error "Docker is not running"
-  echo "Start Docker and try again"
-  exit 1
-fi
-
-# WSL not installed (Windows)
-if ! command -v wsl &>/dev/null; then
-  error "WSL2 not installed"
-  echo "Install from: https://aka.ms/wsl2"
-  exit 1
-fi
-```
-
-### 7.2 Error Messages
-
-**Format**:
-```bash
-error() {
-  echo "Error: $*" >&2
-}
-
-warn() {
-  echo "Warning: $*" >&2
-}
-
-info() {
-  echo "$*"
-}
-
-success() {
-  echo "✓ $*"
-}
-```
-
----
-
-## 8. Help System
-
-### 8.1 Command Help
-
-**Main help**:
-```bash
-show_help() {
-  cat <<EOF
-BitBot - AI-Assisted Development Environment
-
-Usage:
-  bitbot [command] [options]
-
-Commands:
-  work              Launch work mode (default)
-  setup             Launch setup mode
-  session           Manage tmux sessions
-  mcp               Manage MCP services
-  status            Show workspace status
-  stop              Stop workspace
-  restart           Restart workspace
-  init              Initialize workspace
-  version           Show version
-  help              Show this help
-
-Options:
-  --vscode          Launch in VS Code
-  --attach <name>   Attach to specific session
-
-Examples:
-  bitbot                    # Start work mode
-  bitbot work --vscode      # Start work mode in VS Code
-  bitbot setup              # Start setup mode
-  bitbot session list       # List sessions
-  bitbot mcp list           # List MCP services
-
-Documentation: https://docs.bitbot.dev
-EOF
-}
-```
-
-**Session help**:
-```bash
-show_session_help() {
-  cat <<EOF
-bitbot session - Manage tmux sessions
-
-Usage:
-  bitbot session <command> [options]
-
-Commands:
-  new <name>        Create new session
-  attach <name>     Attach to session
-  list              List all sessions
-  kill <name>       Kill session
-  save              Save session state
-  restore           Restore session state
-
-Examples:
-  bitbot session new feature-x
-  bitbot session attach main
-  bitbot session list
-EOF
-}
-```
-
----
-
-## 9. Configuration
-
-### 9.1 Config File Locations
-
-**Priority** (first found wins):
-1. `.bitbot/config.yml` (workspace-specific)
-2. `~/.bitbot/config.yml` (user-specific)
-3. `/opt/bitbot/config/default-config.yml` (system default)
-
-### 9.2 Config Format
-
-**Example config** (`.bitbot/config.yml`):
+**BitBot Config** (`~/.bitbot/config.yml`):
 ```yaml
-# BitBot Configuration
+# BitBot User Configuration
 
-# Default mode
-default_mode: work
+# Default behavior
+default_mode: "work"              # work, setup
+default_interface: "cli"          # cli, vscode
+default_agent: "claude-code"      # claude-code, opencode, none, custom:name
 
 # Platform-specific settings
-platform:
-  wsl2:
-    docker_socket: /var/run/docker.sock
-  macos:
-    docker_socket: /var/run/docker.sock
+windows:
+  wsl_distro: "BitBot-Alpine"     # WSL distro to use
+  vs_code_detection: true         # Auto-detect VS Code terminals
+  inline_execution: true          # Stay in same terminal
+
+macos:
+  use_iterm_integration: false    # iTerm2 integration
+
+linux:
+  prefer_system_docker: true      # Use system Docker over Docker Desktop
+
+# AI agent settings
+agents:
+  claude_code:
+    model: "claude-3-5-sonnet"
+    config_file: ".claude/config.yml"
+
+  opencode:
+    config_file: ".opencode/config.json"
 
 # Session settings
 sessions:
-  autosave: true
-  autosave_interval_minutes: 15
-  default_shell: /bin/zsh
+  auto_timestamp: true            # Use timestamp-based session names
+  tmux_config: "work"            # tmux config profile (work, setup, custom)
 
-# MCP settings
-mcp:
-  global_discovery_url: http://localhost:8080
-  workspace_discovery_port: 9080
-
-# Container settings
-containers:
-  work:
-    image: bitbot/devcontainer:latest
-    shell: /bin/zsh
-  setup:
-    image: bitbot/setup-container:latest
-    shell: /bin/bash
-
-# Logging
-logging:
-  level: info
-  file: .bitbot/logs/bitbot.log
+# Git safety settings
+git_safety:
+  require_clean_for_setup: false # Block setup mode if uncommitted changes
+  auto_checkpoint_threshold: 5   # Files changed before suggesting checkpoint
 ```
 
-### 9.3 Config Loading
+### 6.2 Workspace-Specific Config
 
-**Load config**:
+**Workspace Config** (`.bitbot/config.yml`):
+```yaml
+# Workspace-specific BitBot configuration
+
+# Workspace defaults
+workspace:
+  default_mode: "work"
+  default_agent: "claude-code"
+
+# Custom agents for this workspace
+custom_agents:
+  project_helper:
+    command: "python .bitbot/agents/project_helper.py"
+    description: "Project-specific AI helper"
+
+# Session templates
+session_templates:
+  frontend:
+    windows: ["main", "server", "tests"]
+    commands:
+      server: "npm run dev"
+      tests: "npm test -- --watch"
+```
+
+---
+
+## 7. Error Handling and Diagnostics
+
+### 7.1 System Diagnostics
+
+**BitBot Doctor** (`bitbot doctor`):
 ```bash
-load_config() {
-  local config_file=""
+#!/bin/bash
+# System diagnostics and health check
 
-  # Find config file
-  if [[ -f ".bitbot/config.yml" ]]; then
-    config_file=".bitbot/config.yml"
-  elif [[ -f "$HOME/.bitbot/config.yml" ]]; then
-    config_file="$HOME/.bitbot/config.yml"
-  else
-    config_file="/opt/bitbot/config/default-config.yml"
-  fi
+echo "=== BitBot System Diagnostics ==="
+echo ""
 
-  # Parse YAML (using yq or simple grep)
-  BITBOT_DEFAULT_MODE=$(yq e '.default_mode' "$config_file")
-  BITBOT_AUTOSAVE=$(yq e '.sessions.autosave' "$config_file")
-  # ... etc
-}
+# Platform detection
+echo "[Platform Detection]"
+echo "Platform: $(detect_platform)"
+echo "Context: $(detect_container)"
+echo "Shell: $SHELL"
+echo ""
+
+# Dependencies check
+echo "[Dependencies]"
+check_dependency "docker" "Docker" "https://docker.com/get-started"
+check_dependency "git" "Git" "https://git-scm.com/downloads"
+
+if [ "$BITBOT_PLATFORM" = "windows" ] || [ "$BITBOT_PLATFORM" = "wsl" ]; then
+    check_wsl_integration
+fi
+
+if command -v devcontainer >/dev/null 2>&1; then
+    echo "✓ @devcontainers/cli: $(devcontainer --version)"
+else
+    echo "⚠ @devcontainers/cli: Not installed (will use fallback)"
+fi
+
+echo ""
+
+# BitBot installation check
+echo "[BitBot Installation]"
+echo "BITBOT_HOME: ${BITBOT_HOME:-$HOME/.bitbot}"
+echo "Config file: $([ -f ~/.bitbot/config.yml ] && echo "✓ Found" || echo "⚠ Missing")"
+echo "Templates: $([ -d ~/.bitbot/templates ] && echo "✓ Found" || echo "⚠ Missing")"
+echo ""
+
+# Workspace check
+echo "[Current Workspace]"
+if [ -d ".bitbot" ]; then
+    echo "✓ BitBot workspace detected"
+    echo "Workspace hash: $(echo -n "$(pwd)" | sha256sum | cut -c1-8)"
+
+    if [ -f ".devcontainer/devcontainer.json" ]; then
+        echo "✓ DevContainer configuration found"
+    else
+        echo "ℹ No DevContainer configuration"
+    fi
+else
+    echo "ℹ Not a BitBot workspace (run 'bitbot' to initialize)"
+fi
+
+echo ""
+
+# Container status
+echo "[Container Status]"
+show_container_status
+
+echo ""
+echo "=== Diagnostics Complete ==="
+```
+
+### 7.2 Common Error Scenarios
+
+**Windows Docker Desktop Issues**:
+```bash
+# Error: Docker Desktop not running
+if ! docker info >/dev/null 2>&1; then
+    echo "❌ Docker Desktop not running"
+    echo "   Start Docker Desktop and try again"
+    echo "   If issues persist: wsl --shutdown && start Docker Desktop"
+    exit 1
+fi
+
+# Error: WSL integration disabled
+if [ "$BITBOT_PLATFORM" = "wsl" ] && ! docker info >/dev/null 2>&1; then
+    echo "❌ Docker WSL integration disabled"
+    echo "   Enable WSL integration in Docker Desktop settings:"
+    echo "   Settings → Resources → WSL Integration → Enable for BitBot-Alpine"
+    exit 1
+fi
+```
+
+**BitBot-Alpine Corruption Recovery**:
+```powershell
+# If BitBot-Alpine becomes corrupted
+Write-Host "Resetting BitBot environment..."
+wsl --unregister BitBot-Alpine
+Remove-Item -Recurse -Force "$env:USERPROFILE\.bitbot\wsl"
+
+# Re-run BitBot installer
+& $env:USERPROFILE\.bitbot\bin\bitbot.ps1 install
 ```
 
 ---
 
-## 10. Testing Strategy
+## 8. Success Criteria
 
-### 10.1 Platform Tests
+**Cross-Platform Requirements**:
+- [ ] Single `bitbot` command works on Windows, macOS, Linux
+- [ ] Context-aware behavior (host vs container commands)
+- [ ] Windows launcher uses BitBot-Alpine WSL distro
+- [ ] macOS/Linux use native bash implementation
+- [ ] VS Code terminal detection works on all platforms
 
-- PT-01: Detect Linux platform
-- PT-02: Detect macOS platform
-- PT-03: Detect WSL2 platform
-- PT-04: Translate Windows paths to WSL
-- PT-05: Docker socket detection per platform
+**Windows-Specific Requirements**:
+- [ ] BitBot-Alpine distro auto-installs on first run
+- [ ] Immune to Docker Desktop working directory corruption
+- [ ] Inline execution preserves terminal session
+- [ ] PowerShell, Command Prompt, and executable launchers work
+- [ ] PATH integration allows global `bitbot` access
 
-### 10.2 Command Tests
-
-- CT-01: `bitbot work` starts work container
-- CT-02: `bitbot setup` starts setup container
-- CT-03: `bitbot --vscode` launches VS Code
-- CT-04: `bitbot session new` creates session
-- CT-05: `bitbot mcp list` shows services
-- CT-06: `bitbot status` shows workspace state
-
-### 10.3 Integration Tests
-
-- INT-01: Windows .exe calls bash in WSL
-- INT-02: Config loading from multiple locations
-- INT-03: Workspace initialization
-- INT-04: Error handling for invalid commands
-- INT-05: Help system displays correctly
+**Command Interface Requirements**:
+- [ ] Host commands manage containers (work, setup, vscode)
+- [ ] Container commands manage AI agents and workspace
+- [ ] Error messages clearly indicate required context
+- [ ] Configuration system allows user customization
+- [ ] System diagnostics help troubleshoot issues
 
 ---
 
-## 11. Success Criteria
-
-**Functional**:
-- [ ] CLI works on Linux, macOS, WSL2
-- [ ] Windows .exe launcher works
-- [ ] Short commands route correctly
-- [ ] Platform detection accurate
-- [ ] Config loading works
-- [ ] Error messages helpful
-
-**Cross-Platform**:
-- [ ] Same commands on all platforms
-- [ ] Path translation for WSL
-- [ ] Docker socket detection
-- [ ] Native experience (Windows .exe)
-
-**Usability**:
-- [ ] Simple command syntax
-- [ ] Clear help messages
-- [ ] Fast execution (<1s for status commands)
-- [ ] Good error messages
-
----
-
-## 12. Implementation Phases
-
-**Phase 1: Core Bash CLI**:
-- Platform detection
-- Command routing
-- Mode launch commands (work/setup)
-- Basic error handling
-
-**Phase 2: Session Commands**:
-- Session management commands
-- Integration with tmux
-- Session persistence commands
-
-**Phase 3: MCP Commands**:
-- MCP service management
-- Service listing and logs
-- Integration with discovery server
-
-**Phase 4: Windows Launcher**:
-- C# .exe launcher
-- WSL integration
-- Windows installation script
-- PATH setup
-
-**Phase 5: Config & Help**:
-- Config file loading
-- Help system
-- Workspace initialization
-- Full error handling
-
----
-
-## 13. References
+## 9. References
 
 **Related Specifications**:
-- SPEC-01: Container Orchestration (container management)
-- SPEC-02: Security Mode System (mode switching)
-- SPEC-03: MCP Service Architecture (mcp commands)
-- SPEC-04: Session Management (session commands)
+- SPEC-00: Architectural Decisions (D-03, D-04, D-12: CLI decisions)
+- SPEC-01: Container Orchestration (container lifecycle management)
+- SPEC-02: Security Mode System (mode-specific commands)
+- SPEC-07: AI Agent Integration (agent launch commands)
 
-**External Tools**:
-- Bash: https://www.gnu.org/software/bash/
-- yq (YAML parser): https://github.com/mikefarah/yq
-- WSL2: https://docs.microsoft.com/windows/wsl/
+**External References**:
+- WSL Documentation: https://docs.microsoft.com/en-us/windows/wsl/
+- Docker Desktop WSL Integration: https://docs.docker.com/desktop/wsl/
+- VS Code Remote Development: https://code.visualstudio.com/docs/remote/remote-overview
 
-**Research Sources**:
-- User decision: Bash implementation (D-07)
-- User decision: Short commands (D-08)
-- Legacy BitBot: 85% complete bash implementation
+**Windows Corruption Analysis**:
+- test-windows-launch/DOCKER-DESKTOP-CORRUPTION-ANALYSIS.md
 
 ---
 
-**Status**: **Draft**
-**Implementation Priority**: P0 (Blocking for MVP)
-**Next Steps**: SPEC-06 (VS Code DevContainer Integration)
+**Status**: **Approved**
+**Implementation Priority**: P0 (Critical - Blocking)
+**Next Steps**: Implement SPEC-06 (VS Code DevContainer Integration)

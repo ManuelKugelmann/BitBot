@@ -3,408 +3,447 @@
 **Feature ID**: SPEC-01
 **Priority**: P0 (Critical - Blocking)
 **Status**: Approved
-**Created**: 2025-10-16
-**Last Updated**: 2025-10-17
+**Depends On**: None
+**Created**: 2025-10-20
+**Last Updated**: 2025-10-20
 
 ---
 
 ## Executive Summary
 
-This document specifies BitBot's container orchestration strategy using custom Docker/Compose with per-workspace containers and selective folder mounting. The approach provides a single safety policy: all infrastructure changes and experimental edits are protected by git push or local bundle backup. There are no runtime/container modes or mode switching. All protection is enforced by requiring a clean git state or a backup before allowing destructive or infrastructure-changing actions.
+BitBot uses `@devcontainers/cli` for work containers with Docker Compose fallback for setup containers. Work and setup are separate containers that can run simultaneously. Both support VS Code attachment and provide different access levels for safety.
 
-**Key Decision**: Per-workspace containers + selective `.bitbot/` mounting (protected vs public) = clean, simple isolation. All safety is enforced by git push/bundle, not container modes.
-
----
-
-## 1. Problem Statement
-
-BitBot needs a container orchestration layer that:
-- Creates and manages development containers per workspace
-- Supports VS Code DevContainer integration for all workflows
-- Manages tmux sessions inside containers
-- Orchestrates MCP services (global + workspace-specific)
-- Supports parallel work + setup sessions
-- Provides AI-assisted infrastructure changes with safety auditing
-
-**Decision**: Per-workspace containers with git-based safety provide cleaner isolation than bind mount remounting or runtime mode switching.
+**Key Decision (D-01)**: `@devcontainers/cli` with Docker Compose fallback provides standards compliance while maintaining flexibility for advanced workflows.
 
 ---
 
-## 2. Architecture Overview
+## 1. Architecture Overview
 
-### 2.1 Final Architecture
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│ Host Machine                                                  │
-│                                                               │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ BitBot CLI (bash)                                       │ │
-│  │  - bitbot            → starts devcontainer (CLI)        │ │
-│  │  - bitbot --vscode   → starts devcontainer (VS Code)    │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                             ↓                                 │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │ DevContainer (bitbot-dev-${WORKSPACE_HASH})            │  │
-│  │                                                         │  │
-│  │  User: root (UID 0)                                    │  │
-│  │  Mount: /workspace/                  (read-write)      │  │
-│  │  Mount: /workspace/.devcontainer/    (read-write, git-protected) │  │
-│  │  Mount: /workspace/.bitbot/          (read-write)      │  │
-│  │  NOT mounted: .bitbot/setup/         (invisible)       │  │
-│  │                                                         │  │
-│  │  Docker socket: Available (if approved)                 │  │
-│  │  MCP network: Access                                   │  │
-│  │  VS Code: Can attach ✓                                 │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                               │
-│  All safety is enforced by git push/bundle, not container modes│
-└──────────────────────────────────────────────────────────────┘
-```
-
-### 2.2 Folder Structure
+### 1.1 Container Strategy
 
 ```
-workspace/
-├── .devcontainer/              # Devcontainer config
-│   ├── devcontainer.json       # Read-only in work, read-write in setup
-│   └── Dockerfile
-│
-├── .bitbot/                    # Mounted in both containers
-│   ├── setup/                  # NOT mounted (BitBot internals)
-│   │   ├── Dockerfile          # Setup container definition
-│   │   └── scripts/            # Setup container scripts
-│   │
-│   ├── logs/                   # Logs (accessible in both modes)
-│   │   └── mode-changes.log
-│   ├── sessions/               # Session state
-│   └── state/                  # BitBot state
-│
-└── src/                        # Source code
+┌─────────────────────────────────────────────────────────────┐
+│ Host Machine                                                │
+│                                                             │
+│  ┌─────────────────┐    ┌─────────────────────────────────┐ │
+│  │ BitBot CLI      │    │ VS Code (Optional)              │ │
+│  │ (bash)          │    │ - Can attach to both containers │ │
+│  └─────────────────┘    └─────────────────────────────────┘ │
+│           │                                                 │
+│           ├─────────────────┬───────────────────────────────┤
+│           ▼                 ▼                               │
+│  ┌─────────────────┐    ┌─────────────────────────────────┐ │
+│  │ Work Container  │    │ Setup Container                 │ │
+│  │ (@devcontainers)│    │ (Docker Compose)               │ │
+│  │                 │    │                                 │ │
+│  │ • AI Agents     │    │ • .devcontainer editing        │ │
+│  │ • Development   │    │ • Infrastructure changes       │ │
+│  │ • Read-only     │    │ • Docker socket access         │ │
+│  │   .devcontainer │    │ • Setup wizards                │ │
+│  └─────────────────┘    └─────────────────────────────────┘ │
+│                                                             │
+│  Both containers can run simultaneously                     │
+└─────────────────────────────────────────────────────────────┘
 ```
 
+### 1.2 Implementation Components
 
+**Work Container**:
+- Managed by `@devcontainers/cli`
+- Standards-compliant DevContainer
+- AI agents run inside
+- .devcontainer mounted read-only
+
+**Setup Container**:
+- Custom Docker Compose in `.bitbot/setup/`
+- Full workspace read-write access
+- Can modify .devcontainer
+- Docker socket available when approved
 
 ---
 
-## 3. Implementation Specification
+## 2. Work Container Implementation
 
+### 2.1 DevContainer Configuration
 
+**Standard .devcontainer/devcontainer.json**:
+```json
+{
+  "name": "BitBot Development Environment",
+  "dockerComposeFile": "../.bitbot/docker-compose.work.yml",
+  "service": "bitbot-work",
+  "workspaceFolder": "/workspace",
 
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18"
+    }
+  },
 
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-json"
+      ]
+    }
+  },
 
-### 3.3 Setup Container Definition
+  "postCreateCommand": "/opt/bitbot/setup-workspace.sh",
+  "remoteUser": "root"
+}
+```
 
+### 2.2 Work Container Compose
+
+**.bitbot/docker-compose.work.yml**:
+```yaml
+version: '3.8'
+
+services:
+  bitbot-work:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    container_name: "bitbot-work-${WORKSPACE_HASH}"
+    volumes:
+      # Workspace (read-write)
+      - "${WORKSPACE_PATH}:/workspace"
+      # .devcontainer (read-only for safety)
+      - "${WORKSPACE_PATH}/.devcontainer:/workspace/.devcontainer:ro"
+      # BitBot state (read-write, except setup/)
+      - "${WORKSPACE_PATH}/.bitbot/logs:/workspace/.bitbot/logs"
+      - "${WORKSPACE_PATH}/.bitbot/sessions:/workspace/.bitbot/sessions"
+      - "${WORKSPACE_PATH}/.bitbot/state:/workspace/.bitbot/state"
+      # .bitbot/setup/ is NOT mounted (invisible to work container)
+    networks:
+      - bitbot-network
+    environment:
+      - BITBOT_MODE=work
+      - WORKSPACE_HASH=${WORKSPACE_HASH}
+    working_dir: /workspace
+    command: ["tail", "-f", "/dev/null"]  # Keep container running
+
+networks:
+  bitbot-network:
+    external: true
+    name: bitbot-network
+```
+
+### 2.3 Work Container Commands
+
+```bash
+# Host commands that manage work container
+bitbot work         # Start work container (CLI)
+bitbot work vscode  # Start work container + launch VS Code
+bitbot cli          # Attach to existing work container
+```
+
+---
+
+## 3. Setup Container Implementation
+
+### 3.1 Setup Container Compose
+
+**.bitbot/setup/docker-compose.yml**:
+```yaml
+version: '3.8'
+
+services:
+  bitbot-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: "bitbot-setup-${WORKSPACE_HASH}"
+    volumes:
+      # Full workspace access (read-write)
+      - "${WORKSPACE_PATH}:/setup/workspace"
+      # Docker socket (when approved)
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - bitbot-network
+    environment:
+      - BITBOT_MODE=setup
+      - WORKSPACE_HASH=${WORKSPACE_HASH}
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    working_dir: /setup/workspace
+    command: ["/opt/bitbot/entrypoint-setup.sh"]
+
+networks:
+  bitbot-network:
+    external: true
+    name: bitbot-network
+```
+
+### 3.2 Setup Container Dockerfile
+
+**.bitbot/setup/Dockerfile**:
 ```dockerfile
-# .bitbot/setup/Dockerfile
-
 FROM ubuntu:22.04
 
-# Install base dependencies
+# Install base tools
 RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
-    zsh \
-    tmux \
     git \
-    fzf \
-    docker-compose \
+    tmux \
+    zsh \
+    vim \
     jq \
+    fzf \
+    docker.io \
+    docker-compose \
     && rm -rf /var/lib/apt/lists/*
 
-# Install BitBot setup scripts
-COPY scripts/entrypoint-setup.sh /opt/bitbot/entrypoint-setup.sh
-COPY scripts/setup-audit.sh /opt/bitbot/setup-audit.sh
-COPY scripts/setup-apply.sh /opt/bitbot/setup-apply.sh
+# Install @devcontainers/cli
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g @devcontainers/cli
+
+# Install BitBot setup tools
+COPY scripts/ /opt/bitbot/
 RUN chmod +x /opt/bitbot/*.sh
 
-# Install AI agent tools
-# (Claude Code, etc.)
+# Setup user environment
+RUN chsh -s /bin/zsh root
 
 WORKDIR /setup/workspace
-
 ENTRYPOINT ["/opt/bitbot/entrypoint-setup.sh"]
 CMD ["/bin/zsh"]
 ```
 
-### 3.4 Setup Entrypoint Script
+### 3.3 Setup Container Commands
 
 ```bash
-#!/bin/bash
-# .bitbot/setup/scripts/entrypoint-setup.sh
-
-set -e
-
-echo "BitBot Setup Container Starting..."
-echo "Workspace: /setup/workspace"
-
-# Ensure we're in the workspace
-cd /setup/workspace
-
-# Git safety check
-if [ -d ".git" ]; then
-    echo ""
-    echo "=== Git Safety Check ==="
-    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
-        echo "⚠ WARNING: Uncommitted changes detected"
-        echo "  Consider committing before modifying .devcontainer"
-    fi
-    echo "========================"
-    echo ""
-fi
-
-# Display setup mode info
-cat <<EOF
-
-=== BitBot Setup Mode ===
-
-You can modify:
-  - .devcontainer/ configuration
-  - All workspace files
-  - .bitbot/ (logs, sessions, state)
-
-Note: .bitbot/setup/ is managed by BitBot scripts only
-
-Available commands:
-  bitbot-audit-setup   - AI safety audit of changes
-  bitbot-apply-setup   - Apply changes to work container
-
-AI Assistant: Ready to help with devcontainer setup
-VS Code: This container is VS Code compatible
-
-========================
-
-EOF
-
-# Log startup
-TIMESTAMP=$(date -Iseconds)
-mkdir -p .bitbot/logs
-echo "[$TIMESTAMP] Setup container started" >> .bitbot/logs/mode-changes.log
-
-# Start tmux session
-exec tmux new-session -A -s bitbot-setup
+# Host commands that manage setup container
+bitbot setup         # Start setup container (CLI)
+bitbot setup vscode  # Start setup container + launch VS Code
 ```
 
-### 3.5 Safety Audit Script
+---
 
-```bash
-#!/bin/bash
-# .bitbot/setup/scripts/setup-audit.sh
+## 4. Container Lifecycle Management
 
-set -e
+### 4.1 Startup Flow
 
-echo "=== BitBot Setup Safety Audit ==="
-echo ""
+**Work Container Startup**:
+1. Check if `.devcontainer/devcontainer.json` exists
+2. Generate `WORKSPACE_HASH` from workspace path
+3. Create Docker network if not exists: `bitbot-network`
+4. Run `@devcontainers/cli up` or fallback to `docker-compose`
+5. Execute post-create commands
+6. Start tmux session inside container
 
-cd /setup/workspace
+**Setup Container Startup**:
+1. Ensure `.bitbot/setup/` directory exists
+2. Generate setup container if needed
+3. Mount full workspace at `/setup/workspace`
+4. Mount Docker socket (with user approval)
+5. Start setup environment with specialized tools
 
-# Check if .devcontainer exists
-if [ ! -d ".devcontainer" ]; then
-    echo "✓ No .devcontainer changes detected"
-    exit 0
-fi
+### 4.2 Container Communication
 
-# Check for uncommitted changes in .devcontainer
-if git diff --quiet .devcontainer 2>/dev/null; then
-    echo "✓ No .devcontainer changes detected"
-    exit 0
-fi
-
-echo "Changes detected in .devcontainer/"
-echo ""
-
-# Show diff
-echo "--- Changes ---"
-git diff .devcontainer
-echo ""
-
-# AI-assisted audit
-echo "--- AI Safety Audit ---"
-# TODO: Integrate with Claude Code or other AI agent
-# claude-code "Review these .devcontainer changes for security issues"
-
-echo ""
-echo "--- Manual Review Required ---"
-echo "Please review the changes above and verify:"
-echo "  1. No security vulnerabilities introduced"
-echo "  2. No breaking changes to development workflow"
-echo "  3. Configuration is valid"
-echo ""
-echo "Run 'bitbot-apply-setup' to apply changes after review"
+**Network Architecture**:
+```yaml
+# Shared network for container communication
+networks:
+  bitbot-network:
+    external: true
+    name: bitbot-network
 ```
 
-### 3.6 Setup Apply Script
+**Service Discovery**:
+- Work container: `bitbot-work-${WORKSPACE_HASH}`
+- Setup container: `bitbot-setup-${WORKSPACE_HASH}`
+- MCP services: `mcp-*-${WORKSPACE_HASH}`
 
-```bash
-#!/bin/bash
-# .bitbot/setup/scripts/setup-apply.sh
+### 4.3 Parallel Execution
 
-set -e
+Both containers can run simultaneously:
+- **Developer workflow**: Work in work container
+- **Infrastructure changes**: Use setup container in parallel
+- **No conflicts**: Separate mount strategies prevent issues
 
-echo "=== BitBot Setup Apply ==="
-echo ""
+---
 
-cd /setup/workspace
+## 5. Safety and Security
 
-# Verify changes exist
-if git diff --quiet .devcontainer 2>/dev/null; then
-    echo "No changes to apply"
-    exit 0
-fi
+### 5.1 Work Container Safety
 
-# Confirmation
-read -p "Apply .devcontainer changes to work container? (y/N) " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Cancelled"
-    exit 0
-fi
-
-# Commit changes
-git add .devcontainer
-git commit -m "Setup: Update .devcontainer configuration
-
-Applied via bitbot-setup at $(date -Iseconds)"
-
-echo "✓ Changes committed"
-echo ""
-
-# Rebuild work container
-echo "Rebuilding work container..."
-WORKSPACE_HASH=$(echo -n "$(pwd)" | sha256sum | cut -c1-8)
-
-# Stop work container if running
-docker stop "bitbot-dev-$WORKSPACE_HASH" 2>/dev/null || true
-
-# Rebuild
-docker-compose -f docker-compose.work.yml build
-
-echo "✓ Work container rebuilt"
-echo ""
-echo "Run 'bitbot work' to start the updated container"
+**Read-only .devcontainer**:
+```yaml
+volumes:
+  - "${WORKSPACE_PATH}/.devcontainer:/workspace/.devcontainer:ro"
 ```
 
-### 3.7 Host CLI Commands
+**No Docker socket by default**:
+- Work container cannot modify host Docker
+- AI agents cannot create/destroy containers
+- Infrastructure changes require setup mode
+
+### 5.2 Setup Container Safety
+
+**Git-based protection** (Decision D-02):
+- All infrastructure changes protected by git push/bundle
+- Setup container warns on uncommitted changes
+- User must explicitly approve Docker socket access
+
+**Audit trail**:
+```bash
+# All setup actions logged
+echo "[$TIMESTAMP] Setup container started" >> .bitbot/logs/setup.log
+```
+
+---
+
+## 6. VS Code Integration
+
+### 6.1 DevContainer Compatibility
+
+Both containers are VS Code DevContainer compatible:
+
+**Work Container**:
+```bash
+code --remote "attach-container+bitbot-work-${WORKSPACE_HASH}" /workspace
+```
+
+**Setup Container**:
+```bash
+code --remote "attach-container+bitbot-setup-${WORKSPACE_HASH}" /setup/workspace
+```
+
+### 6.2 Multi-container Development
+
+VS Code can attach to both containers simultaneously:
+- **Primary workspace**: Work container
+- **Configuration editing**: Setup container
+- **Seamless switching**: Via VS Code Remote-Containers extension
+
+---
+
+## 7. Implementation Commands
+
+### 7.1 Host CLI Implementation
 
 ```bash
 #!/bin/bash
-# bitbot CLI (on host)
+# bitbot command implementation
 
-COMMAND=${1:-work}
-WORKSPACE="$PWD"
-WORKSPACE_HASH=$(echo -n "$WORKSPACE" | sha256sum | cut -c1-8)
+WORKSPACE_PATH="$(pwd)"
+WORKSPACE_HASH=$(echo -n "$WORKSPACE_PATH" | sha256sum | cut -c1-8)
 
-export WORKSPACE_PATH="$WORKSPACE"
-export WORKSPACE_HASH="$WORKSPACE_HASH"
+export WORKSPACE_PATH WORKSPACE_HASH
 
-# Ensure .bitbot structure exists
-mkdir -p "$WORKSPACE/.bitbot/setup"
-mkdir -p "$WORKSPACE/.bitbot/logs"
-mkdir -p "$WORKSPACE/.bitbot/sessions"
-mkdir -p "$WORKSPACE/.bitbot/state"
-
-case "$COMMAND" in
+case "${1:-work}" in
     work)
-        echo "Starting WORK mode..."
-
-        # Check if --vscode flag
-        if [ "$2" = "--vscode" ]; then
-            # Start work container
-            docker-compose -f docker-compose.work.yml up -d
-
-            # Open in VS Code
-            code --remote "attach-container+bitbot-dev-$WORKSPACE_HASH" /workspace
+        if [ "$2" = "vscode" ]; then
+            devcontainer up --workspace-folder "$WORKSPACE_PATH"
+            code --remote "attach-container+bitbot-work-$WORKSPACE_HASH" /workspace
         else
-            # Start work container
-            docker-compose -f docker-compose.work.yml up -d
-
-            # Attach to CLI
-            docker exec -it "bitbot-dev-$WORKSPACE_HASH" /bin/zsh
+            devcontainer up --workspace-folder "$WORKSPACE_PATH"
+            devcontainer exec --workspace-folder "$WORKSPACE_PATH" /bin/zsh
         fi
         ;;
 
     setup)
-        echo "Starting SETUP mode..."
-
-        # Check if --vscode flag
-        if [ "$2" = "--vscode" ]; then
-            # Start setup container
-            docker-compose -f docker-compose.setup.yml up -d
-
-            # Open in VS Code
+        cd "$WORKSPACE_PATH/.bitbot/setup"
+        if [ "$2" = "vscode" ]; then
+            docker-compose up -d
             code --remote "attach-container+bitbot-setup-$WORKSPACE_HASH" /setup/workspace
         else
-            # Start setup container
-            docker-compose -f docker-compose.setup.yml up -d
-
-            # Attach to CLI
-            docker exec -it "bitbot-setup-$WORKSPACE_HASH" /bin/zsh
+            docker-compose up -d
+            docker-compose exec bitbot-setup /bin/zsh
         fi
         ;;
 
-    *)
-        echo "Unknown command: $COMMAND"
-        echo "Usage: bitbot {work|setup} [--vscode]"
-        exit 1
+    done)
+        # Inside container command - handled by internal scripts
+        /opt/bitbot/done.sh
         ;;
 esac
 ```
 
----
+### 7.2 Container Detection
 
-## 4. Key Benefits
-
-### 4.1 vs Bind Mount Remounting Approach
-
-| Aspect | Bind Mount Remounting | Per-Workspace Setup Container |
-|--------|----------------------|-------------------------------|
-| **Complexity** | Medium (CAP_SYS_ADMIN needed) | Low (standard volumes) |
-| **Isolation** | Good (.devcontainer read-only) | Excellent (.bitbot/protected invisible) |
-| **Setup Container** | Same container, different mode | Separate container per workspace |
-| **VS Code** | Single container | Both containers VS Code compatible |
-| **Parallel Sessions** | Sequential only | Work + Setup simultaneously |
-| **AI Assistant** | Generic | Specialized for setup tasks |
-| **Safety Audit** | Manual | Built-in workflow |
-
-**Winner**: Per-workspace setup container approach ✓
-
-
+```bash
+# Detect if running inside container
+if [ -f "/.dockerenv" ]; then
+    # Inside container - different command behavior
+    BITBOT_MODE="${BITBOT_MODE:-work}"
+else
+    # On host - container management commands
+    BITBOT_MODE="host"
+fi
+```
 
 ---
 
-## 5. Workflow Examples
+## 8. Fallback Strategy
 
+### 8.1 @devcontainers/cli Issues
 
+If `@devcontainers/cli` has problems:
 
+1. **Fallback to Docker Compose**: Use `.bitbot/docker-compose.work.yml` directly
+2. **Maintain compatibility**: Same container name and mount structure
+3. **User notification**: Inform about fallback usage
+4. **Automatic retry**: Periodically test `@devcontainers/cli` availability
 
+### 8.2 Docker Compose Fallback
 
-
+```bash
+# Fallback implementation
+if ! command -v devcontainer >/dev/null 2>&1; then
+    echo "⚠ @devcontainers/cli not available, using Docker Compose fallback"
+    cd "$WORKSPACE_PATH"
+    docker-compose -f .bitbot/docker-compose.work.yml up -d
+    docker-compose -f .bitbot/docker-compose.work.yml exec bitbot-work /bin/zsh
+fi
+```
 
 ---
 
+## 9. Success Criteria
 
+**Functional Requirements**:
+- [ ] Work container starts with `@devcontainers/cli`
+- [ ] Setup container starts with Docker Compose
+- [ ] Both containers can run simultaneously
+- [ ] VS Code can attach to both containers
+- [ ] .devcontainer is read-only in work container
+- [ ] .devcontainer is read-write in setup container
+- [ ] Docker socket available in setup (when approved)
+- [ ] Fallback to Docker Compose works if needed
+
+**User Experience**:
+- [ ] Single `bitbot` command manages both containers
+- [ ] Clear indication of which container is active
+- [ ] Seamless VS Code integration
+- [ ] Easy switching between containers
+
+**Safety**:
+- [ ] Work container cannot modify .devcontainer accidentally
+- [ ] Setup container requires explicit approval for Docker access
+- [ ] All container actions logged for audit
+- [ ] Git safety checks before infrastructure changes
 
 ---
 
-## 7. References
+## 10. References
 
 **Related Specifications**:
-- SPEC-00: Architectural Decisions
-- SPEC-02: Security Mode System (folder structure)
-- SPEC-03: MCP Service Architecture
-- SPEC-05: Cross-Platform CLI
+- SPEC-00: Architectural Decisions (D-01: Container orchestration)
+- SPEC-02: Security Mode System (mount strategies)
+- SPEC-05: Cross-Platform CLI (host command structure)
+- SPEC-06: VS Code DevContainer Integration
 
----
-
-## 8. Decision Log
-
-| Date | Decision | Rationale | Status |
-|------|----------|-----------|--------|
-| 2025-10-16 | Initial: Bind mount remounting | Simpler than multiple users | Superseded |
-| 2025-10-17 | Updated: Per-workspace setup container | User suggestion: simpler, better isolation | **Approved** ✅ |
+**External Dependencies**:
+- `@devcontainers/cli`: https://github.com/devcontainers/cli
+- Docker Compose: https://docs.docker.com/compose/
+- VS Code Remote-Containers: https://code.visualstudio.com/docs/remote/containers
 
 ---
 
 **Status**: **Approved**
-**Implementation Priority**: P0 (Blocking for MVP)
-**Next Steps**: Implement SPEC-02 (folder structure, safety audit)
+**Implementation Priority**: P0 (Critical - Blocking)
+**Next Steps**: Implement SPEC-02 (Security Mode System)

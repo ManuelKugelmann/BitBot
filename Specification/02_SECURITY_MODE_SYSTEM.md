@@ -4,332 +4,433 @@
 **Priority**: P0 (Critical - Blocking)
 **Status**: Approved
 **Depends On**: SPEC-01 (Container Orchestration)
-**Created**: 2025-10-16
-**Last Updated**: 2025-10-17
+**Created**: 2025-10-20
+**Last Updated**: 2025-10-20
 
 ---
 
 ## Executive Summary
 
-Two-mode security system (work/setup) via separate per-workspace containers with selective mounting. Work mode protects `.devcontainer` and `.bitbot/setup/` from AI modification. Git-based safety replaces original sketch mode concept.
+Two-mode security system (work/setup) implemented via separate containers with different mount strategies and git-based protection. Work mode protects infrastructure files from accidental AI changes, while setup mode allows controlled infrastructure modifications with git safety checks.
 
-**Key Design**: Separate containers + selective mounting = clean isolation without complexity.
+**Key Decision (D-02)**: Two modes (work/setup) + git-based protection provides simple, auditable safety without complex runtime mode switching.
 
 ---
 
-## 1. Architecture
+## 1. Security Architecture
 
-### 1.1 Two Modes
+### 1.1 Mode Overview
 
-**Work Mode** (default):
-- Container: `bitbot-dev-${WORKSPACE_HASH}`
-- Purpose: Normal development
-- Mounts:
-  - `/workspace` → read-write
-  - `/workspace/.devcontainer` → read-only
-  - `/workspace/.bitbot/` → read-write (excludes setup/)
-- NOT mounted: `.bitbot/setup/`
-- Docker socket: Available
-- AI access: Can modify workspace code, NOT infrastructure
+**Work Mode** (Default):
+- **Purpose**: Normal development and AI assistance
+- **Container**: Managed by `@devcontainers/cli`
+- **AI Access**: Can modify workspace code, cannot modify infrastructure
+- **Protection**: `.devcontainer` mounted read-only, `.bitbot/setup/` invisible
+- **Git Safety**: Warnings on uncommitted/unpushed changes
 
 **Setup Mode**:
-- Container: `bitbot-setup-${WORKSPACE_HASH}`
-- Purpose: Infrastructure changes
-- Mounts:
-  - `/setup/workspace` → read-write
-  - `/setup/workspace/.bitbot/` → read-write (excludes setup/)
-- NOT mounted: `.bitbot/setup/`
-- Docker socket: Available (can rebuild containers)
-- AI access: Can modify .devcontainer, NOT setup container definition
+- **Purpose**: Infrastructure changes and devcontainer configuration
+- **Container**: Custom Docker Compose container
+- **AI Access**: Can modify `.devcontainer`, cannot access `.bitbot/setup/`
+- **Protection**: Git push/bundle required before destructive operations
+- **Docker Access**: Available when explicitly approved
 
-### 1.2 Folder Structure
+### 1.2 Security Model
 
 ```
-workspace/
-├── .devcontainer/          # Container config
-│   ├── devcontainer.json   # RO in work, RW in setup
-│   └── Dockerfile
-│
-├── .bitbot/
-│   ├── setup/              # NOT mounted (BitBot internals)
-│   │   ├── Dockerfile      # Setup container definition
-│   │   └── scripts/
-│   ├── logs/               # Mounted in both
-│   ├── sessions/           # Mounted in both
-│   └── state/              # Mounted in both
-│
-└── src/                    # Your code
+┌─────────────────────────────────────────────────────────────┐
+│ Security Principles                                         │
+│                                                             │
+│ 1. Work Mode: Protect infrastructure from accidental AI    │
+│    changes via read-only mounts                             │
+│                                                             │
+│ 2. Setup Mode: Protect via Git safety checks and user      │
+│    approval for Docker socket access                        │
+│                                                             │
+│ 3. Both Modes: .bitbot/setup/ never mounted (BitBot        │
+│    internals stay on host)                                  │
+│                                                             │
+│ 4. Git Protection: All infrastructure changes require       │
+│    clean git state or explicit backup                       │
+└─────────────────────────────────────────────────────────────┘
 ```
-
-### 1.3 Permission Matrix
-
-| Resource | Work Mode | Setup Mode | Managed By |
-|----------|-----------|------------|------------|
-| `src/` | RW | RW | User/AI |
-| `.devcontainer/` | RO | RW | AI in setup mode |
-| `.bitbot/logs/` | RW | RW | BitBot + User |
-| `.bitbot/sessions/` | RW | RW | BitBot |
-| `.bitbot/state/` | RW | RW | BitBot |
-| `.bitbot/setup/` | Not visible | Not visible | Host scripts only |
 
 ---
 
-## 2. Implementation Concepts
+## 2. Work Mode Security
 
-### 2.1 Container Mounts (Pseudocode)
+### 2.1 Mount Strategy
 
-**Work Container**:
-```
+**Work Container Mounts**:
+```yaml
 volumes:
-  - workspace:/workspace:rw
-  - workspace/.devcontainer:/workspace/.devcontainer:ro
-  - workspace/.bitbot:/workspace/.bitbot:rw
-  # .bitbot/setup/ excluded by not mounting it
+  # Workspace code (read-write)
+  - "${WORKSPACE_PATH}:/workspace"
+
+  # Infrastructure protection (read-only)
+  - "${WORKSPACE_PATH}/.devcontainer:/workspace/.devcontainer:ro"
+
+  # BitBot state (selective read-write)
+  - "${WORKSPACE_PATH}/.bitbot/logs:/workspace/.bitbot/logs"
+  - "${WORKSPACE_PATH}/.bitbot/sessions:/workspace/.bitbot/sessions"
+  - "${WORKSPACE_PATH}/.bitbot/state:/workspace/.bitbot/state"
+
+  # .bitbot/setup/ is NOT mounted (invisible to work container)
 ```
 
-**Setup Container**:
+### 2.2 AI Agent Restrictions
+
+**What AI can do in Work Mode**:
+- ✅ Modify source code (`src/`, `docs/`, etc.)
+- ✅ Create/edit configuration files (`package.json`, `tsconfig.json`, etc.)
+- ✅ Install dependencies and run build commands
+- ✅ Access git for version control
+- ✅ Use MCP services for development tasks
+
+**What AI cannot do in Work Mode**:
+- ❌ Modify `.devcontainer/devcontainer.json`
+- ❌ Edit Dockerfile or docker-compose files
+- ❌ Access Docker socket to create/destroy containers
+- ❌ See or modify `.bitbot/setup/` directory
+- ❌ Change container configuration without user switching to setup mode
+
+### 2.3 Git Safety Integration
+
+**Git Status Checks**:
+```bash
+# Before AI makes significant changes
+if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+    echo "⚠ WARNING: Uncommitted changes detected"
+    echo "  Recommendation: Commit changes before proceeding"
+    echo "  Continue anyway? (y/N)"
+fi
 ```
+
+**Automatic Checkpoint Creation**:
+```bash
+# AI-triggered checkpoint before major refactoring
+git stash push -m "BitBot checkpoint: $(date -Iseconds)"
+echo "✓ Created checkpoint: git stash pop to restore"
+```
+
+---
+
+## 3. Setup Mode Security
+
+### 3.1 Mount Strategy
+
+**Setup Container Mounts**:
+```yaml
 volumes:
-  - workspace:/setup/workspace:rw
-  - workspace/.bitbot:/setup/workspace/.bitbot:rw
-  # .bitbot/setup/ excluded by not mounting it
+  # Full workspace access (read-write)
+  - "${WORKSPACE_PATH}:/setup/workspace"
+
+  # Docker socket (when explicitly approved)
+  - "/var/run/docker.sock:/var/run/docker.sock"
+
+  # .bitbot/setup/ is NOT mounted (managed by host scripts only)
 ```
 
-### 2.2 Mode Switching
+### 3.2 Docker Socket Protection
 
-**From Host**:
+**Approval Required**:
 ```bash
-# Launch work mode (CLI or VS Code)
-bitbot work [--vscode]
-
-# Launch setup mode (CLI or VS Code)
-bitbot setup [--vscode]
-
-# Both can run simultaneously
+# Setup mode requires explicit Docker socket approval
+bitbot setup --allow-socket --reason "Adding PostgreSQL service"
 ```
 
-**Key Points**:
-- No mode switching inside containers
-- Each mode is a separate container
-- Work and setup can run in parallel
-- VS Code can attach to either
+**Approval Process**:
+1. User must provide `--reason` for Docker access
+2. Git status checked (uncommitted changes warned)
+3. Approval logged to `.bitbot/logs/approvals.log`
+4. Docker socket mounted only after approval
 
-### 2.3 Safety Audit Workflow
-
-**Setup Mode Process**:
-1. User: `bitbot setup`
-2. AI modifies `.devcontainer/`
-3. User: `bitbot-audit-setup`
-   - Shows git diff
-   - AI performs safety check
-   - Reports security issues
-4. User reviews audit
-5. User: `bitbot-apply-setup`
-   - Commits changes
-   - Rebuilds work container
-6. User: `bitbot work` (updated container)
-
----
-
-## 3. Security Model
-
-### 3.1 Threat Protection
-
-**Protected Against**:
-- ✅ AI modifying `.devcontainer` in work mode (read-only mount)
-- ✅ AI modifying setup container definition (not mounted)
-- ✅ Accidental infrastructure changes (requires explicit `bitbot setup`)
-- ✅ AI deleting `.devcontainer` (read-only mount)
-
-**User Responsibility**:
-- ⚠️ Setup mode has full access (intentional)
-- ⚠️ User must review audit before applying
-- ⚠️ Git provides experimental safety (branches)
-
-### 3.2 Defense Layers
-
-```
-Layer 1: Selective Mounting
-  ↓ .devcontainer read-only in work, .bitbot/setup/ never mounted
-  
-Layer 2: Separate Containers  
-  ↓ Work and setup are different containers
-  
-Layer 3: Git Safety (SPEC-02A)
-  ↓ Startup warnings, MCP tools, AI instructions
-  
-Layer 4: Audit Logging
-  ↓ All mode switches and changes logged
+**Approval Log Format**:
+```json
+{
+  "timestamp": "2025-10-20T14:30:00Z",
+  "user": "developer",
+  "action": "docker_socket_approval",
+  "reason": "Adding PostgreSQL service",
+  "workspace_hash": "a1b2c3d4",
+  "git_status": "clean"
+}
 ```
 
----
+### 3.3 Infrastructure Change Safety
 
-## 4. Git-Based Safety
-
-**Replaces Sketch Mode** (see SPEC-02A for details):
-
-### 4.1 Startup Warnings
-
-- Check git status on container start
-- Warn if uncommitted changes
-- Info if unpushed commits
-- Info if no remote configured
-
-### 4.2 MCP Tools
-
-- `git_status_check` - Check repo status
-- `git_create_checkpoint` - Create safety commit
-- `git_diff_summary` - Show current changes
-
-### 4.3 AI Instructions
-
-- Check git before major refactoring
-- Create experimental branches for risky changes
-- Recommend commits before starting work
-
-### 4.4 Workflow
-
-**Instead of sketch mode**:
+**Git Push Requirement**:
 ```bash
-# Create experimental branch
-git checkout -b experiment/new-feature
+# Before destructive operations
+if [ "$(git status --porcelain | wc -l)" -gt 0 ]; then
+    echo "❌ Uncommitted changes detected"
+    echo "   Please commit and push before infrastructure changes"
+    echo "   Or create local bundle: git bundle create backup.bundle HEAD"
+    exit 1
+fi
+```
 
-# Let AI work
-claude-code "implement feature"
+**Safe Infrastructure Workflow**:
+1. User commits and pushes current work
+2. Enters setup mode with Docker access approval
+3. AI/user modifies `.devcontainer` configuration
+4. Changes are tested and committed
+5. Work container is rebuilt with new configuration
 
-# Review
-git diff
+---
 
-# Keep or discard
-git merge experiment/new-feature  # or
-git branch -D experiment/new-feature
+## 4. File System Protection
+
+### 4.1 Protected Directories
+
+| Directory | Work Mode | Setup Mode | Protection Method |
+|-----------|-----------|------------|------------------|
+| `.devcontainer/` | Read-only | Read-write | Mount flag `:ro` |
+| `.bitbot/setup/` | Invisible | Invisible | Not mounted |
+| `.bitbot/logs/` | Read-write | Read-write | Standard mount |
+| `.bitbot/sessions/` | Read-write | Read-write | Standard mount |
+| `.bitbot/state/` | Read-write | Read-write | Standard mount |
+| `src/`, `docs/`, etc. | Read-write | Read-write | Standard mount |
+
+### 4.2 BitBot Internals Protection
+
+**.bitbot/setup/ Contents** (Never mounted in containers):
+```
+.bitbot/setup/
+├── Dockerfile              # Setup container definition
+├── docker-compose.yml      # Setup container orchestration
+└── scripts/
+    ├── entrypoint-setup.sh  # Setup container startup
+    ├── setup-audit.sh       # AI safety audit
+    └── setup-apply.sh       # Apply infrastructure changes
+```
+
+**Why Never Mounted**:
+- Prevents AI from modifying its own container environment
+- Ensures BitBot control scripts remain tamper-proof
+- Maintains separation between user workspace and BitBot internals
+
+---
+
+## 5. Mode Switching Security
+
+### 5.1 Host-Level Mode Management
+
+**Mode switching happens on host** (not inside containers):
+```bash
+# Safe mode switching
+bitbot work    # Start/attach to work container
+bitbot setup   # Start/attach to setup container (with approvals)
+bitbot done    # Inside container: review changes → commit → exit
+```
+
+### 5.2 No Runtime Mode Switching
+
+**Design Decision**: No switching modes within a container
+- **Rationale**: Simpler, more predictable security model
+- **Implementation**: Each mode is a separate container
+- **Benefit**: Clear security boundaries, easier to audit
+
+### 5.3 Parallel Mode Support
+
+Both containers can run simultaneously:
+- **Developer workflow**: Code in work container
+- **Infrastructure changes**: Configure in setup container
+- **No conflicts**: Different mount strategies prevent interference
+
+---
+
+## 6. Audit and Logging
+
+### 6.1 Security Event Logging
+
+**Log Location**: `.bitbot/logs/security.log`
+
+**Logged Events**:
+```bash
+# Container startup
+[2025-10-20T14:30:00Z] WORK_START: workspace_hash=a1b2c3d4 user=developer
+[2025-10-20T14:31:00Z] SETUP_START: workspace_hash=a1b2c3d4 user=developer docker_socket=approved
+
+# Git safety events
+[2025-10-20T14:32:00Z] GIT_WARNING: uncommitted_changes=5 files=src/main.py,src/utils.py
+[2025-10-20T14:33:00Z] GIT_CHECKPOINT: stash_created=stash@{0} reason="AI refactoring"
+
+# Infrastructure changes
+[2025-10-20T14:35:00Z] DEVCONTAINER_MODIFIED: file=.devcontainer/devcontainer.json mode=setup
+[2025-10-20T14:36:00Z] CONTAINER_REBUILD: container=bitbot-work-a1b2c3d4 reason="devcontainer updated"
+```
+
+### 6.2 Approval Audit Trail
+
+**Approval Log**: `.bitbot/logs/approvals.log`
+```json
+[
+  {
+    "timestamp": "2025-10-20T14:30:00Z",
+    "action": "setup_mode_entry",
+    "user": "developer",
+    "workspace_hash": "a1b2c3d4",
+    "docker_socket_approved": true,
+    "reason": "Adding PostgreSQL development database",
+    "git_status": "clean"
+  }
+]
 ```
 
 ---
 
-## 5. User Workflows
+## 7. Emergency Recovery
 
-### 5.1 Normal Development
+### 7.1 Container Recovery
+
+**If work container breaks**:
+```bash
+# Stop broken container
+bitbot stop work
+
+# Enter setup mode to fix .devcontainer
+bitbot setup --allow-socket --reason "Fixing broken devcontainer"
+
+# Edit .devcontainer configuration
+# Test changes
+# Rebuild work container
+```
+
+### 7.2 Git Recovery
+
+**If changes need to be rolled back**:
+```bash
+# Inside container: rollback to last checkpoint
+git stash pop                    # Restore last checkpoint
+git reset --hard HEAD~1         # Undo last commit
+git bundle verify backup.bundle # Verify backup integrity
+```
+
+### 7.3 Complete Reset
+
+**Nuclear option**:
+```bash
+# Stop all containers
+bitbot kill
+
+# Reset BitBot state
+rm -rf .bitbot/sessions/
+rm -rf .bitbot/state/
+
+# Rebuild from clean .devcontainer
+bitbot work
+```
+
+---
+
+## 8. Implementation Examples
+
+### 8.1 Work Mode Container Security
+
+```dockerfile
+# Work container runs as root but with limited mounts
+FROM mcr.microsoft.com/vscode/devcontainers/base:ubuntu
+
+# AI agents run inside this container
+RUN npm install -g @anthropic/claude-code
+
+# Security: .devcontainer mounted read-only
+# AI cannot accidentally break infrastructure
+COPY --from=bitbot-security /opt/bitbot/work-entrypoint.sh /opt/
+ENTRYPOINT ["/opt/work-entrypoint.sh"]
+```
+
+### 8.2 Setup Mode Container Security
+
+```dockerfile
+# Setup container has Docker access but requires approval
+FROM ubuntu:22.04
+
+# Tools for infrastructure changes
+RUN apt-get update && apt-get install -y docker.io docker-compose
+
+# Security: Approval required for Docker socket mount
+COPY --from=bitbot-security /opt/bitbot/setup-entrypoint.sh /opt/
+ENTRYPOINT ["/opt/setup-entrypoint.sh"]
+```
+
+### 8.3 Git Safety Script
 
 ```bash
-$ bitbot work
+#!/bin/bash
+# /opt/bitbot/git-safety-check.sh
 
-# Inside container:
-root@work:/workspace$ ls .bitbot/
-logs/  sessions/  state/
-# setup/ not visible ✓
+check_git_safety() {
+    if [ ! -d ".git" ]; then
+        echo "ℹ No git repository found"
+        return 0
+    fi
 
-root@work:/workspace$ vim src/main.py
-# ✓ Can edit
+    # Check for uncommitted changes
+    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        echo "⚠ WARNING: Uncommitted changes detected"
+        echo "Files modified:"
+        git diff --name-only HEAD
+        echo ""
+        echo "Recommend committing before infrastructure changes"
+        echo "Continue anyway? (y/N)"
+        read -r response
+        if [[ ! "$response" =~ ^[Yy]$ ]]; then
+            return 1
+        fi
+    fi
 
-root@work:/workspace$ vim .devcontainer/devcontainer.json
-# Read-only error ✓
-```
+    # Check for unpushed commits
+    if [ "$(git rev-list HEAD --not --remotes | wc -l)" -gt 0 ]; then
+        echo "⚠ WARNING: Unpushed commits detected"
+        echo "Consider pushing before infrastructure changes"
+    fi
 
-### 5.2 Infrastructure Changes
-
-```bash
-$ bitbot setup
-
-# Inside container:
-root@setup:/setup/workspace$ ls .bitbot/
-logs/  sessions/  state/
-# setup/ not visible ✓
-
-root@setup:/setup/workspace$ vim .devcontainer/devcontainer.json
-# ✓ Can edit
-
-root@setup:/setup/workspace$ bitbot-audit-setup
-# AI reviews changes
-
-root@setup:/setup/workspace$ bitbot-apply-setup
-# Rebuilds work container
-```
-
-### 5.3 Parallel Sessions
-
-```bash
-# Terminal 1: Development
-$ bitbot work
-# Code changes...
-
-# Terminal 2: Infrastructure (simultaneously)
-$ bitbot setup
-# Infrastructure changes...
-
-# Terminal 3: Setup in VS Code (simultaneously)
-$ bitbot setup --vscode
-# Multiple people can work on setup
+    return 0
+}
 ```
 
 ---
 
-## 6. Testing Strategy
+## 9. Success Criteria
 
-### 6.1 Filesystem Tests
+**Security Requirements**:
+- [ ] Work mode cannot modify `.devcontainer` files
+- [ ] Setup mode requires explicit approval for Docker access
+- [ ] `.bitbot/setup/` invisible to both containers
+- [ ] All security events logged with timestamps
+- [ ] Git safety checks before infrastructure changes
+- [ ] Approval audit trail maintained
 
-- FP-01: Work mode can write `src/`
-- FP-02: Work mode cannot write `.devcontainer/` (read-only error)
-- FP-03: Work mode cannot see `.bitbot/setup/`
-- FP-04: Setup mode can write `.devcontainer/`
-- FP-05: Setup mode cannot see `.bitbot/setup/`
+**Usability Requirements**:
+- [ ] Clear indication of current mode
+- [ ] Easy mode switching via host commands
+- [ ] Helpful warnings for git safety
+- [ ] Recovery procedures documented and tested
 
-### 6.2 Mode Tests
-
-- MT-01: `bitbot work` starts work container
-- MT-02: `bitbot setup` starts setup container
-- MT-03: Both containers can run simultaneously
-- MT-04: VS Code can attach to both containers
-- MT-05: Mode switches are logged
-
-### 6.3 Safety Tests
-
-- ST-01: Git warnings appear at startup
-- ST-02: Audit detects security issues
-- ST-03: Apply rebuilds work container
-- ST-04: Changes are logged with timestamps
+**Reliability Requirements**:
+- [ ] Mode switching never fails silently
+- [ ] Container mounts are exactly as specified
+- [ ] Log files persist across container restarts
+- [ ] Emergency recovery procedures work
 
 ---
 
-## 7. Success Criteria
-
-**Functional**:
-- [ ] Work mode: `.devcontainer` read-only
-- [ ] Work mode: `.bitbot/setup/` invisible
-- [ ] Setup mode: Can modify `.devcontainer`
-- [ ] Setup mode: `.bitbot/setup/` invisible
-- [ ] Parallel work + setup sessions
-- [ ] VS Code compatible (both modes)
-
-**Security**:
-- [ ] AI cannot modify `.devcontainer` in work mode
-- [ ] AI cannot modify setup container definition
-- [ ] Audit workflow detects issues
-- [ ] All changes logged
-
-**Usability**:
-- [ ] `bitbot work` default workflow
-- [ ] `bitbot setup` for infrastructure
-- [ ] `--vscode` flag works for both
-- [ ] Git warnings clear and actionable
-
----
-
-## 8. References
+## 10. References
 
 **Related Specifications**:
-- SPEC-00: Architectural Decisions (D-03, D-05, D-11, D-12)
-- SPEC-01: Container Orchestration (mounts, containers)
-- SPEC-02A: Git Safety Integration (replaces sketch mode)
-- SPEC-03: MCP Service Architecture (git tools)
+- SPEC-00: Architectural Decisions (D-02: Security strategy)
+- SPEC-01: Container Orchestration (mount implementations)
+- SPEC-02A: Git Safety Integration (detailed git workflows)
+- SPEC-05: Cross-Platform CLI (mode switching commands)
 
-**Research Sources**:
-- User decision: "setup folder not mounted, managed by BitBot scripts"
-- User decision: "both modes should support --vscode flag"
-- User decision: "remove sketch mode, Git protection is better"
+**Security Research**:
+- Research/CONTAINER_ISOLATION_RESEARCH.md
+- Research/AI_AGENT_SAFETY_ARCHITECTURE.md
 
 ---
 
 **Status**: **Approved**
-**Implementation Priority**: P0 (Blocking for MVP)
-**Next Steps**: SPEC-02A (Git Safety), SPEC-03 (MCP Services)
+**Implementation Priority**: P0 (Critical - Blocking)
+**Next Steps**: Implement SPEC-02A (Git Safety Integration)

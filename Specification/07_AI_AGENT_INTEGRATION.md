@@ -2,18 +2,87 @@
 
 **Feature ID**: SPEC-07
 **Priority**: P1 (Important)
-**Status**: Draft
-**Depends On**: SPEC-02 (Security Modes), SPEC-03 (MCP Services), SPEC-04 (Session Management)
+**Status**: In Progress (Updated with 2025 standards and VS Code Direct DevContainer Opening integration)
+**Depends On**: SPEC-02 (Security Modes), SPEC-03 (MCP Services), SPEC-04 (Session Management), SPEC-06 (VS Code Integration)
 **Created**: 2025-10-17
-**Last Updated**: 2025-10-17
+**Last Updated**: 2025-10-20
 
 ---
 
 ## Executive Summary
 
-Framework for integrating AI coding agents (Claude Code, OpenCode, others) into BitBot. Provides MCP service discovery, Git safety integration, session awareness, and mode-specific configurations.
+Framework for integrating AI coding agents (Claude Code, Continue.dev, Cline, VS Code Agent Mode, OpenCode, others) into BitBot. Provides MCP service discovery, Git safety integration, session awareness, and mode-specific configurations.
 
-**Key Design**: Agent-agnostic framework + MCP integration + Git safety + mode awareness = flexible AI assistant system.
+**Key Design**: Agent-agnostic framework + AGENTS.md standard + MCP integration + Git safety + mode awareness + direct dev container opening = flexible AI assistant system.
+
+**2025 Updates**:
+- ✅ AGENTS.md universal standard support (industry-wide adoption since July 2025)
+- ✅ VS Code native agent mode with MCP (April 2025)
+- ✅ VS Code Direct DevContainer Opening integration 
+- ✅ Continue.dev and Cline as open-source alternatives
+- ✅ Claude Flow multi-agent orchestration
+- ✅ Interactive CLI wizard for agent configuration
+
+---
+
+## 0. Industry Standards (2025)
+
+### 0.1 AGENTS.md Universal Standard
+
+**Status**: Emerging industry standard (announced July 2025)
+**Adoption**: 20,000+ GitHub repositories
+**Supported By**: OpenAI Codex, Google Jules, Cursor, Aider, RooCode, Zed, Claude Code, Continue.dev
+
+**Location**: `AGENTS.md` (repository root)
+
+**Purpose**:
+- Single vendor-neutral location for AI agent instructions
+- Machine-readable context complementing README.md
+- Portable across multiple AI coding tools
+
+**BitBot Integration**:
+```markdown
+# AGENTS.md (repository root)
+
+## Project Setup
+...project-specific instructions...
+
+## BitBot Integration
+
+You are operating in a BitBot workspace.
+
+### Mode Detection
+Check the current mode via environment:
+- `BITBOT_MODE=work` - Normal development (can modify code, read-only .devcontainer)
+- `BITBOT_MODE=setup` - Infrastructure mode (can modify .devcontainer)
+
+### Available MCP Tools
+Query: `curl http://mcp-discovery-workspace:8080/api/services`
+
+Common tools:
+- `git_status_check` - Check Git status
+- `git_create_checkpoint` - Create rollback point
+- `read_file`, `write_file` - Filesystem operations
+
+### Git Safety Protocol
+Before major changes:
+1. Run `git_status_check`
+2. If uncommitted changes, suggest checkpoint
+3. Inform user of rollback option after changes
+
+### Restrictions
+- Work mode: Cannot modify .devcontainer/ or .bitbot/setup/
+- Setup mode: Cannot see .bitbot/setup/ internals
+```
+
+### 0.2 Tool-Specific Configuration
+
+**Hierarchy**: AGENTS.md (primary) + tool-specific files (advanced features)
+
+**Claude Code**: `.claude/settings.json` + `CLAUDE.md`
+**Continue.dev**: `.continuerc.json`
+**Cline**: `.cline/config.json`
+**VS Code Agent Mode**: `.vscode/agents.json`
 
 ---
 
@@ -21,17 +90,24 @@ Framework for integrating AI coding agents (Claude Code, OpenCode, others) into 
 
 ### 1.1 Supported Agents
 
-**Primary agents**:
-- Claude Code (Anthropic)
-- OpenCode (open-source alternative)
-- Custom agents (user-provided)
+**Tier 1: First-class support**:
+- **Claude Code** (Anthropic) - Commercial, premium features
+- **Continue.dev** - Open source, model-agnostic
+- **Cline** - Open source, VS Code extension
+- **VS Code Agent Mode** - Native VS Code, MCP support
+
+**Tier 2: Community support**:
+- **OpenCode** - Terminal-based, open source
+- **Claude Flow** - Multi-agent orchestration
+- **Custom agents** - User-provided with MCP support
 
 **Agent capabilities**:
 - MCP tool discovery and invocation
-- Git safety awareness
+- Git safety awareness (via AGENTS.md + hooks)
 - Session management
 - Mode-specific behavior
 - Workspace context
+- VS Code Direct DevContainer Opening (Decision Direct DevContainer Opening integration)
 
 ### 1.2 Integration Layers
 
@@ -55,105 +131,394 @@ Workspace Files
 
 ### 2.1 Claude Code Integration
 
-**Config location**: `.claude/config.yml`
+**File structure**:
+```
+.claude/
+├── settings.json          # Team-shared (version controlled)
+├── settings.local.json    # Personal (NOT version controlled, .gitignore)
+├── agents/                # Custom subagents
+└── commands/              # Slash commands
 
-```yaml
-# Claude Code configuration for BitBot
-
-# MCP servers
-mcpServers:
-  git-safety:
-    command: docker
-    args: ["exec", "mcp-git-safety-${WORKSPACE_HASH}", "mcp-server"]
-    env:
-      WORKSPACE_PATH: "${workspaceFolder}"
-
-  filesystem:
-    command: docker
-    args: ["exec", "mcp-filesystem-${WORKSPACE_HASH}", "mcp-server"]
-
-  workspace-discovery:
-    command: curl
-    args: ["http://mcp-discovery-workspace:8080/api/services"]
-
-# Pre-task hooks
-pre_task_hooks:
-  - name: git_safety_check
-    description: Check Git status before major changes
-    trigger:
-      keywords: ["refactor", "implement", "change", "update"]
-      file_count_threshold: 3
-    action:
-      tool: git_status_check
-      on_uncommitted:
-        suggest_checkpoint: true
-        message: "I notice uncommitted changes. Create checkpoint before proceeding?"
-
-# Post-task actions
-post_task_actions:
-  - name: git_rollback_info
-    description: Provide rollback instructions
-    condition: checkpoint_created
-    message: "Changes complete. To undo: {rollback_command}"
-
-# Agent behavior
-agent:
-  mode_aware: true
-  git_safety_enabled: true
-  session_aware: true
-
-# Workspace context
-workspace:
-  bitbot_mode: "${BITBOT_MODE}"  # work or setup
-  workspace_hash: "${WORKSPACE_HASH}"
+CLAUDE.md                  # Project context (can reference AGENTS.md)
 ```
 
-### 2.2 OpenCode Integration
-
-**Config location**: `.opencode/config.json`
-
+**settings.json** (`.claude/settings.json`):
 ```json
 {
-  "mcp": {
-    "discovery_url": "http://mcp-discovery-workspace:8080",
-    "services": [
+  "mcpServers": {
+    "git-safety": {
+      "command": "docker",
+      "args": ["exec", "mcp-git-safety-${WORKSPACE_HASH}", "mcp-server"],
+      "env": {
+        "WORKSPACE_PATH": "${workspaceFolder}"
+      }
+    },
+    "filesystem": {
+      "command": "docker",
+      "args": ["exec", "mcp-filesystem-${WORKSPACE_HASH}", "mcp-server"]
+    }
+  },
+
+  "permissions": {
+    "deny": [
+      ".bitbot/setup/**",
+      ".devcontainer/**"
+    ]
+  },
+
+  "hooks": {
+    "preTask": [
       {
-        "name": "git-safety",
-        "container": "mcp-git-safety-${WORKSPACE_HASH}"
-      },
-      {
-        "name": "filesystem",
-        "container": "mcp-filesystem-${WORKSPACE_HASH}"
+        "name": "git_safety_check",
+        "trigger": {
+          "keywords": ["refactor", "implement", "change", "update"],
+          "fileCountThreshold": 3
+        },
+        "action": "git_status_check"
       }
     ]
   },
 
-  "git_safety": {
-    "enabled": true,
-    "auto_check": true,
-    "checkpoint_prompt": true
-  },
-
-  "pre_task_commands": [
-    {
-      "name": "git_status",
-      "tool": "git_status_check",
-      "condition": "task_complexity > medium"
-    }
-  ],
-
-  "agent_behavior": {
-    "mode_aware": true,
-    "session_management": true
+  "context": {
+    "bitbotMode": "${BITBOT_MODE}",
+    "workspaceHash": "${WORKSPACE_HASH}"
   }
 }
 ```
 
+**CLAUDE.md**:
+```markdown
+# Project Context
+
+See AGENTS.md for project-wide AI agent instructions.
+
+## Claude Code Specific
+
+### Available Slash Commands
+- `/bitbot-mode` - Show current BitBot mode
+- `/git-checkpoint` - Create Git checkpoint
+- `/mcp-tools` - List available MCP tools
+
+### BitBot Integration
+This project uses BitBot for container orchestration.
+Current mode: ${BITBOT_MODE}
+```
+
+### 2.2 Continue.dev Integration
+
+**File structure**:
+```
+.continue/
+├── config.json            # Continue.dev configuration
+└── context/              # Context providers
+
+AGENTS.md                  # Primary instructions (Continue.dev reads this)
+```
+
+**config.json** (`.continue/config.json`):
+```json
+{
+  "models": [
+    {
+      "title": "Claude 3.5 Sonnet",
+      "provider": "anthropic",
+      "model": "claude-3-5-sonnet-20241022",
+      "apiKey": "${ANTHROPIC_API_KEY}"
+    }
+  ],
+
+  "mcpServers": [
+    {
+      "name": "git-safety",
+      "command": "docker",
+      "args": ["exec", "mcp-git-safety-${WORKSPACE_HASH}", "mcp-server"]
+    },
+    {
+      "name": "filesystem",
+      "command": "docker",
+      "args": ["exec", "mcp-filesystem-${WORKSPACE_HASH}", "mcp-server"]
+    }
+  ],
+
+  "contextProviders": [
+    {
+      "name": "agents-md",
+      "params": {
+        "file": "AGENTS.md"
+      }
+    },
+    {
+      "name": "bitbot-mode",
+      "params": {
+        "env": "BITBOT_MODE"
+      }
+    }
+  ],
+
+  "slashCommands": [
+    {
+      "name": "bitbot-mode",
+      "description": "Show current BitBot mode"
+    },
+    {
+      "name": "git-checkpoint",
+      "description": "Create Git checkpoint"
+    }
+  ]
+}
+```
+
+### 2.3 Cline Integration
+
+**File structure**:
+```
+.cline/
+├── config.json            # Cline-specific configuration
+└── prompts/              # Custom prompts
+
+AGENTS.md                  # Primary instructions
+```
+
+**config.json** (`.cline/config.json`):
+```json
+{
+  "apiProvider": "anthropic",
+  "apiKey": "${ANTHROPIC_API_KEY}",
+  "model": "claude-3-5-sonnet-20241022",
+
+  "mcpServers": [
+    {
+      "name": "git-safety",
+      "transport": "docker-exec",
+      "container": "mcp-git-safety-${WORKSPACE_HASH}"
+    }
+  ],
+
+  "contextFiles": [
+    "AGENTS.md",
+    ".bitbot/state/mode.txt"
+  ],
+
+  "customInstructions": "See AGENTS.md for project instructions. Check BITBOT_MODE environment variable for current mode.",
+
+  "autoCheckGit": true,
+  "suggestCheckpoint": true
+}
+```
+
+### 2.4 VS Code Agent Mode Integration
+
+**File structure**:
+```
+.vscode/
+├── agents.json            # VS Code native agent configuration
+└── settings.json          # Agent mode settings
+
+AGENTS.md                  # Primary instructions
+```
+
+**agents.json** (`.vscode/agents.json`):
+```json
+{
+  "agents": [
+    {
+      "id": "bitbot-work",
+      "name": "BitBot Work Mode",
+      "description": "AI assistant for normal development",
+      "contextFiles": ["AGENTS.md"],
+      "mcp": {
+        "discoveryUrl": "http://mcp-discovery-workspace:8080/api/services"
+      },
+      "restrictions": {
+        "readOnly": [".devcontainer/**", ".bitbot/setup/**"]
+      }
+    },
+    {
+      "id": "bitbot-setup",
+      "name": "BitBot Setup Mode",
+      "description": "AI assistant for infrastructure changes",
+      "contextFiles": ["AGENTS.md"],
+      "mcp": {
+        "discoveryUrl": "http://mcp-discovery-workspace:8080/api/services"
+      },
+      "restrictions": {
+        "hidden": [".bitbot/setup/**"]
+      }
+    }
+  ]
+}
+```
+
+### 2.5 OpenCode Integration (Tier 2)
+
+**Config location**: `.opencode/config.json`
+
+**Basic config**:
+```json
+{
+  "mcp": {
+    "discoveryUrl": "http://mcp-discovery-workspace:8080"
+  },
+  "contextFile": "AGENTS.md",
+  "gitSafety": true
+}
+```
+
+**See Also**: Research/AI_AGENT_RESEARCH.md for OpenCode details
+
 ---
 
-## 3. MCP Service Discovery
+## 3. BitBot CLI Wizard
 
-### 3.1 Discovery Process
+### 3.1 Interactive Agent Configuration
+
+**Command**: `bitbot agent config`
+
+**Wizard Flow**:
+```
+==============================================
+  BitBot Agent Configuration Wizard
+==============================================
+
+[1/6] Select AI Agent:
+  1. Claude Code (Anthropic, commercial)
+  2. Continue.dev (open source, multi-model)
+  3. Cline (VS Code extension, open source)
+  4. VS Code Agent Mode (native VS Code)
+  5. OpenCode (terminal-based)
+  6. Custom agent
+
+Your choice: 2
+
+[2/6] Configure Continue.dev:
+
+Model Provider:
+  1. Anthropic (Claude)
+  2. OpenAI (GPT-4)
+  3. Local (Ollama)
+
+Your choice: 1
+
+[3/6] API Key (secure entry):
+Enter Anthropic API Key: ****************************************
+✓ API key validated
+
+[4/6] MCP Services:
+Select services to enable:
+  [x] Git Safety (recommended)
+  [x] Filesystem
+  [ ] Custom services
+
+[5/6] Advanced Options:
+  Model: claude-3-5-sonnet-20241022
+  Temperature: 0.7
+  Context window: 200k
+
+Customize? (y/N): n
+
+[6/6] Save Configuration:
+Writing to .bitbot/agent.yml...
+✓ Configuration saved
+
+Next steps:
+  1. Review: cat .bitbot/agent.yml
+  2. Launch: bitbot work vscode --agent continue
+  3. Reconfigure: bitbot agent config
+```
+
+### 3.2 Configuration File Format
+
+**Generated file** (`.bitbot/agent.yml`):
+```yaml
+# BitBot Agent Configuration
+# Generated: 2025-10-20 12:00:00
+# Agent: Continue.dev
+
+agent:
+  type: continue
+  version: latest
+
+model:
+  provider: anthropic
+  name: claude-3-5-sonnet-20241022
+  temperature: 0.7
+  apiKeyEnv: ANTHROPIC_API_KEY  # Read from environment
+
+mcp:
+  services:
+    - git-safety
+    - filesystem
+  discoveryUrl: http://mcp-discovery-workspace:8080
+
+options:
+  gitSafety: true
+  contextFiles:
+    - AGENTS.md
+  customInstructions: |
+    See AGENTS.md for project instructions.
+    Check BITBOT_MODE environment variable for current mode.
+
+# Manual editing supported
+# To regenerate: bitbot agent config
+```
+
+### 3.3 Secure API Key Handling
+
+**Best Practices**:
+1. **Never commit API keys** to version control
+2. **Use environment variables** for sensitive data
+3. **BitBot wizard stores keys securely**:
+   - On first run: Prompts for API key
+   - Stores in `~/.bitbot/secrets.enc` (encrypted)
+   - Injects as environment variable into container
+
+**Secret storage** (`~/.bitbot/secrets.enc`):
+```yaml
+# Encrypted with user's local key
+workspaces:
+  workspace-hash-abc123:
+    ANTHROPIC_API_KEY: "sk-ant-..."
+    OPENAI_API_KEY: "sk-..."
+```
+
+**Container injection**:
+```yaml
+# docker-compose.work.yml (generated)
+services:
+  bitbot-dev:
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    # Key injected from ~/.bitbot/secrets.enc
+```
+
+### 3.4 Agent Switching (No Rebuild)
+
+**Switch agent**:
+```bash
+# Reconfigure agent
+bitbot agent config
+
+# Select different agent
+# > 3. Cline
+
+# Restart container (not rebuild)
+bitbot restart
+
+# Or if already in container:
+exit
+bitbot work vscode --agent cline
+```
+
+**Why no rebuild**:
+- Agent binaries installed in base image
+- Configuration files updated instantly
+- Only agent process needs restart
+
+---
+
+## 4. MCP Service Discovery
+
+### 4.1 Discovery Process
 
 **Agent startup**:
 ```python
@@ -173,7 +538,7 @@ def agent_startup():
   log(f"Discovered {len(services)} MCP services")
 ```
 
-### 3.2 Tool Registration
+### 4.2 Tool Registration
 
 **Available tools** (from MCP services):
 - `read_file` (filesystem MCP)
@@ -196,9 +561,9 @@ result = mcp_client.call_tool("read_file", {
 
 ---
 
-## 4. Git Safety Integration
+## 5. Git Safety Integration
 
-### 4.1 Agent System Prompts
+### 5.1 Agent System Prompts
 
 **Work mode prompt addition**:
 ```markdown
@@ -241,7 +606,7 @@ After making infrastructure changes, recommend:
 - bitbot-apply-setup (apply and rebuild)
 ```
 
-### 4.2 Git Safety Workflow
+### 5.2 Git Safety Workflow
 
 **Agent decision tree**:
 ```
@@ -272,9 +637,9 @@ Else (simple task):
 
 ---
 
-## 5. Session Awareness
+## 6. Session Awareness
 
-### 5.1 Session Context
+### 6.1 Session Context
 
 **Agent detects session**:
 ```bash
@@ -293,7 +658,7 @@ mode=$(echo "$session_name" | cut -d'-' -f1)
 - Run commands in background panes
 - Respect session working directory
 
-### 5.2 Multi-Pane Workflows
+### 6.2 Multi-Pane Workflows
 
 **Agent creates dev environment**:
 ```python
@@ -315,9 +680,9 @@ def setup_dev_environment():
 
 ---
 
-## 6. Mode-Specific Behavior
+## 7. Mode-Specific Behavior
 
-### 6.1 Work Mode Agent
+### 7.1 Work Mode Agent
 
 **Capabilities**:
 - Full workspace read/write
@@ -342,7 +707,7 @@ Agent:
   "✓ Created new users API endpoint. Run tests with: pytest tests/test_users.py"
 ```
 
-### 6.2 Setup Mode Agent
+### 7.2 Setup Mode Agent
 
 **Capabilities**:
 - Full workspace read/write
@@ -367,14 +732,14 @@ Agent:
 
 ---
 
-## 7. Agent Lifecycle
+## 8. Agent Lifecycle
 
-### 7.1 Agent Startup
+### 8.1 Agent Startup
 
 **Initialization**:
 ```bash
 # User starts agent
-claude-code
+bitbot work vscode --agent claude
 
 # Agent startup sequence:
 # 1. Detect environment
@@ -387,7 +752,7 @@ discover_mcp_services()
 
 # 3. Load configuration
 load_agent_config()
-  → .claude/config.yml or .opencode/config.json
+  → .bitbot/agent.yml + .claude/settings.json
 
 # 4. Run startup hooks
 run_startup_hooks()
@@ -398,7 +763,7 @@ show_welcome_message()
   → "Claude Code ready in BitBot work mode"
 ```
 
-### 7.2 Agent Shutdown
+### 8.2 Agent Shutdown
 
 **Cleanup**:
 ```bash
@@ -418,9 +783,9 @@ log_session_summary()
 
 ---
 
-## 8. Custom Agent Integration
+## 9. Custom Agent Integration
 
-### 8.1 Agent Requirements
+### 9.1 Agent Requirements
 
 **Minimum requirements for agent**:
 - MCP protocol support (tools invocation)
@@ -433,7 +798,7 @@ log_session_summary()
 - Session management
 - Mode-specific behavior
 
-### 8.2 Integration Template
+### 9.2 Integration Template
 
 **Custom agent wrapper** (`.bitbot/agents/my-agent.sh`):
 ```bash
@@ -458,26 +823,57 @@ export AGENT_CONFIG=".bitbot/agents/my-agent-config.json"
 
 ---
 
-## 9. Agent Commands
+## 10. Agent Commands
 
-### 9.1 Launch Commands
+### 10.1 Launch Commands
 
 **Claude Code**:
 ```bash
+# CLI: Launch work mode in VS Code with Claude Code
+bitbot work vscode --agent claude
+# Uses VS Code Direct DevContainer Opening + launches Claude Code
+
 # From inside container
 claude-code
-
-# Or via CLI (launches container and agent)
-bitbot work --agent claude
 ```
 
-**OpenCode**:
+**Continue.dev**:
 ```bash
-# From inside container
+# CLI: Launch work mode in VS Code with Continue.dev
+bitbot work vscode --agent continue
+# Opens VS Code dev container, Continue.dev extension auto-activates
+
+# From inside container (Continue.dev is VS Code extension)
+# Already active in VS Code
+```
+
+**Cline**:
+```bash
+# CLI: Launch work mode in VS Code with Cline
+bitbot work vscode --agent cline
+# Opens VS Code dev container, Cline extension auto-activates
+
+# From inside container (Cline is VS Code extension)
+# Already active in VS Code
+```
+
+**VS Code Agent Mode**:
+```bash
+# CLI: Launch work mode in VS Code (native agent mode)
+bitbot work vscode
+# Native VS Code agent mode available via Command Palette
+
+# From inside VS Code
+# Ctrl+Shift+P → "Agent: Start Session"
+```
+
+**OpenCode** (Tier 2):
+```bash
+# From inside container (terminal-based)
 opencode
 
 # Or via CLI
-bitbot work --agent open
+bitbot work --agent opencode
 ```
 
 **Custom agent**:
@@ -489,33 +885,41 @@ bitbot work --agent open
 bitbot work --agent custom:my-agent
 ```
 
-### 9.2 Agent Management
+### 10.2 Agent Management
 
 **List available agents**:
 ```bash
 bitbot agent list
 
 # Output:
-# Available agents:
-# - claude (Claude Code by Anthropic)
-# - open (OpenCode)
-# - custom:my-agent (.bitbot/agents/my-agent.sh)
+# Tier 1: First-class support
+# ✅ claude        - Claude Code by Anthropic (CLI + VS Code)
+# ✅ continue      - Continue.dev (VS Code extension, open source)
+# ✅ cline         - Cline (VS Code extension, open source)
+# ✅ vscode        - VS Code native agent mode (April 2025+)
+#
+# Tier 2: Community support
+# ⏳ opencode      - OpenCode (terminal-based, open source)
+# ⏳ claude-flow   - Claude Flow (multi-agent orchestration)
+#
+# Custom:
+# 📦 custom:my-agent (.bitbot/agents/my-agent.sh)
 ```
 
 **Configure agent**:
 ```bash
-bitbot agent config claude
-# Opens .claude/config.yml in editor
+bitbot agent config
+# Launches interactive wizard
 
-bitbot agent config open
-# Opens .opencode/config.json in editor
+bitbot agent config --edit
+# Opens .bitbot/agent.yml in editor
 ```
 
 ---
 
-## 10. Testing Strategy
+## 11. Testing Strategy
 
-### 10.1 Integration Tests
+### 11.1 Integration Tests
 
 - AI-01: Agent discovers MCP services on startup
 - AI-02: Agent invokes git_status_check before major changes
@@ -523,91 +927,152 @@ bitbot agent config open
 - AI-04: Agent respects work mode restrictions (.devcontainer read-only)
 - AI-05: Agent can modify .devcontainer in setup mode
 - AI-06: Agent creates tmux panes/windows correctly
+- AI-07: CLI wizard generates valid config
+- AI-08: Agent switching works without rebuild
 
-### 10.2 Agent-Specific Tests
+### 11.2 Agent-Specific Tests
 
 **Claude Code**:
-- CC-01: .claude/config.yml loaded correctly
+- CC-01: .claude/settings.json loaded correctly
 - CC-02: Pre-task hooks execute
 - CC-03: MCP tools available
 
-**OpenCode**:
-- OC-01: .opencode/config.json loaded
-- OC-02: Git safety integration works
-- OC-03: Mode awareness functions
+**Continue.dev**:
+- CD-01: .continuerc.json loaded correctly
+- CD-02: Multi-model support works
+- CD-03: Context providers functional
+
+**Cline**:
+- CL-01: .cline/config.json loaded correctly
+- CL-02: VS Code extension integration works
+- CL-03: Auto git check functions
 
 ---
 
-## 11. Success Criteria
+## 12. Success Criteria
 
 **Functional**:
-- [ ] Claude Code discovers and uses MCP services
-- [ ] OpenCode integration works
+- [ ] CLI wizard generates valid configurations
+- [ ] Agent switching works without rebuild
+- [ ] All Tier 1 agents discover and use MCP services
 - [ ] Git safety prompts before risky changes
 - [ ] Agents respect mode restrictions
 - [ ] Session awareness functional
 - [ ] Custom agents can be integrated
+- [ ] API keys handled securely
 
 **Usability**:
 - [ ] Easy agent launch (single command)
 - [ ] Clear mode indication to agent
 - [ ] Helpful prompts for Git safety
 - [ ] Agent behavior intuitive
+- [ ] Wizard user-friendly
 
 **Reliability**:
 - [ ] MCP service discovery always works
 - [ ] Git safety checks reliable
 - [ ] No conflicts between agents and CLI
 - [ ] Session state persists across agent restarts
+- [ ] API keys never exposed in logs or version control
 
 ---
 
-## 12. Implementation Phases
+## 13. Implementation Phases
 
-**Phase 1: MCP Integration**:
-- MCP service discovery on agent startup
-- Tool registration and invocation
-- Agent config file support
+**Phase 0: Standards & Configuration** ✅ **DOCUMENTED**:
+- [x] AGENTS.md standard integration
+- [x] Tool-specific configuration files
+- [x] Agent tier structure
+- [x] VS Code Direct DevContainer Opening integration points 
 
-**Phase 2: Git Safety**:
-- System prompt additions
-- git_status_check integration
-- Checkpoint creation workflow
-- User prompts
+**Phase 1: CLI Wizard & Config Management**:
+- [ ] Interactive agent configuration wizard
+- [ ] `.bitbot/agent.yml` generation
+- [ ] Secure API key storage (`~/.bitbot/secrets.enc`)
+- [ ] Agent switching without rebuild
+- [ ] Manual config editing support
 
-**Phase 3: Session & Mode Awareness**:
-- Session detection
-- Mode-specific prompts
-- Restriction enforcement
-- tmux integration
+**Phase 2: MCP Integration**:
+- [ ] MCP service discovery on agent startup
+- [ ] Tool registration and invocation
+- [ ] Agent config file support (all Tier 1 agents)
+- [ ] AGENTS.md reading and processing
 
-**Phase 4: Agent Ecosystem**:
-- Claude Code full integration
-- OpenCode support
-- Custom agent template
-- Agent management commands
+**Phase 3: Git Safety**:
+- [ ] System prompt additions via AGENTS.md
+- [ ] git_status_check integration
+- [ ] Checkpoint creation workflow
+- [ ] User prompts
+- [ ] Opt-out mechanism
+
+**Phase 4: Session & Mode Awareness**:
+- [ ] Session detection
+- [ ] Mode-specific prompts (work/setup)
+- [ ] Restriction enforcement
+- [ ] tmux integration
+- [ ] Multi-pane workflows
+
+**Phase 5: Agent Ecosystem**:
+- [ ] Claude Code full integration
+- [ ] Continue.dev full support
+- [ ] Cline full support
+- [ ] VS Code Agent Mode integration
+- [ ] OpenCode support (Tier 2)
+- [ ] Custom agent template
+- [ ] Agent management commands
+
+**Phase 6: Advanced Features** (Future):
+- [ ] Claude Flow multi-agent orchestration
+- [ ] Agent collaboration workflows
+- [ ] Cross-agent session sharing
+- [ ] Agent performance analytics
 
 ---
 
-## 13. References
+## 14. References
 
 **Related Specifications**:
 - SPEC-02: Security Mode System (mode restrictions)
 - SPEC-02A: Git Safety Integration (git tools)
 - SPEC-03: MCP Service Architecture (service discovery)
 - SPEC-04: Session Management (tmux integration)
+- SPEC-06: VS Code DevContainer Integration (VS Code Direct DevContainer Opening - Decision Direct DevContainer Opening)
 
 **External Resources**:
 - MCP Specification: https://modelcontextprotocol.io/
+- AGENTS.md Standard: https://agents.md/
 - Claude Code: https://www.anthropic.com/claude/code
-- OpenCode: https://github.com/opencode-ai
+- Continue.dev: https://continue.dev/
+- Cline: https://github.com/cline/cline
 
 **Research Sources**:
-- User requirement: AI agent integration
-- Git safety as replacement for sketch mode
+- Research/AI_AGENT_CONFIGURATION_STANDARDS.md - 2025 agent configuration standards
+- Research/AI_AGENT_RESEARCH.md - Claude Flow and OpenCode details
+- SPEC-06 Section 0 - Direct dev container opening integration
 
 ---
 
-**Status**: **Draft**
+**Status**: **In Progress** (Updated with 2025 standards and CLI wizard)
 **Implementation Priority**: P1 (Important for AI workflows)
-**Next Steps**: SPEC-08 (Workspace Template System)
+
+**Recent Updates (2025-10-20)**:
+- ✅ Added AGENTS.md universal standard (Section 0.1)
+- ✅ Updated Claude Code configuration to current structure
+- ✅ Added Continue.dev integration (Section 2.2)
+- ✅ Added Cline integration (Section 2.3)
+- ✅ Added VS Code Agent Mode support (Section 2.4)
+- ✅ Updated agent tiers (Tier 1: First-class, Tier 2: Community)
+- ✅ Integrated VS Code Direct DevContainer Opening 
+- ✅ Added interactive CLI wizard (Section 3)
+- ✅ Added secure API key handling (Section 3.3)
+- ✅ Added agent switching without rebuild (Section 3.4)
+- ✅ Updated launch commands for all agents
+
+**Next Specifications**: SPEC-08 (Workspace Template System)
+
+**Related Decisions**: Direct DevContainer Opening (VS Code Direct DevContainer Opening)
+
+**Consolidated From**:
+- Claude_Specification/07_AI_AGENT_INTEGRATION.md (comprehensive, 2025 standards)
+- Copilot_Specification/06-AI-Agent-Integration.md (CLI wizard approach, YAML config)
+- Specification/07_AI_AGENT_INTEGRATION.md (previous brief version)

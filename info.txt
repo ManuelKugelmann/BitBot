@@ -107,3 +107,32 @@ TECH:
 - make sure that GID and UID of the dev containers "user" match the user calling bitbot also in the direct docker launch w/o vscode
 - make as much logic shared between docker based launch and vscode launch - even if vscode provides that feature. doccument what the vscode feature would be in the replacement script
 - use existing tools instead of reinventing them
+
+
+Creata  .ps1 and .bat as entrypoints and the bitbot bash script to implement this:
+
+  WORKFLOW:
+
+  psh or cmd -> WSL Alpine ->
+  OR
+  WSL Terminal ->
+
+  bitbot launcher script ->
+  * Build and Run devcontainer
+  - windows -> devcontainer.cmd
+     else -> devcontainer
+  - VSCode installed -> builtin devcontainer/cli
+     else install devcontainer/cli and use
+
+  * Launch VSCode into devcontainer using folderuri
+  OR
+  * Launch into devcontainer terminal
+
+  * Run bitbot agent script in terminal
+
+
+  * choose
+  - resume detached active session (tmux choice)
+  - resume inactive session (claude --resume)
+  - new session (claude)
+  - exit to shell

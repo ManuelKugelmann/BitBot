@@ -1,109 +1,419 @@
 # MCP Service Architecture Specification
 
 **Feature ID**: SPEC-03
-**Priority**: P0 (Critical - Blocking)
+**Priority**: P1 (Important)
 **Status**: Approved
 **Depends On**: SPEC-01 (Container Orchestration), SPEC-02 (Security Modes)
-**Created**: 2025-10-16
-**Last Updated**: 2025-10-17
+**Created**: 2025-10-20
+**Last Updated**: 2025-10-20
 
 ---
 
 ## Executive Summary
 
-Dual-layer MCP (Model Context Protocol) service architecture with sibling containers. Global services shared across workspaces, workspace services per-workspace. Uses existing MCP discovery server for service registry.
+Dual-layer MCP (Model Context Protocol) service architecture providing AI agents with standardized tools and context. Global services shared across workspaces, workspace-specific services per project. Uses Docker Compose services as sibling containers with network-based communication.
 
-**Key Design**: MCP services as sibling containers + dual-layer (global/workspace) + existing discovery server = extensible AI tooling.
+**Key Decision (D-05)**: Docker Compose services (global + workspace) provide scalable, isolated MCP architecture with shared discovery.
 
 ---
 
-## 1. Architecture
+## 1. MCP Architecture Overview
 
 ### 1.1 Dual-Layer Design
 
+```
+┌─────────────────────────────────────────────────────────────┐
+│ MCP Service Architecture                                    │
+│                                                             │
+│ ┌─────────────────┐    ┌─────────────────────────────────┐ │
+│ │ Global Layer    │    │ Workspace Layer                 │ │
+│ │                 │    │                                 │ │
+│ │ • Git MCP       │◄──►│ • Filesystem MCP               │ │
+│ │ • Code Analysis │    │ • Git Safety MCP               │ │
+│ │ • Package Mgmt  │    │ • Project-specific MCPs        │ │
+│ │ • Discovery     │    │ • Workspace Discovery          │ │
+│ │                 │    │                                 │ │
+│ │ Network:        │    │ Network:                        │ │
+│ │ mcp-global      │    │ mcp-workspace-${HASH}           │ │
+│ └─────────────────┘    └─────────────────────────────────┘ │
+│          ▲                           ▲                     │
+│          │                           │                     │
+│          └───────────┬───────────────┘                     │
+│                      ▼                                     │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ AI Agent in DevContainer                                │ │
+│ │ • Connects to both layers via network                   │ │
+│ │ • Discovers services via MCP discovery protocol        │ │
+│ │ • Invokes tools and accesses resources                  │ │
+│ └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 1.2 Service Layers
+
 **Global Layer**:
-- Shared across all workspaces
-- Network: `mcp-global` (172.20.0.0/16)
-- Services: Discovery server, git helper, package manager, code analyzer
-- Lifecycle: Independent, host-managed
-- Port: 8080 (discovery)
+- **Purpose**: Cross-workspace functionality
+- **Lifecycle**: Started on host boot or first BitBot run
+- **Network**: `mcp-global` (172.20.0.0/16)
+- **Examples**: Git operations, code analysis, package management
+- **Discovery**: `http://mcp-discovery-global:8080`
 
 **Workspace Layer**:
-- Per-workspace instance
-- Network: `mcp-workspace-${WORKSPACE_HASH}` (172.21.x.0/24)
-- Services: Workspace discovery, filesystem MCP, custom services
-- Lifecycle: Tied to workspace
-- Port: 9080 (discovery)
+- **Purpose**: Project-specific functionality
+- **Lifecycle**: Started/stopped with workspace container
+- **Network**: `mcp-workspace-${WORKSPACE_HASH}` (172.21.x.0/24)
+- **Examples**: Filesystem access, workspace git safety, custom tools
+- **Discovery**: `http://mcp-discovery-workspace:9080`
 
-### 1.2 Container Topology
+---
 
+## 2. Global MCP Services
+
+### 2.1 Global Service Composition
+
+**Location**: `~/.bitbot/global/mcp/docker-compose.yml`
+
+```yaml
+version: '3.8'
+
+services:
+  # MCP Discovery Server (Global)
+  mcp-discovery-global:
+    image: mcp-community/discovery-server:latest
+    container_name: mcp-discovery-global
+    ports:
+      - "8080:8080"   # REST API
+      - "8081:8081"   # WebSocket/SSE
+    networks:
+      - mcp-global
+    environment:
+      - MCP_SCOPE=global
+      - MCP_REGISTRY_PERSIST=true
+    volumes:
+      - mcp-discovery-data:/var/lib/mcp/registry
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Git Helper MCP (Global)
+  mcp-git-helper-global:
+    image: bitbot/mcp-git-helper:latest
+    container_name: mcp-git-helper-global
+    networks:
+      - mcp-global
+    environment:
+      - MCP_DISCOVERY_URL=http://mcp-discovery-global:8080
+      - MCP_SERVICE_ID=git-helper-global
+      - MCP_SCOPE=global
+    depends_on:
+      - mcp-discovery-global
+    restart: unless-stopped
+
+  # Code Analysis MCP (Global)
+  mcp-code-analyzer-global:
+    image: bitbot/mcp-code-analyzer:latest
+    container_name: mcp-code-analyzer-global
+    networks:
+      - mcp-global
+    environment:
+      - MCP_DISCOVERY_URL=http://mcp-discovery-global:8080
+      - MCP_SERVICE_ID=code-analyzer-global
+      - MCP_SCOPE=global
+    depends_on:
+      - mcp-discovery-global
+    restart: unless-stopped
+
+  # Package Manager MCP (Global)
+  mcp-package-manager-global:
+    image: bitbot/mcp-package-manager:latest
+    container_name: mcp-package-manager-global
+    networks:
+      - mcp-global
+    environment:
+      - MCP_DISCOVERY_URL=http://mcp-discovery-global:8080
+      - MCP_SERVICE_ID=package-manager-global
+      - MCP_SCOPE=global
+    depends_on:
+      - mcp-discovery-global
+    restart: unless-stopped
+
+networks:
+  mcp-global:
+    external: true
+    name: mcp-global
+
+volumes:
+  mcp-discovery-data:
+    name: mcp-discovery-global-data
 ```
-Host System
-├── Global MCP Services
-│   ├── mcp-discovery-global (port 8080)
-│   ├── mcp-git-helper-global
-│   ├── mcp-package-manager-global
-│   └── mcp-code-analyzer-global
-│   Network: mcp-global
-│
-├── Workspace MCP Services (per workspace)
-│   ├── mcp-discovery-${WORKSPACE_HASH} (port 9080)
-│   ├── mcp-filesystem-${WORKSPACE_HASH}
-│   ├── mcp-git-safety-${WORKSPACE_HASH}
-│   └── mcp-custom-services...
-│   Network: mcp-workspace-${WORKSPACE_HASH} + mcp-global
-│
-└── DevContainer (bitbot-dev-${WORKSPACE_HASH})
-    Network: mcp-workspace-${WORKSPACE_HASH} + mcp-global
-    Access: Network-only (no direct filesystem to MCP services)
+
+### 2.2 Global Service Capabilities
+
+#### Git Helper MCP
+```json
+{
+  "id": "git-helper-global",
+  "name": "Git Helper",
+  "scope": "global",
+  "capabilities": {
+    "tools": [
+      "git_clone",
+      "git_fetch_remote",
+      "git_search_history",
+      "git_blame_file",
+      "git_branch_list",
+      "git_remote_info"
+    ],
+    "resources": [
+      "git://history/*",
+      "git://remotes/*",
+      "git://branches/*"
+    ],
+    "prompts": [
+      "commit_message_suggest",
+      "branch_name_suggest",
+      "merge_conflict_resolve"
+    ]
+  }
+}
+```
+
+#### Code Analysis MCP
+```json
+{
+  "id": "code-analyzer-global",
+  "name": "Code Analysis",
+  "scope": "global",
+  "capabilities": {
+    "tools": [
+      "analyze_code_quality",
+      "detect_patterns",
+      "suggest_refactoring",
+      "find_dependencies",
+      "security_scan"
+    ],
+    "resources": [
+      "analysis://quality/*",
+      "analysis://patterns/*",
+      "analysis://dependencies/*"
+    ],
+    "prompts": [
+      "code_review",
+      "refactoring_plan",
+      "security_audit"
+    ]
+  }
+}
 ```
 
 ---
 
-## 2. MCP Protocol
+## 3. Workspace MCP Services
 
-### 2.1 Core Primitives
+### 3.1 Workspace Service Composition
 
-**Tools**: Functions AI agents invoke
-```json
-{
-  "method": "tools/call",
-  "params": {
-    "name": "read_file",
-    "arguments": {"path": "/workspace/src/main.py"}
-  }
-}
+**Location**: `.bitbot/mcp/docker-compose.yml`
+
+```yaml
+version: '3.8'
+
+services:
+  # Workspace Discovery Server
+  mcp-discovery-workspace:
+    image: mcp-community/discovery-server:latest
+    container_name: "mcp-discovery-${WORKSPACE_HASH}"
+    ports:
+      - "9080:8080"   # REST API (different port from global)
+    networks:
+      - mcp-workspace
+      - mcp-global     # Access to global services
+    environment:
+      - MCP_SCOPE=workspace
+      - MCP_WORKSPACE_HASH=${WORKSPACE_HASH}
+      - MCP_GLOBAL_DISCOVERY=http://mcp-discovery-global:8080
+    volumes:
+      - mcp-workspace-registry:/var/lib/mcp/registry
+    restart: unless-stopped
+
+  # Filesystem MCP (Workspace-specific)
+  mcp-filesystem-workspace:
+    image: bitbot/mcp-filesystem:latest
+    container_name: "mcp-filesystem-${WORKSPACE_HASH}"
+    networks:
+      - mcp-workspace
+    environment:
+      - MCP_DISCOVERY_URL=http://mcp-discovery-workspace:8080
+      - MCP_SERVICE_ID=filesystem-${WORKSPACE_HASH}
+      - MCP_SCOPE=workspace
+      - WORKSPACE_PATH=/workspace
+    volumes:
+      # Mount workspace for filesystem operations
+      - "${WORKSPACE_PATH}:/workspace:rw"
+    depends_on:
+      - mcp-discovery-workspace
+    restart: unless-stopped
+
+  # Git Safety MCP (Workspace-specific)
+  mcp-git-safety-workspace:
+    image: bitbot/mcp-git-safety:latest
+    container_name: "mcp-git-safety-${WORKSPACE_HASH}"
+    networks:
+      - mcp-workspace
+    environment:
+      - MCP_DISCOVERY_URL=http://mcp-discovery-workspace:8080
+      - MCP_SERVICE_ID=git-safety-${WORKSPACE_HASH}
+      - MCP_SCOPE=workspace
+      - WORKSPACE_PATH=/workspace
+    volumes:
+      # Mount workspace for git operations
+      - "${WORKSPACE_PATH}:/workspace:rw"
+    depends_on:
+      - mcp-discovery-workspace
+    restart: unless-stopped
+
+networks:
+  mcp-workspace:
+    external: true
+    name: "mcp-workspace-${WORKSPACE_HASH}"
+  mcp-global:
+    external: true
+    name: mcp-global
+
+volumes:
+  mcp-workspace-registry:
+    name: "mcp-registry-${WORKSPACE_HASH}"
 ```
 
-**Resources**: Context and data for AI
-```json
-{
-  "method": "resources/read",
-  "params": {
-    "uri": "file:///workspace/README.md"
-  }
-}
-```
+### 3.2 Workspace Service Capabilities
 
-**Prompts**: Templated workflows
-```json
-{
-  "method": "prompts/get",
-  "params": {
-    "name": "code_review",
-    "arguments": {"file": "src/main.py"}
-  }
-}
-```
-
-### 2.2 Service Registration
-
-Each MCP service registers with discovery server:
-
+#### Filesystem MCP
 ```json
 {
   "id": "filesystem-${WORKSPACE_HASH}",
-  "name": "filesystem-mcp",
+  "name": "Workspace Filesystem",
+  "scope": "workspace",
+  "workspace_hash": "${WORKSPACE_HASH}",
+  "capabilities": {
+    "tools": [
+      "read_file",
+      "write_file",
+      "list_directory",
+      "create_directory",
+      "delete_file",
+      "move_file",
+      "search_files",
+      "get_file_info"
+    ],
+    "resources": [
+      "file:///workspace/*",
+      "directory:///workspace/*"
+    ],
+    "prompts": [
+      "file_structure_analysis",
+      "workspace_overview"
+    ]
+  }
+}
+```
+
+#### Git Safety MCP
+```json
+{
+  "id": "git-safety-${WORKSPACE_HASH}",
+  "name": "Workspace Git Safety",
+  "scope": "workspace",
+  "workspace_hash": "${WORKSPACE_HASH}",
+  "capabilities": {
+    "tools": [
+      "git_status_check",
+      "git_create_checkpoint",
+      "git_diff_summary",
+      "git_safety_audit",
+      "git_recommend_action"
+    ],
+    "resources": [
+      "git://workspace/status",
+      "git://workspace/diff",
+      "git://workspace/log"
+    ],
+    "prompts": [
+      "safety_check_report",
+      "checkpoint_recommendation"
+    ]
+  }
+}
+```
+
+---
+
+## 4. Service Discovery and Registration
+
+### 4.1 Discovery Protocol
+
+**Global Service Discovery**:
+```bash
+# AI agents query global discovery
+curl http://mcp-discovery-global:8080/api/services
+
+# Response
+{
+  "services": [
+    {
+      "id": "git-helper-global",
+      "name": "Git Helper",
+      "scope": "global",
+      "endpoint": "ws://mcp-git-helper-global:9090/mcp",
+      "health": "healthy",
+      "capabilities": { ... }
+    }
+  ]
+}
+```
+
+**Workspace Service Discovery**:
+```bash
+# AI agents query workspace discovery
+curl http://mcp-discovery-workspace:8080/api/services
+
+# Response includes workspace services + global services
+{
+  "services": [
+    {
+      "id": "filesystem-a1b2c3d4",
+      "name": "Workspace Filesystem",
+      "scope": "workspace",
+      "workspace_hash": "a1b2c3d4",
+      "endpoint": "ws://mcp-filesystem-a1b2c3d4:9090/mcp",
+      "health": "healthy"
+    },
+    {
+      "id": "git-helper-global",
+      "name": "Git Helper",
+      "scope": "global",
+      "endpoint": "ws://mcp-git-helper-global:9090/mcp",
+      "health": "healthy"
+    }
+  ]
+}
+```
+
+### 4.2 Service Registration
+
+**MCP Service Registration Flow**:
+1. Service starts up
+2. Reads MCP_DISCOVERY_URL from environment
+3. Registers with discovery server via POST
+4. Maintains heartbeat for health checks
+5. Discovery server provides service to AI agents
+
+**Registration Request**:
+```json
+{
+  "id": "filesystem-a1b2c3d4",
+  "name": "Workspace Filesystem",
   "scope": "workspace",
   "workspace_hash": "a1b2c3d4",
   "transport": {
@@ -111,8 +421,9 @@ Each MCP service registers with discovery server:
     "endpoint": "ws://mcp-filesystem-a1b2c3d4:9090/mcp"
   },
   "capabilities": {
-    "tools": ["read_file", "write_file"],
-    "resources": ["file:///*"]
+    "tools": ["read_file", "write_file", "list_directory"],
+    "resources": ["file:///workspace/*"],
+    "prompts": ["workspace_overview"]
   },
   "health": {
     "endpoint": "http://mcp-filesystem-a1b2c3d4:9090/health",
@@ -123,624 +434,380 @@ Each MCP service registers with discovery server:
 
 ---
 
-## 3. Global MCP Services
+## 5. Network Architecture
 
-### 3.1 Service Composition
+### 5.1 Network Topology
 
-**Docker Compose** (`/opt/bitbot/global-mcp/docker-compose.yml`):
-
+**Network Segmentation**:
 ```yaml
-services:
-  mcp-discovery:
-    image: mcp-community/discovery-server:latest
-    container_name: mcp-discovery-global
-    ports:
-      - "8080:8080"  # REST API
-      - "8081:8081"  # SSE events
-    networks:
-      - mcp-global
-    restart: unless-stopped
-
-  mcp-git-helper:
-    image: bitbot/mcp-git-helper:latest
-    container_name: mcp-git-helper-global
-    environment:
-      - MCP_DISCOVERY_URL=http://mcp-discovery:8080
-      - MCP_SCOPE=global
-    networks:
-      - mcp-global
-    restart: unless-stopped
-
-  mcp-package-manager:
-    image: bitbot/mcp-package-manager:latest
-    container_name: mcp-package-manager-global
-    environment:
-      - MCP_DISCOVERY_URL=http://mcp-discovery:8080
-    networks:
-      - mcp-global
-    restart: unless-stopped
-
+# Global MCP Network
 networks:
   mcp-global:
     driver: bridge
     ipam:
       config:
         - subnet: 172.20.0.0/16
-```
 
-### 3.2 Management
-
-**Start global services**:
-```bash
-cd /opt/bitbot/global-mcp
-docker-compose up -d
-curl http://localhost:8080/api/services  # Verify
-```
-
-**Stop global services**:
-```bash
-docker-compose down  # Data persists in volumes
-```
-
----
-
-## 4. Workspace MCP Services
-
-### 4.1 Service Composition
-
-**Docker Compose** (`.bitbot/mcp/docker-compose.yml`):
-
-```yaml
-services:
-  mcp-discovery-workspace:
-    image: mcp-community/discovery-server:latest
-    container_name: mcp-discovery-${WORKSPACE_HASH}
-    ports:
-      - "9080:8080"
-    environment:
-      - MCP_SCOPE=workspace
-      - MCP_WORKSPACE_HASH=${WORKSPACE_HASH}
-      - MCP_GLOBAL_DISCOVERY=http://mcp-discovery-global:8080
-    networks:
-      - mcp-global
-      - mcp-workspace-${WORKSPACE_HASH}
-    restart: unless-stopped
-
-  mcp-filesystem:
-    image: bitbot/mcp-filesystem:latest
-    container_name: mcp-filesystem-${WORKSPACE_HASH}
-    volumes:
-      - ${WORKSPACE_PATH}:/workspace:ro  # Read-only
-    environment:
-      - MCP_DISCOVERY_URL=http://mcp-discovery-workspace:8080
-      - MCP_WORKSPACE_HASH=${WORKSPACE_HASH}
-    networks:
-      - mcp-workspace-${WORKSPACE_HASH}
-    restart: unless-stopped
-
-  mcp-git-safety:
-    image: bitbot/mcp-git-safety:latest
-    container_name: mcp-git-safety-${WORKSPACE_HASH}
-    volumes:
-      - ${WORKSPACE_PATH}:/workspace:rw  # Needs write for commits
-    environment:
-      - MCP_DISCOVERY_URL=http://mcp-discovery-workspace:8080
-    networks:
-      - mcp-workspace-${WORKSPACE_HASH}
-    restart: unless-stopped
-
+# Per-Workspace Networks
 networks:
-  mcp-global:
-    external: true
-  mcp-workspace-${WORKSPACE_HASH}:
+  mcp-workspace-a1b2c3d4:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.21.${SUBNET_OCTET}.0/24
+        - subnet: 172.21.1.0/24
+
+  mcp-workspace-b2c3d4e5:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.2.0/24
 ```
 
-### 4.2 Lifecycle Management
+### 5.2 Container Network Membership
 
-**Automatic startup** (in `bitbot-core.sh`):
-
-```bash
-# Pseudocode
-start_workspace_mcp_services() {
-  workspace_hash = sha256(workspace_path)
-  subnet_octet = hex_to_dec(workspace_hash[0:2])
-
-  export WORKSPACE_HASH=$workspace_hash
-  export WORKSPACE_PATH=$(pwd)
-  export SUBNET_OCTET=$subnet_octet
-
-  if exists ".bitbot/mcp/docker-compose.yml":
-    docker-compose -f .bitbot/mcp/docker-compose.yml up -d
-    wait_for_services(5)
-    verify_registration()
-}
-```
-
-**Shutdown**:
-```bash
-# Stop with workspace
-bitbot stop
-# Or manually
-docker-compose -f .bitbot/mcp/docker-compose.yml down
-```
-
----
-
-## 5. Service Discovery
-
-### 5.1 Discovery Server
-
-**Decision**: Use existing MCP discovery server (not custom implementation)
-
-**Options**:
-- `mcp-community/discovery-server` (official reference)
-- Consul with MCP adapter
-- etcd with MCP adapter
-
-**For BitBot**: Use existing MCP discovery server if available, otherwise minimal wrapper.
-
-### 5.2 Discovery API
-
-**List services**:
-```http
-GET /api/services?scope={global|workspace}&workspace={hash}
-
-Response:
-{
-  "services": [
-    {
-      "id": "filesystem-a1b2c3d4",
-      "name": "filesystem-mcp",
-      "endpoint": "ws://mcp-filesystem-a1b2c3d4:9090/mcp",
-      "capabilities": {...},
-      "health": "healthy"
-    }
-  ]
-}
-```
-
-**Register service**:
-```http
-POST /api/services
-
-Request:
-{
-  "id": "my-service-abc123",
-  "name": "my-custom-service",
-  "scope": "workspace",
-  "endpoint": "ws://my-service:9090/mcp",
-  "capabilities": {...}
-}
-```
-
-**Health check**:
-```http
-GET /api/services/{id}/health
-
-Response:
-{
-  "id": "filesystem-a1b2c3d4",
-  "status": "healthy",
-  "last_check": "2025-10-17T12:35:00Z"
-}
-```
-
-**Server-Sent Events** (real-time updates):
-```http
-GET /api/events
-
-event: service.registered
-data: {"id": "new-service", "name": "..."}
-
-event: service.deregistered
-data: {"id": "old-service"}
-```
-
-### 5.3 Health Checks
-
-**Configuration**:
+**DevContainer Network Access**:
 ```yaml
-# Discovery server config
-health_checks:
-  interval: 30s
-  timeout: 10s
-  retries: 3
-  http:
-    path: /health
-    expected_status: 200
-```
-
-**Service implementation**:
-```python
-# Pseudocode
-@app.get("/health")
-def health():
-  return {
-    "status": "healthy",
-    "service": "filesystem-mcp",
-    "uptime_seconds": get_uptime()
-  }
-```
-
----
-
-## 6. Custom MCP Services
-
-### 6.1 Service Structure
-
-```
-workspace/
-├── .bitbot/
-│   └── services/
-│       ├── my-custom-mcp/
-│       │   ├── Dockerfile
-│       │   ├── requirements.txt
-│       │   ├── mcp_server.py
-│       │   └── README.md
-│       └── docker-compose.custom.yml
-```
-
-### 6.2 Service Template
-
-**Dockerfile**:
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
-CMD ["python", "mcp_server.py"]
-```
-
-**MCP Server** (pseudocode):
-```python
-from mcp_sdk import MCPServer, Tool
-
-app = FastAPI()
-mcp = MCPServer(name="my-custom-service")
-
-@mcp.tool("analyze_code")
-def analyze_code(file_path: str):
-  # Implementation
-  return {"quality_score": 85}
-
-@app.get("/health")
-def health():
-  return {"status": "healthy"}
-
-@app.websocket("/mcp")
-def mcp_endpoint(websocket):
-  mcp.handle_connection(websocket)
-
-@app.on_event("startup")
-def register():
-  discovery_url = env("MCP_DISCOVERY_URL")
-  workspace_hash = env("MCP_WORKSPACE_HASH")
-
-  http_post(f"{discovery_url}/api/services", {
-    "id": f"my-custom-{workspace_hash}",
-    "endpoint": f"ws://my-custom-{workspace_hash}:9090/mcp",
-    "capabilities": mcp.get_capabilities()
-  })
-```
-
-**Compose file**:
-```yaml
-# .bitbot/services/docker-compose.custom.yml
+# Work container connects to both networks
 services:
-  my-custom-mcp:
-    build: ./my-custom-mcp
-    container_name: my-custom-mcp-${WORKSPACE_HASH}
+  bitbot-work:
+    networks:
+      - mcp-global                    # Access global services
+      - mcp-workspace-${WORKSPACE_HASH}  # Access workspace services
+```
+
+**MCP Service Network Access**:
+```yaml
+# Workspace MCP services connect to both networks
+services:
+  mcp-filesystem-workspace:
+    networks:
+      - mcp-workspace-${WORKSPACE_HASH}  # Primary network
+      - mcp-global                    # Discovery of global services
+```
+
+---
+
+## 6. AI Agent Integration
+
+### 6.1 Service Discovery in AI Agents
+
+**Claude Code Integration** (`.claude/config.yml`):
+```yaml
+mcpServers:
+  # Dynamic discovery from workspace
+  workspace-discovery:
+    command: curl
+    args: ["http://mcp-discovery-workspace:8080/api/services"]
+
+  # Static global services
+  git-helper:
+    command: docker
+    args: ["exec", "mcp-git-helper-global", "mcp-server"]
+
+  filesystem:
+    command: docker
+    args: ["exec", "mcp-filesystem-${WORKSPACE_HASH}", "mcp-server"]
+    env:
+      WORKSPACE_PATH: "${workspaceFolder}"
+```
+
+### 6.2 Tool Invocation Examples
+
+**File Operations**:
+```javascript
+// AI agent calls filesystem MCP
+const result = await mcpClient.callTool("filesystem-a1b2c3d4", "read_file", {
+  path: "/workspace/src/main.py"
+});
+```
+
+**Git Safety Checks**:
+```javascript
+// AI agent calls git safety MCP
+const gitStatus = await mcpClient.callTool("git-safety-a1b2c3d4", "git_status_check", {
+  verbose: true
+});
+
+if (gitStatus.uncommitted_changes > 0) {
+  await mcpClient.callTool("git-safety-a1b2c3d4", "git_create_checkpoint", {
+    message: "Before refactoring",
+    method: "stash"
+  });
+}
+```
+
+**Code Analysis**:
+```javascript
+// AI agent calls global code analysis MCP
+const analysis = await mcpClient.callTool("code-analyzer-global", "analyze_code_quality", {
+  workspace_path: "/workspace",
+  language: "python"
+});
+```
+
+---
+
+## 7. Lifecycle Management
+
+### 7.1 Global Services Lifecycle
+
+**Start Global Services**:
+```bash
+#!/bin/bash
+# Start global MCP services (run once per host)
+
+cd ~/.bitbot/global/mcp
+
+# Create global network if not exists
+docker network create mcp-global --subnet=172.20.0.0/16 2>/dev/null || true
+
+# Start global services
+docker-compose up -d
+
+# Wait for discovery server
+while ! curl -s http://localhost:8080/health >/dev/null; do
+  echo "Waiting for global MCP discovery..."
+  sleep 2
+done
+
+echo "✓ Global MCP services started"
+```
+
+**Stop Global Services**:
+```bash
+#!/bin/bash
+# Stop global MCP services (optional, they can run continuously)
+
+cd ~/.bitbot/global/mcp
+docker-compose down
+
+echo "✓ Global MCP services stopped"
+```
+
+### 7.2 Workspace Services Lifecycle
+
+**Start Workspace Services**:
+```bash
+#!/bin/bash
+# Start workspace MCP services (per workspace)
+
+WORKSPACE_PATH="$(pwd)"
+WORKSPACE_HASH=$(echo -n "$WORKSPACE_PATH" | sha256sum | cut -c1-8)
+
+export WORKSPACE_PATH WORKSPACE_HASH
+
+cd "$WORKSPACE_PATH/.bitbot/mcp"
+
+# Create workspace network if not exists
+docker network create "mcp-workspace-$WORKSPACE_HASH" \
+  --subnet="172.21.$((WORKSPACE_HASH % 255)).0/24" 2>/dev/null || true
+
+# Start workspace services
+docker-compose up -d
+
+# Wait for workspace discovery
+while ! curl -s "http://localhost:9080/health" >/dev/null; do
+  echo "Waiting for workspace MCP discovery..."
+  sleep 2
+done
+
+echo "✓ Workspace MCP services started (workspace: $WORKSPACE_HASH)"
+```
+
+**Stop Workspace Services**:
+```bash
+#!/bin/bash
+# Stop workspace MCP services
+
+WORKSPACE_HASH=$(echo -n "$(pwd)" | sha256sum | cut -c1-8)
+
+cd .bitbot/mcp
+docker-compose down
+
+echo "✓ Workspace MCP services stopped (workspace: $WORKSPACE_HASH)"
+```
+
+---
+
+## 8. Security and Isolation
+
+### 8.1 Network Security
+
+**Network Isolation**:
+- Global services cannot access workspace filesystems
+- Workspace services are isolated per workspace
+- DevContainers only access their own workspace services
+- No direct host filesystem access for MCP services
+
+**Service Authentication**:
+```yaml
+# MCP services use shared secrets for authentication
+environment:
+  - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}  # Shared secret
+  - MCP_CLIENT_CERT=/etc/mcp/client.crt  # Optional: mTLS
+```
+
+### 8.2 Resource Limits
+
+**Container Resource Limits**:
+```yaml
+services:
+  mcp-filesystem-workspace:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+```
+
+**File System Access Control**:
+```yaml
+# Filesystem MCP only accesses workspace, not host
+volumes:
+  - "${WORKSPACE_PATH}:/workspace:rw"  # Workspace only
+  # No host directories mounted
+```
+
+---
+
+## 9. Configuration and Extension
+
+### 9.1 Custom MCP Services
+
+**Adding Custom Workspace Services** (`.bitbot/mcp/docker-compose.yml`):
+```yaml
+services:
+  # Custom project-specific MCP service
+  mcp-database-helper:
+    image: myproject/mcp-database-helper:latest
+    container_name: "mcp-database-${WORKSPACE_HASH}"
+    networks:
+      - mcp-workspace
     environment:
       - MCP_DISCOVERY_URL=http://mcp-discovery-workspace:8080
-      - MCP_WORKSPACE_HASH=${WORKSPACE_HASH}
-    networks:
-      - mcp-workspace-${WORKSPACE_HASH}
-    restart: unless-stopped
-
-networks:
-  mcp-workspace-${WORKSPACE_HASH}:
-    external: true
+      - MCP_SERVICE_ID=database-${WORKSPACE_HASH}
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - mcp-discovery-workspace
 ```
 
-**Start custom service**:
+### 9.2 MCP Service Templates
+
+**Service Template Structure**:
+```
+~/.bitbot/templates/mcp-services/
+├── database-helper/
+│   ├── docker-compose.yml      # Service definition
+│   ├── Dockerfile              # Custom image (optional)
+│   └── config.json             # Service configuration
+└── api-client/
+    ├── docker-compose.yml
+    └── config.json
+```
+
+**Template Usage**:
 ```bash
-docker-compose -f .bitbot/services/docker-compose.custom.yml up -d
+# Add custom MCP service to workspace
+bitbot mcp add database-helper
+
+# Configure service
+bitbot mcp config database-helper --database-url="postgresql://..."
+
+# Start service
+bitbot mcp start database-helper
 ```
 
 ---
 
-## 7. AI Agent Integration
+## 10. Monitoring and Debugging
 
-### 7.1 Service Discovery
+### 10.1 Service Health Monitoring
 
-**From AI Agent** (pseudocode):
-```javascript
-workspace_hash = env("WORKSPACE_HASH")
+**Health Check Endpoints**:
+```bash
+# Check global services
+curl http://localhost:8080/health
+curl http://mcp-git-helper-global:9090/health
 
-// Query workspace discovery
-response = fetch(`http://mcp-discovery-workspace:8080/api/services?workspace=${workspace_hash}`)
-services = response.json().services
-
-// Connect to services
-for service in services:
-  ws = WebSocket(service.endpoint)
-  ws.send({
-    "jsonrpc": "2.0",
-    "method": "tools/list",
-    "id": 1
-  })
+# Check workspace services  
+curl http://localhost:9080/health
+curl http://mcp-filesystem-${WORKSPACE_HASH}:9090/health
 ```
 
-### 7.2 Tool Invocation
+**Service Logs**:
+```bash
+# View MCP service logs
+docker logs mcp-discovery-global
+docker logs mcp-filesystem-${WORKSPACE_HASH}
 
-**Request**:
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "tools/call",
-  "params": {
-    "name": "read_file",
-    "arguments": {"path": "/workspace/src/main.py"}
-  },
-  "id": 123
-}
+# Follow logs for debugging
+docker logs -f mcp-git-safety-${WORKSPACE_HASH}
 ```
 
-**Response**:
-```json
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "content": [{"type": "text", "text": "def main():\n..."}]
-  },
-  "id": 123
-}
+### 10.2 Service Discovery Debugging
+
+**List Registered Services**:
+```bash
+# Global services
+curl http://localhost:8080/api/services | jq
+
+# Workspace services
+curl http://localhost:9080/api/services | jq
+```
+
+**Test Service Communication**:
+```bash
+# Test MCP tool invocation
+docker exec bitbot-work-${WORKSPACE_HASH} \
+  curl -X POST http://mcp-filesystem-${WORKSPACE_HASH}:9090/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"method": "tools/list"}'
 ```
 
 ---
 
-## 8. Security & Access Control
+## 11. Success Criteria
 
-### 8.1 Network Access Matrix
-
-| Mode | Global MCP | Workspace MCP | Host Docker |
-|------|-----------|--------------|-------------|
-| **Work** | ✅ Network | ✅ Network | ❌ No |
-| **Setup** | ✅ Network | ✅ Network | ✅ Socket |
-
-**Key Points**:
-- MCP services have NO direct filesystem access to devcontainer
-- Communication is network-only (JSON-RPC over WebSocket)
-- Services read workspace via explicit volume mounts
-- Most services use read-only mounts for safety
-
-### 8.2 Service Permissions
-
-**Read-only filesystem** (default):
-```yaml
-volumes:
-  - ${WORKSPACE_PATH}:/workspace:ro
-```
-
-**Why read-only?**
-- AI agent requests file reads via MCP
-- MCP service reads and returns content
-- AI agent (in devcontainer) writes files directly
-- Separation: Service = read, Agent = write
-
-**Read-write exception** (trusted services only):
-```yaml
-# Example: git-safety needs write for commits
-volumes:
-  - ${WORKSPACE_PATH}:/workspace:rw
-```
-
----
-
-## 9. Operational Procedures
-
-### 9.1 Deployment Workflow
-
-**Step 1: Start global services** (one-time):
-```bash
-cd /opt/bitbot/global-mcp
-docker-compose up -d
-curl http://localhost:8080/api/services  # Verify
-```
-
-**Step 2: Start workspace** (automatic):
-```bash
-bitbot work  # Automatically starts workspace MCP services
-```
-
-**Step 3: Verify**:
-```bash
-# From devcontainer
-curl http://mcp-discovery-workspace:8080/api/services
-```
-
-### 9.2 Troubleshooting
-
-**Service not discovered**:
-```bash
-# Check running
-docker ps | grep mcp-
-
-# Check logs
-docker logs mcp-filesystem-${hash}
-docker logs mcp-discovery-workspace
-
-# Test registration
-curl -X POST http://localhost:9080/api/services -d '{...}'
-```
-
-**Service unhealthy**:
-```bash
-# Check health
-curl http://mcp-filesystem-${hash}:9090/health
-
-# Restart
-docker-compose -f .bitbot/mcp/docker-compose.yml restart mcp-filesystem
-```
-
-**Network issues**:
-```bash
-# Verify networks
-docker network ls | grep mcp
-
-# Check connectivity
-docker exec bitbot-dev-${hash} ping mcp-discovery-workspace
-docker exec bitbot-dev-${hash} curl http://mcp-discovery-workspace:8080/health
-```
-
----
-
-## 10. Performance & Scaling
-
-### 10.1 Resource Limits
-
-**Per-service** (recommended):
-```yaml
-deploy:
-  resources:
-    limits:
-      cpus: '0.5'
-      memory: 256M
-    reservations:
-      cpus: '0.1'
-      memory: 64M
-```
-
-**Resource totals**:
-- Global services: ~512MB RAM, 0.6 CPU
-- Per workspace: ~256MB RAM, 0.2 CPU
-- 10 workspaces: ~3GB RAM total (within dev machine limits)
-
-### 10.2 Scaling
-
-**Service discovery load**:
-- Global discovery: ~50 services (5 per workspace × 10 workspaces)
-- Workspace discovery: ~5-10 services each
-- HTTP/SSE based, minimal overhead
-
-**Performance targets**:
-- Service discovery query: < 100ms
-- Tool invocation latency: < 500ms
-- Health checks: < 10s
-- Service registration: < 5s
-
----
-
-## 11. Testing Strategy
-
-### 11.1 Service Discovery Tests
-
-- SD-01: Global services start successfully
-- SD-02: Workspace services start successfully
-- SD-03: Services register with discovery
-- SD-04: Health checks function
-- SD-05: Service deregistration on stop
-- SD-06: SSE events stream correctly
-
-### 11.2 Network Connectivity Tests
-
-- NC-01: Devcontainer reaches global services
-- NC-02: Devcontainer reaches workspace services
-- NC-03: Services cannot reach devcontainer filesystem directly
-- NC-04: Services can communicate with each other
-- NC-05: Workspace network isolation (A cannot reach B)
-
-### 11.3 MCP Protocol Tests
-
-- MP-01: Tool invocation succeeds
-- MP-02: Resource access works
-- MP-03: Prompt retrieval works
-- MP-04: Error handling (proper JSON-RPC errors)
-- MP-05: Concurrent requests succeed
-
----
-
-## 12. Success Criteria
-
-**Functional**:
-- [ ] Global MCP services start and register
+**Functional Requirements**:
+- [ ] Global MCP services start and register correctly
 - [ ] Workspace MCP services start per workspace
-- [ ] Service discovery returns correct list
-- [ ] AI agents invoke tools via MCP
-- [ ] Custom services can be added
-- [ ] Services accessible from both modes
+- [ ] AI agents can discover services via discovery protocol
+- [ ] Tool invocation works across network boundaries
+- [ ] Service health monitoring operational
+- [ ] Custom MCP services can be added
 
-**Performance**:
-- [ ] Service discovery < 100ms
-- [ ] Tool invocation < 500ms
-- [ ] Health checks < 10s
-- [ ] Service registration < 5s
-- [ ] Total overhead: 512MB (global) + 256MB (per workspace)
+**Performance Requirements**:
+- [ ] Service discovery response time < 500ms
+- [ ] Tool invocation latency < 1s for simple operations
+- [ ] Memory usage per MCP service < 256MB
+- [ ] Network overhead minimal for MCP communication
 
-**Reliability**:
-- [ ] Services auto-restart on failure
-- [ ] Discovery handles failures gracefully
-- [ ] Health checks detect unhealthy services
-- [ ] Network isolation prevents cross-workspace access
-- [ ] Logs accessible for debugging
+**Security Requirements**:
+- [ ] Network isolation between workspaces
+- [ ] No unauthorized filesystem access
+- [ ] Service authentication working
+- [ ] Resource limits enforced
 
 ---
 
-## 13. Implementation Phases
-
-**Phase 1: Global Services**:
-- Set up global MCP network
-- Deploy discovery server
-- Deploy git-helper, package-manager services
-- Verify registration and health checks
-
-**Phase 2: Workspace Services**:
-- Generate workspace compose file
-- Set up workspace network
-- Deploy workspace discovery
-- Deploy filesystem and git-safety services
-- Test service discovery
-
-**Phase 3: Integration**:
-- Integrate with bitbot CLI
-- Test AI agent discovery
-- Test tool invocation
-- Verify both modes access services
-- Test custom service deployment
-
-**Phase 4: Tooling**:
-- `bitbot mcp list` command
-- `bitbot mcp logs <service>` command
-- `bitbot mcp restart <service>` command
-- Service templates and documentation
-
----
-
-## 14. References
+## 12. References
 
 **Related Specifications**:
-- SPEC-01: Container Orchestration (sibling container architecture)
-- SPEC-02: Security Mode System (network access per mode)
-- SPEC-02A: Git Safety Integration (git-safety MCP service)
-- SPEC-04: Session Management (AI agents access MCP)
-- SPEC-05: Cross-Platform CLI (bitbot mcp commands)
+- SPEC-00: Architectural Decisions (D-05: MCP service architecture)
+- SPEC-01: Container Orchestration (network integration)
+- SPEC-02A: Git Safety Integration (git safety MCP tools)
+- SPEC-07: AI Agent Integration (MCP client configuration)
 
-**External Resources**:
-- MCP Specification: https://modelcontextprotocol.io/specification/2024-11-05
-- JSON-RPC 2.0: https://www.jsonrpc.org/specification
+**External References**:
+- Model Context Protocol: https://modelcontextprotocol.io/
+- MCP Community Registry: https://github.com/mcp-community
 - Docker Compose Networking: https://docs.docker.com/compose/networking/
-
-**Research Sources**:
-- MCP_ARCHITECTURE_RESEARCH.md (protocol specification)
-- User decision: Sibling containers + existing discovery server
 
 ---
 
 **Status**: **Approved**
-**Implementation Priority**: P0 (Blocking for AI agent functionality)
-**Next Steps**: SPEC-04 (Session Management)
+**Implementation Priority**: P1 (Important for AI workflows)
+**Next Steps**: Implement SPEC-04 (Session Management)

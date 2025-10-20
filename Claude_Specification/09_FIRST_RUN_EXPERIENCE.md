@@ -313,7 +313,7 @@ Your BitBot workspace is ready! Here's how to use it:
    to your code. Perfect for daily development work.
 
 2. Open in VS Code (optional)
-   $ bitbot work --vscode
+   $ bitbot work vscode
 
    Opens VS Code attached to your container.
 

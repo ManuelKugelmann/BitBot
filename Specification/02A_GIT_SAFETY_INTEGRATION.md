@@ -4,523 +4,764 @@
 **Priority**: P0 (Critical - Blocking)
 **Status**: Approved
 **Depends On**: SPEC-02 (Security Mode System), SPEC-03 (MCP Services)
-**Created**: 2025-10-16
-**Last Updated**: 2025-10-17
+**Created**: 2025-10-20
+**Last Updated**: 2025-10-20
 
 ---
 
 ## Executive Summary
 
-Git-based safety system replaces sketch mode concept. Provides startup warnings, MCP tools, and AI agent instructions to protect user code. Uses existing Git workflows (branches, commits) instead of custom permission modes.
+Git-based safety system that replaces complex mode switching with familiar Git workflows. Provides startup warnings, MCP tools for AI agents, and safety checks before destructive operations. Protects user work through Git's native capabilities rather than custom permission systems.
 
-**Key Design**: Git status checks + MCP tools + AI instructions = comprehensive safety without added complexity.
+**Key Decision (D-02)**: Git push/bundle required before destructive operations provides simple, auditable safety without complexity.
 
 ---
 
-## 1. Architecture
+## 1. Git Safety Architecture
 
-### 1.1 Core Components
+### 1.1 Core Principles
 
-**Startup Warning System**:
-- Runs on container start (both work and setup modes)
-- Checks git status before AI work begins
-- Logs warnings to `.bitbot/logs/git-warnings.log`
-- Non-blocking (informational only)
+**Git-First Safety**:
+- All safety checks use standard Git commands
+- Users work with familiar Git workflows (branches, commits, push)
+- No custom permission systems or modes
+- Protection through Git state requirements, not container restrictions
 
-**MCP Tool Integration**:
-- `git_status_check` - Check repository state
-- `git_create_checkpoint` - Create safety commit
-- `git_diff_summary` - Show current changes
-- Available in both work and setup modes
-
-**AI Agent Instructions**:
-- Pre-loaded context about git safety
-- Instructions to check git before major changes
-- Experimental branch recommendations
-- Commit-before-work suggestions
+**Three-Layer Protection**:
+1. **Startup Warnings**: Alert on risky Git states at container start
+2. **MCP Tool Integration**: AI agents can check Git status before changes
+3. **Pre-Destructive Checks**: Required Git safety before infrastructure changes
 
 ### 1.2 Safety Model
 
-**Philosophy**: Use Git's native capabilities instead of inventing new modes.
-
-**Advantages**:
-- Users already know Git
-- Works with existing workflows
-- No custom mode complexity
-- Better safety through familiarity
-
-**Replaces**: Original sketch mode concept (3-mode system)
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Git Safety Layers                                           │
+│                                                             │
+│ Layer 1: Startup Warnings                                   │
+│ ├─ Check: Uncommitted changes                              │
+│ ├─ Check: Unpushed commits                                 │
+│ ├─ Check: No remote configured                             │
+│ └─ Action: Warn user, log to audit                         │
+│                                                             │
+│ Layer 2: MCP Tool Integration                              │
+│ ├─ git_status_check(): Current repository state            │
+│ ├─ git_create_checkpoint(): Safety commit before changes   │
+│ ├─ git_diff_summary(): Show uncommitted changes           │
+│ └─ Available to AI agents via MCP protocol                 │
+│                                                             │
+│ Layer 3: Pre-Destructive Checks                           │
+│ ├─ Setup mode entry: Warn on uncommitted changes          │
+│ ├─ Infrastructure changes: Require clean or backup        │
+│ ├─ Container rebuilds: Suggest commit first               │
+│ └─ Action: Block if unsafe, require user approval         │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 2. Startup Warning System
 
-### 2.1 Check Sequence
+### 2.1 Container Startup Checks
 
-On container start:
-
+**Work Mode Startup**:
 ```bash
-# Pseudocode
-if not_git_repo:
-  warn("Not a git repository, run: git init")
+#!/bin/bash
+# /opt/bitbot/git-startup-check.sh
 
-if has_uncommitted_changes:
-  warn("Uncommitted changes detected")
-  show_git_status()
-  prompt("Continue anyway? (y/N)")
+echo "=== BitBot Git Safety Check ==="
 
-if has_unpushed_commits:
-  info("N unpushed commits, run: git push")
+# Check if git repository exists
+if [ ! -d ".git" ]; then
+    echo "ℹ️ Not a git repository"
+    echo "   Recommendation: git init"
+    return 0
+fi
 
-if no_remote:
-  info("No remote configured, consider: git remote add origin <url>")
+# Check for uncommitted changes
+if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+    echo "⚠️ WARNING: Uncommitted changes detected"
+    git status --porcelain | head -10
+    if [ "$(git status --porcelain | wc -l)" -gt 10 ]; then
+        echo "   ... and $(($(git status --porcelain | wc -l) - 10)) more files"
+    fi
+    echo ""
+    echo "   Recommendation: Commit changes before AI work"
+    echo "   AI may create checkpoints automatically"
+fi
+
+# Check for unpushed commits
+if [ "$(git rev-list HEAD --not --remotes 2>/dev/null | wc -l)" -gt 0 ]; then
+    echo "⚠️ WARNING: $(($(git rev-list HEAD --not --remotes | wc -l))) unpushed commits"
+    echo "   Recommendation: git push"
+fi
+
+# Check for remote configuration
+if [ -z "$(git remote 2>/dev/null)" ]; then
+    echo "ℹ️ No remote repository configured"
+    echo "   Recommendation: git remote add origin <url>"
+fi
+
+echo "==============================="
+echo ""
 ```
 
-### 2.2 Warning Levels
+**Setup Mode Startup**:
+```bash
+#!/bin/bash
+# /opt/bitbot/git-setup-check.sh
 
-| Level | Symbol | Meaning | Action |
-|-------|--------|---------|--------|
-| ERROR | ❌ | Blocking issue | Must fix before continuing |
-| WARNING | ⚠️ | Risky state | Should address before AI work |
-| INFO | ℹ️ | Informational | Optional, good practice |
+echo "=== BitBot Setup Mode - Git Safety ==="
 
-**Current Implementation**: Only WARNING and INFO levels (no blocking errors).
+if [ -d ".git" ]; then
+    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        echo "⚠️ IMPORTANT: Uncommitted changes detected"
+        echo ""
+        echo "Setup mode can modify .devcontainer and infrastructure."
+        echo "Recommend committing current work first:"
+        echo ""
+        echo "  git add ."
+        echo "  git commit -m \"Work in progress\""
+        echo ""
+        echo "Or create a backup bundle:"
+        echo "  git bundle create backup-$(date +%Y%m%d-%H%M%S).bundle HEAD"
+        echo ""
+        read -p "Continue anyway? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Setup mode cancelled. Commit changes and try again."
+            exit 1
+        fi
+    fi
+fi
 
-### 2.3 Configuration
+echo "================================="
+echo ""
+```
 
+### 2.2 Warning Configuration
+
+**.bitbot/config.yml**:
 ```yaml
-# .bitbot/config.yml
 git_safety:
-  startup_check: true           # Warn on startup (default)
-  require_clean: false          # Block if dirty (opt-in)
-  full_status: false            # Show all files vs first 10
+  startup_warnings:
+    enabled: true                    # Enable startup Git checks
+    show_uncommitted: true           # Warn about uncommitted changes
+    show_unpushed: true             # Warn about unpushed commits
+    show_no_remote: true            # Info about missing remote
+    max_files_shown: 10             # Limit status output
+
+  setup_mode:
+    require_confirmation: true       # Require user confirmation if dirty
+    block_if_dirty: false           # Optional: block setup if uncommitted changes
+    suggest_backup: true            # Suggest git bundle backup
+
+  work_mode:
+    auto_checkpoint: true           # AI can create automatic checkpoints
+    checkpoint_threshold: 5         # Files changed before checkpoint suggestion
 ```
 
+### 2.3 Logging and Audit
+
+**Git Safety Log**: `.bitbot/logs/git-safety.log`
 ```bash
-# Environment variables
-export BITBOT_REQUIRE_CLEAN_GIT=true  # Block if dirty
-export BITBOT_SKIP_GIT_CHECK=true     # Skip check (not recommended)
+[2025-10-20T14:30:00Z] STARTUP_CHECK: mode=work uncommitted=3 unpushed=1 remote=origin
+[2025-10-20T14:30:05Z] WARNING_SHOWN: uncommitted_files=src/main.py,src/utils.py,README.md
+[2025-10-20T14:31:00Z] SETUP_MODE_ENTRY: uncommitted=3 user_confirmed=yes
+[2025-10-20T14:32:00Z] CHECKPOINT_CREATED: stash_id=stash@{0} reason="AI refactoring checkpoint"
 ```
 
 ---
 
 ## 3. MCP Tool Integration
 
-### 3.1 Tool: `git_status_check`
+### 3.1 Git Safety MCP Tools
 
-**Purpose**: Check repository status
+**Available to AI Agents via MCP**:
 
-**Input**:
+#### git_status_check
 ```json
 {
-  "path": "/workspace"  // Optional, defaults to workspace root
-}
-```
-
-**Output**:
-```json
-{
-  "clean": false,
-  "uncommitted_files": 5,
-  "untracked_files": 2,
-  "current_branch": "main",
-  "files": [
-    {"path": "src/auth.py", "status": "modified"},
-    {"path": "newfile.py", "status": "untracked"}
-  ],
-  "recommendation": "commit_first"
-}
-```
-
-### 3.2 Tool: `git_create_checkpoint`
-
-**Purpose**: Create safety commit before AI changes
-
-**Input**:
-```json
-{
-  "message": "Checkpoint before AI changes",
-  "include_all": true  // git add . before commit
-}
-```
-
-**Output**:
-```json
-{
-  "success": true,
-  "commit_hash": "abc123",
-  "files_committed": 7,
-  "rollback_command": "git reset --hard abc123"
-}
-```
-
-### 3.3 Tool: `git_diff_summary`
-
-**Purpose**: Show changes since last commit
-
-**Input**:
-```json
-{
-  "since_commit": "HEAD",       // Optional
-  "file_path": "src/auth.py"   // Optional, specific file only
-}
-```
-
-**Output**:
-```json
-{
-  "files_changed": 3,
-  "insertions": 45,
-  "deletions": 12,
-  "files": [
-    {
-      "path": "src/auth.py",
-      "insertions": 30,
-      "deletions": 5
+  "name": "git_status_check",
+  "description": "Check current Git repository status",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "verbose": {
+        "type": "boolean",
+        "description": "Show detailed status information",
+        "default": false
+      }
     }
-  ]
+  }
 }
 ```
 
-### 3.4 MCP Service
+**Implementation**:
+```bash
+#!/bin/bash
+# MCP tool: git_status_check
 
-**Container**: `mcp-git-safety-${WORKSPACE_HASH}`
+VERBOSE=${1:-false}
 
-**Mount**: `/workspace:rw` (needs write for git commits)
+if [ ! -d ".git" ]; then
+    echo '{"status": "not_git_repo", "message": "Not a Git repository"}'
+    exit 0
+fi
 
-**Network**: `mcp-workspace-${WORKSPACE_HASH}` (per SPEC-03)
+UNCOMMITTED=$(git status --porcelain | wc -l)
+UNPUSHED=$(git rev-list HEAD --not --remotes 2>/dev/null | wc -l)
+BRANCH=$(git branch --show-current 2>/dev/null || echo "detached")
 
----
+if [ "$VERBOSE" = "true" ]; then
+    echo "{"
+    echo "  \"status\": \"ok\","
+    echo "  \"branch\": \"$BRANCH\","
+    echo "  \"uncommitted_changes\": $UNCOMMITTED,"
+    echo "  \"unpushed_commits\": $UNPUSHED,"
+    echo "  \"files_changed\": ["
+    git status --porcelain | head -10 | sed 's/.*/"&"/' | paste -sd ',' -
+    echo "  ]"
+    echo "}"
+else
+    echo "{"
+    echo "  \"status\": \"ok\","
+    echo "  \"branch\": \"$BRANCH\","
+    echo "  \"uncommitted_changes\": $UNCOMMITTED,"
+    echo "  \"unpushed_commits\": $UNPUSHED"
+    echo "}"
+fi
+```
 
-## 4. AI Agent Instructions
+#### git_create_checkpoint
+```json
+{
+  "name": "git_create_checkpoint",
+  "description": "Create a safety checkpoint before major changes",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "message": {
+        "type": "string",
+        "description": "Checkpoint description",
+        "default": "BitBot safety checkpoint"
+      },
+      "method": {
+        "type": "string",
+        "enum": ["stash", "commit", "branch"],
+        "description": "Checkpoint method",
+        "default": "stash"
+      }
+    }
+  }
+}
+```
 
-### 4.1 System Prompt Addition
+**Implementation**:
+```bash
+#!/bin/bash
+# MCP tool: git_create_checkpoint
 
-Add to AI agent's system prompt:
+MESSAGE=${1:-"BitBot safety checkpoint"}
+METHOD=${2:-"stash"}
+TIMESTAMP=$(date -Iseconds)
 
+case "$METHOD" in
+    stash)
+        if [ "$(git status --porcelain | wc -l)" -gt 0 ]; then
+            STASH_ID=$(git stash push -m "$MESSAGE - $TIMESTAMP")
+            echo "{"
+            echo "  \"status\": \"checkpoint_created\","
+            echo "  \"method\": \"stash\","
+            echo "  \"stash_id\": \"stash@{0}\","
+            echo "  \"message\": \"$MESSAGE\","
+            echo "  \"rollback_command\": \"git stash pop\""
+            echo "}"
+        else
+            echo "{"
+            echo "  \"status\": \"no_changes\","
+            echo "  \"message\": \"No uncommitted changes to checkpoint\""
+            echo "}"
+        fi
+        ;;
+
+    commit)
+        if [ "$(git status --porcelain | wc -l)" -gt 0 ]; then
+            git add .
+            COMMIT_ID=$(git commit -m "$MESSAGE - $TIMESTAMP" --quiet && git rev-parse HEAD)
+            echo "{"
+            echo "  \"status\": \"checkpoint_created\","
+            echo "  \"method\": \"commit\","
+            echo "  \"commit_id\": \"$COMMIT_ID\","
+            echo "  \"message\": \"$MESSAGE\","
+            echo "  \"rollback_command\": \"git reset --soft HEAD~1\""
+            echo "}"
+        else
+            echo "{"
+            echo "  \"status\": \"no_changes\","
+            echo "  \"message\": \"No uncommitted changes to checkpoint\""
+            echo "}"
+        fi
+        ;;
+
+    branch)
+        BRANCH_NAME="checkpoint-$(date +%Y%m%d-%H%M%S)"
+        git checkout -b "$BRANCH_NAME"
+        if [ "$(git status --porcelain | wc -l)" -gt 0 ]; then
+            git add .
+            git commit -m "$MESSAGE - $TIMESTAMP"
+        fi
+        git checkout -
+        echo "{"
+        echo "  \"status\": \"checkpoint_created\","
+        echo "  \"method\": \"branch\","
+        echo "  \"branch_name\": \"$BRANCH_NAME\","
+        echo "  \"message\": \"$MESSAGE\","
+        echo "  \"rollback_command\": \"git checkout $BRANCH_NAME\""
+        echo "}"
+        ;;
+esac
+```
+
+#### git_diff_summary
+```json
+{
+  "name": "git_diff_summary",
+  "description": "Show summary of current uncommitted changes",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "max_lines": {
+        "type": "integer",
+        "description": "Maximum lines of diff to show",
+        "default": 50
+      }
+    }
+  }
+}
+```
+
+### 3.2 AI Agent Integration
+
+**System Prompt Addition**:
 ```markdown
-## Git Safety Protocol
+## Git Safety Instructions
 
-Before significant code changes:
-1. Check Git status using git_status_check tool
-2. Create checkpoint if uncommitted changes exist
-3. Proceed with changes
-4. Inform user: "Rollback with: git reset --hard <hash>"
+Before making significant changes to the codebase:
 
-## When to Create Checkpoint
+1. Check Git status: Use git_status_check() to understand current state
+2. If uncommitted changes exist, consider creating a checkpoint: git_create_checkpoint()
+3. For major refactoring (>5 files), always create a checkpoint first
+4. If experimental changes, suggest user creates a branch: `git checkout -b experiment-feature`
 
-Create checkpoint before:
-- Refactoring multiple files
-- Implementing new features
-- Architectural changes
-- Any change user might want to undo
-
-## User Opt-Out
-
-If user says "skip git check", proceed without checking.
+Safety reminders:
+- Uncommitted work can be lost - always checkpoint before major changes
+- User may want to push current work before starting new features
+- Be helpful about Git workflows - many users appreciate guidance
 ```
 
-### 4.2 Trigger Conditions
-
-AI should check git status when:
-
-**Major refactoring requests**:
-- "Refactor the entire codebase"
-- "Restructure project architecture"
-- "Migrate to new framework"
-
-**Risky operations**:
-- "Delete unused files"
-- "Rename classes across codebase"
-- "Update all dependencies"
-
-**Session start with complex task**:
-- First AI response in new session
-- Task involves >10 file modifications
-
-### 4.3 AI Response Templates
-
-**When uncommitted changes detected**:
-```
-⚠️ I notice you have uncommitted changes. Before we proceed with [task],
-I recommend creating a checkpoint:
-
-Would you like me to create a safety checkpoint?
-
-[Yes, create checkpoint] [No, proceed anyway] [Let me commit manually]
-```
-
-**When suggesting experimental branch**:
-```
-This task involves significant changes to [area]. I recommend creating
-an experimental branch:
-
-git checkout -b experiment/[task-name]
-
-Shall I proceed on a new branch, or continue on current branch?
+**Example AI Workflow**:
+```bash
+# AI agent workflow for major refactoring
+1. git_status_check() -> 3 uncommitted files detected
+2. AI: "I notice uncommitted changes. Should I create a checkpoint before refactoring?"
+3. User: "Yes"
+4. git_create_checkpoint(message="Before refactoring authentication system", method="stash")
+5. AI proceeds with refactoring
+6. AI: "Refactoring complete. Your checkpoint is available via 'git stash pop' if needed."
 ```
 
 ---
 
-## 5. User Workflows
+## 4. Pre-Destructive Operation Checks
 
-### 5.1 Safe Experimentation
+### 4.1 Setup Mode Entry Protection
 
-**User**: "Try implementing feature X, not sure if it'll work"
+**Before entering setup mode**:
+```bash
+#!/bin/bash
+# Setup mode git safety check
 
-**AI**:
+check_setup_safety() {
+    if [ ! -d ".git" ]; then
+        echo "ℹ️ Not a git repository - setup mode available"
+        return 0
+    fi
+
+    # Check for uncommitted changes
+    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        echo "⚠️ IMPORTANT: Setup mode with uncommitted changes"
+        echo ""
+        echo "Setup mode can modify .devcontainer and infrastructure files."
+        echo "Recommend committing current work or creating a backup:"
+        echo ""
+        echo "Option 1 - Commit current work:"
+        echo "  git add ."
+        echo "  git commit -m \"WIP: current work\""
+        echo ""
+        echo "Option 2 - Create backup bundle:"
+        echo "  git bundle create backup-$(date +%Y%m%d-%H%M%S).bundle HEAD"
+        echo ""
+
+        # Log the decision
+        TIMESTAMP=$(date -Iseconds)
+        echo "[$TIMESTAMP] SETUP_MODE_ENTRY: uncommitted_changes=true" >> .bitbot/logs/git-safety.log
+
+        read -p "Continue with setup mode anyway? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Setup mode cancelled."
+            echo "[$TIMESTAMP] SETUP_MODE_CANCELLED: user_choice=safety_first" >> .bitbot/logs/git-safety.log
+            return 1
+        fi
+
+        echo "[$TIMESTAMP] SETUP_MODE_CONTINUED: user_choice=accept_risk" >> .bitbot/logs/git-safety.log
+    fi
+
+    return 0
+}
 ```
-[Uses git_status_check]
-Current status: 2 uncommitted files
 
-Recommendation:
-1. Commit current changes or create checkpoint
-2. Create experiment branch: git checkout -b experiment/feature-x
-3. Implement feature
-4. Review and merge or discard
+### 4.2 Infrastructure Change Protection
 
-Would you like me to:
-A) Create checkpoint and experimental branch
-B) Proceed on current branch
-C) Wait for you to commit manually
+**Before modifying .devcontainer**:
+```bash
+#!/bin/bash
+# Infrastructure change safety check
+
+check_infrastructure_safety() {
+    local CHANGE_TYPE="$1"  # "devcontainer", "dockerfile", "compose"
+
+    if [ ! -d ".git" ]; then
+        echo "ℹ️ No git repository - infrastructure changes allowed"
+        return 0
+    fi
+
+    # For infrastructure changes, require clean state or explicit approval
+    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        echo "❌ Infrastructure change blocked: uncommitted changes"
+        echo ""
+        echo "Infrastructure changes ($CHANGE_TYPE) require a clean git state"
+        echo "or explicit backup to prevent conflicts."
+        echo ""
+        echo "Options:"
+        echo "1. Commit current work: git add . && git commit -m \"Current work\""
+        echo "2. Create backup bundle: git bundle create backup.bundle HEAD"
+        echo "3. Use --force flag to override (not recommended)"
+        echo ""
+        return 1
+    fi
+
+    # Check for unpushed commits
+    if [ "$(git rev-list HEAD --not --remotes 2>/dev/null | wc -l)" -gt 0 ]; then
+        echo "⚠️ Warning: Unpushed commits detected"
+        echo "Consider pushing before infrastructure changes:"
+        echo "  git push"
+        echo ""
+        echo "Continue anyway? (y/N)"
+        read -r response
+        if [[ ! "$response" =~ ^[Yy]$ ]]; then
+            return 1
+        fi
+    fi
+
+    # Log infrastructure change approval
+    TIMESTAMP=$(date -Iseconds)
+    echo "[$TIMESTAMP] INFRASTRUCTURE_CHANGE: type=$CHANGE_TYPE git_state=clean" >> .bitbot/logs/git-safety.log
+
+    return 0
+}
 ```
 
-### 5.2 Major Refactoring
+### 4.3 Container Rebuild Safety
 
-**User**: "Refactor the entire authentication system"
+**Before rebuilding containers**:
+```bash
+#!/bin/bash
+# Container rebuild safety check
 
-**AI**:
-```
-[Uses git_status_check]
-⚠️ Repository status:
-- Uncommitted files: 5
-- Branch: main
-- Unpushed commits: 2
+check_rebuild_safety() {
+    local CONTAINER_TYPE="$1"  # "work", "setup"
 
-Before refactoring authentication, I recommend:
-1. Commit: git add . && git commit -m "WIP before auth refactor"
-2. Push: git push
-3. Branch: git checkout -b refactor/auth-system
+    echo "=== Container Rebuild Safety Check ==="
 
-Proceed with safety steps?
-```
+    if [ -d ".git" ]; then
+        # Suggest committing recent work
+        if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+            echo "💡 Suggestion: Commit recent work before rebuild"
+            echo "   Rebuilds can take time - save your progress:"
+            echo "   git add . && git commit -m \"Work in progress\""
+            echo ""
+        fi
 
-### 5.3 Quick Fix (No Check Needed)
+        # Show what will be rebuilt
+        echo "Container rebuild: $CONTAINER_TYPE"
+        echo "This will:"
+        echo "  - Stop current container"
+        echo "  - Rebuild from .devcontainer configuration"
+        echo "  - Start new container with same mounts"
+        echo "  - Preserve .bitbot/ state and sessions"
+        echo ""
 
-**User**: "Fix the typo in src/main.py line 42"
+        read -p "Continue with rebuild? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Rebuild cancelled."
+            return 1
+        fi
+    fi
 
-**AI**:
-```
-[Low-risk change, no git check]
-Fixing typo in src/main.py:42...
+    # Log rebuild decision
+    TIMESTAMP=$(date -Iseconds)
+    echo "[$TIMESTAMP] CONTAINER_REBUILD: type=$CONTAINER_TYPE user_approved=true" >> .bitbot/logs/git-safety.log
 
-Done! Would you like to see the diff?
+    return 0
+}
 ```
 
 ---
 
-## 6. Integration Points
+## 5. Recovery and Rollback
 
-### 6.1 Container Startup
+### 5.1 Checkpoint Recovery
 
-**Script location**: `.bitbot/setup/scripts/git-safety-check.sh`
+**Automatic checkpoint recovery instructions**:
+```bash
+#!/bin/bash
+# /opt/bitbot/show-recovery-options.sh
 
-**Work mode**:
-```json
-// .devcontainer/devcontainer.json
-{
-  "postStartCommand": "/workspace/.bitbot/setup/scripts/git-safety-check.sh"
+show_recovery_options() {
+    echo "=== BitBot Recovery Options ==="
+    echo ""
+
+    # Show stashes (checkpoints)
+    if [ "$(git stash list | wc -l)" -gt 0 ]; then
+        echo "Available checkpoints (stashes):"
+        git stash list --oneline | head -5
+        if [ "$(git stash list | wc -l)" -gt 5 ]; then
+            echo "... and $(($(git stash list | wc -l) - 5)) more"
+        fi
+        echo ""
+        echo "Restore latest checkpoint: git stash pop"
+        echo "List all checkpoints: git stash list"
+        echo ""
+    fi
+
+    # Show recent commits
+    echo "Recent commits:"
+    git log --oneline -5 2>/dev/null || echo "No commits found"
+    echo ""
+    echo "Undo last commit (keep changes): git reset --soft HEAD~1"
+    echo "Undo last commit (discard changes): git reset --hard HEAD~1"
+    echo ""
+
+    # Show backup bundles
+    if ls backup-*.bundle >/dev/null 2>&1; then
+        echo "Available backup bundles:"
+        ls -la backup-*.bundle
+        echo ""
+        echo "Restore from bundle: git bundle verify <bundle> && git pull <bundle> main"
+        echo ""
+    fi
+
+    echo "============================="
 }
 ```
 
-**Setup mode**:
-```json
-{
-  "postStartCommand": "/setup/workspace/.bitbot/setup/scripts/git-safety-check.sh"
+### 5.2 Emergency Reset
+
+**Complete workspace reset**:
+```bash
+#!/bin/bash
+# /opt/bitbot/emergency-reset.sh
+
+emergency_reset() {
+    echo "⚠️ EMERGENCY RESET - This will:"
+    echo "  - Reset all uncommitted changes"
+    echo "  - Return to last committed state"
+    echo "  - Preserve .bitbot/ logs and sessions"
+    echo ""
+    echo "This cannot be undone!"
+    echo ""
+    read -p "Type 'RESET' to confirm: " -r
+    if [ "$REPLY" != "RESET" ]; then
+        echo "Reset cancelled."
+        return 1
+    fi
+
+    # Create emergency backup first
+    BACKUP_NAME="emergency-backup-$(date +%Y%m%d-%H%M%S).bundle"
+    if [ -d ".git" ]; then
+        git bundle create "$BACKUP_NAME" HEAD 2>/dev/null && \
+        echo "✓ Emergency backup created: $BACKUP_NAME"
+    fi
+
+    # Reset to clean state
+    git reset --hard HEAD 2>/dev/null
+    git clean -fd 2>/dev/null
+
+    # Log emergency reset
+    TIMESTAMP=$(date -Iseconds)
+    echo "[$TIMESTAMP] EMERGENCY_RESET: backup=$BACKUP_NAME" >> .bitbot/logs/git-safety.log
+
+    echo "✓ Workspace reset to last commit"
+    echo "✓ Emergency backup available: $BACKUP_NAME"
 }
 ```
 
-### 6.2 MCP Service
+---
 
-**Compose file**: `.bitbot/mcp/docker-compose.yml`
+## 6. Integration with AI Agents
 
+### 6.1 Claude Code Integration
+
+**.claude/config.yml additions**:
 ```yaml
-services:
-  mcp-git-safety:
-    image: bitbot/git-mcp:latest
-    container_name: mcp-git-safety-${WORKSPACE_HASH}
-    volumes:
-      - ${WORKSPACE_PATH}:/workspace:rw
-    environment:
-      - MCP_WORKSPACE_HASH=${WORKSPACE_HASH}
-    networks:
-      - mcp-workspace-${WORKSPACE_HASH}
-```
-
-### 6.3 AI Agent Config
-
-**Claude Code** (`.claude/config.yml`):
-```yaml
+# Git safety integration for Claude Code
 mcpServers:
   git-safety:
     command: docker
-    args: ["exec", "mcp-git-safety-${WORKSPACE_HASH}", "mcp-server"]
+    args: ["exec", "bitbot-work-${WORKSPACE_HASH}", "/opt/bitbot/mcp/git-safety-server"]
+    env:
+      WORKSPACE_PATH: "${workspaceFolder}"
 
+# Pre-task hooks for git safety
 pre_task_hooks:
   - name: git_safety_check
+    description: Check Git status before major changes
     trigger:
-      keywords: ["refactor", "implement", "change"]
+      keywords: ["refactor", "implement", "change", "update", "modify"]
       file_count_threshold: 3
     action:
       tool: git_status_check
+      on_uncommitted:
+        suggest_checkpoint: true
+        message: "I notice uncommitted changes. Create checkpoint before proceeding?"
+
+# Post-task actions
+post_task_actions:
+  - name: git_rollback_info
+    description: Provide rollback instructions
+    condition: checkpoint_created
+    message: "Changes complete. To undo: {rollback_command}"
+```
+
+### 6.2 System Prompt Integration
+
+**AI Agent System Prompt**:
+```markdown
+You are working in a BitBot development environment with Git safety features.
+
+IMPORTANT Git Safety Guidelines:
+1. Before major changes (>3 files), check git status with git_status_check()
+2. If uncommitted changes exist, suggest creating a checkpoint
+3. For experimental features, recommend creating a branch
+4. Always inform user about rollback options after changes
+
+Available Git Safety Tools:
+- git_status_check(): Check repository state
+- git_create_checkpoint(): Create safety checkpoint (stash/commit/branch)
+- git_diff_summary(): Show current changes
+
+Example workflow:
+User: "Refactor the authentication system"
+You:
+1. Call git_status_check()
+2. If uncommitted changes: "I see uncommitted changes. Shall I create a checkpoint first?"
+3. If approved: Call git_create_checkpoint()
+4. Proceed with refactoring
+5. After completion: "Refactoring complete. If issues occur, restore with: git stash pop"
 ```
 
 ---
 
-## 7. Safety Comparison
+## 7. Configuration and Customization
 
-### 7.1 Sketch Mode vs Git Safety
+### 7.1 User Configuration
 
-| Aspect | Sketch Mode (Removed) | Git Safety (Current) |
-|--------|----------------------|----------------------|
-| Learning curve | New concept | Uses existing Git |
-| Protection level | Medium (permissions) | High (version control) |
-| Rollback | Mode switch | Git reset/revert/branch |
-| Complexity | 3 modes + switching | 2 modes + git tools |
-| User familiarity | Unfamiliar | Familiar (Git) |
-| Recovery | Limited | Full Git history |
-| Collaboration | Unclear | Standard Git workflows |
+**.bitbot/git-safety.yml**:
+```yaml
+# Git Safety Configuration
 
-**Decision**: Git safety provides better protection with less complexity.
+startup_checks:
+  enabled: true
+  warn_uncommitted: true
+  warn_unpushed: true
+  warn_no_remote: true
+  max_status_lines: 10
 
-### 7.2 Defense Layers
+checkpoints:
+  auto_suggest_threshold: 5      # Files changed before suggesting checkpoint
+  default_method: "stash"        # stash, commit, or branch
+  include_untracked: false       # Include untracked files in checkpoints
 
+setup_mode:
+  require_clean_git: false       # Block setup if uncommitted changes
+  require_confirmation: true     # Require user confirmation
+  suggest_backup: true          # Suggest git bundle backup
+
+infrastructure_changes:
+  require_clean_git: true        # Block infrastructure changes if dirty
+  warn_unpushed: true           # Warn about unpushed commits
+  create_backup: true           # Auto-create backup bundle
+
+logging:
+  enabled: true
+  log_file: ".bitbot/logs/git-safety.log"
+  log_level: "info"             # debug, info, warn, error
 ```
-Layer 1: Startup Warnings
-  ↓ Alerts to uncommitted/unpushed changes
 
-Layer 2: AI Instructions
-  ↓ AI proactively suggests git safety
+### 7.2 Environment Variables
 
-Layer 3: MCP Tools
-  ↓ Easy checkpoint creation and status
-
-Layer 4: Git History
-  ↓ Full version control rollback
-
-Layer 5: Experimental Branches
-  ↓ Isolate risky changes
+```bash
+# Git Safety Environment Variables
+export BITBOT_GIT_SAFETY_ENABLED=true           # Enable git safety features
+export BITBOT_REQUIRE_CLEAN_GIT=false           # Require clean git for setup
+export BITBOT_AUTO_CHECKPOINT_THRESHOLD=5       # Auto-suggest checkpoint threshold
+export BITBOT_GIT_SAFETY_LOG_LEVEL=info         # Logging level
 ```
 
 ---
 
-## 8. Testing Strategy
+## 8. Success Criteria
 
-### 8.1 Startup Warning Tests
+**Functional Requirements**:
+- [ ] Startup warnings show uncommitted/unpushed changes
+- [ ] MCP tools available to AI agents for git status checks
+- [ ] Checkpoint creation works (stash, commit, branch methods)
+- [ ] Setup mode warns and requires confirmation for dirty git state
+- [ ] Infrastructure changes blocked if git state unsafe
+- [ ] Recovery options clearly displayed to users
 
-- GS-01: Warn on uncommitted changes
-- GS-02: Info on unpushed commits
-- GS-03: Info when no remote configured
-- GS-04: No warnings on clean repo
-- GS-05: Warnings logged to `.bitbot/logs/git-warnings.log`
-- GS-06: `BITBOT_REQUIRE_CLEAN_GIT=true` blocks dirty state
+**Usability Requirements**:
+- [ ] Clear, actionable warnings and suggestions
+- [ ] AI agents understand and use git safety tools appropriately
+- [ ] Recovery instructions are easy to follow
+- [ ] Configuration options allow user customization
 
-### 8.2 MCP Tool Tests
-
-- MCP-01: `git_status_check` returns accurate status
-- MCP-02: `git_create_checkpoint` creates commit
-- MCP-03: `git_diff_summary` shows correct changes
-- MCP-04: Tools work in both work and setup modes
-- MCP-05: Error handling for non-git repositories
-
-### 8.3 AI Instruction Tests
-
-- AI-01: AI checks git before major refactoring
-- AI-02: AI suggests checkpoint for risky changes
-- AI-03: AI recommends branches for experiments
-- AI-04: AI skips check for trivial changes
-- AI-05: AI provides clear user choices (A/B/C)
-
-### 8.4 Integration Tests
-
-- INT-01: Startup warnings in both modes
-- INT-02: MCP tools accessible from AI agents
-- INT-03: Git safety doesn't block normal work
-- INT-04: Warnings persist across restarts
-- INT-05: Works with/without git remote
+**Safety Requirements**:
+- [ ] No automatic destructive operations without user consent
+- [ ] All safety decisions logged for audit trail
+- [ ] Emergency reset preserves user work in backup bundles
+- [ ] Git safety checks never corrupt repository state
 
 ---
 
-## 9. Success Criteria
-
-**Functional**:
-- [ ] Startup warnings detect uncommitted changes
-- [ ] Startup warnings detect unpushed commits
-- [ ] MCP tools work in both modes
-- [ ] AI checks git before major changes
-- [ ] Checkpoint creation works correctly
-
-**Safety**:
-- [ ] Users warned before risky operations
-- [ ] Experimental branch workflow documented
-- [ ] Git safety superior to sketch mode
-- [ ] No blocking errors (warnings only)
-
-**Usability**:
-- [ ] Warnings clear and actionable
-- [ ] AI suggestions helpful, not intrusive
-- [ ] Works with existing Git workflows
-- [ ] Doesn't slow container startup
-- [ ] Logs accessible for debugging
-
----
-
-## 10. Implementation Phases
-
-**Phase 1: Startup Warnings (MVP)**:
-- Basic git status check script
-- Warning output to console
-- Logging to `.bitbot/logs/`
-
-**Phase 2: MCP Tools (Core)**:
-- `git_status_check` implementation
-- `git_create_checkpoint` implementation
-- `git_diff_summary` implementation
-- MCP server containerization
-
-**Phase 3: AI Integration (Enhancement)**:
-- System prompt additions
-- Trigger condition logic
-- Response templates
-
-**Phase 4: Polish (Future)**:
-- Rich formatting (colors, icons)
-- Interactive prompts
-- Git hook integration
-- Advanced safety policies
-
----
-
-## 11. References
+## 9. References
 
 **Related Specifications**:
-- SPEC-00: Architectural Decisions (D-11: Git safety replaces sketch mode)
-- SPEC-02: Security Mode System (uses git safety)
-- SPEC-03: MCP Service Architecture (git-mcp service)
-- SPEC-01: Container Orchestration (startup integration)
+- SPEC-00: Architectural Decisions (D-02: Git-based safety)
+- SPEC-02: Security Mode System (integration with modes)
+- SPEC-03: MCP Service Architecture (git safety MCP tools)
+- SPEC-07: AI Agent Integration (system prompt additions)
 
-**Research Sources**:
-- User decision: "remove sketch mode, Git protection is better" (2025-10-16)
-- MCP protocol: https://modelcontextprotocol.io/
-
-**Design Decisions**:
-- Non-blocking warnings (informational only)
-- Standard Git workflows over custom modes
-- Defense in depth with multiple layers
-- AI proactive but not intrusive
+**Git Safety Research**:
+- Git documentation: https://git-scm.com/docs
+- Git best practices for development environments
+- AI agent safety patterns and workflows
 
 ---
 
 **Status**: **Approved**
-**Implementation Priority**: P0 (Blocking for MVP)
-**Next Steps**: SPEC-03 (MCP Service Architecture)
+**Implementation Priority**: P0 (Critical - Blocking)
+**Next Steps**: Implement SPEC-03 (MCP Service Architecture)
