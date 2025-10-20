@@ -1,14 +1,42 @@
-# Ensure bash scripts always have LF line endings
+# Line Ending Strategy for Mixed Windows/Linux Project
+# Git config: core.autocrlf = false (keep line endings as-is)
+# This file explicitly specifies line endings per file type
+
+# Default: Let git detect text files but don't normalize line endings
+* text=auto
+
+# Unix scripts - always LF
 *.sh text eol=lf
 *.bash text eol=lf
 
 # BitBot bash launcher (no extension)
 test-windows-launch/scripts/bitbot text eol=lf
 
-# Ensure PowerShell scripts have CRLF
+# Windows scripts - always CRLF
 *.ps1 text eol=crlf
 *.bat text eol=crlf
 *.cmd text eol=crlf
 
-# Claude tools should always have LF
+# Claude tools - always LF
 .claude/tools/** text eol=lf
+
+# Documentation - LF (standard for cross-platform)
+*.md text eol=lf
+*.txt text eol=lf
+
+# JSON/Config - LF (standard)
+*.json text eol=lf
+*.jsonc text eol=lf
+
+# Binary files - never touch
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.exe binary
+*.dll binary
