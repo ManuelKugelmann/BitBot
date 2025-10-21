@@ -1,9 +1,9 @@
 @echo off
-REM Test script for bitbot.exe launcher
+REM Test script for launcher.exe
 
 echo.
 echo ========================================
-echo BitBot Launcher Test
+echo Launcher Test
 echo ========================================
 echo.
 echo Script: %~nx0

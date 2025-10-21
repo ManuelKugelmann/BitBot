@@ -14,22 +14,22 @@ echo "Testing BitBot Windows Launcher"
 echo "========================================"
 echo
 
-# Check if bitbot.exe exists
-if [ ! -f "bitbot.exe" ]; then
-    echo "✗ bitbot.exe not found. Run build.sh first."
+# Check if launcher.exe exists
+if [ ! -f "launcher.exe" ]; then
+    echo "✗ launcher.exe not found. Run build.sh first."
     exit 1
 fi
 
-# Check if bitbot.cmd exists
-if [ ! -f "bitbot.cmd" ]; then
-    echo "✗ bitbot.cmd not found"
+# Check if launcher.cmd exists
+if [ ! -f "launcher.cmd" ]; then
+    echo "✗ launcher.cmd not found"
     exit 1
 fi
 
 # Test 1: No arguments
 echo "Test 1: No arguments"
 echo "─────────────────────────────────────"
-OUTPUT=$(cmd.exe /c bitbot.exe 2>&1)
+OUTPUT=$(cmd.exe /c launcher.exe 2>&1)
 echo "$OUTPUT"
 
 if echo "$OUTPUT" | grep -q "No arguments provided"; then
@@ -43,7 +43,7 @@ echo
 # Test 2: With arguments
 echo "Test 2: With arguments (test arg1 arg2 --flag)"
 echo "─────────────────────────────────────"
-OUTPUT=$(cmd.exe /c "bitbot.exe test arg1 arg2 --flag" 2>&1)
+OUTPUT=$(cmd.exe /c "launcher.exe test arg1 arg2 --flag" 2>&1)
 echo "$OUTPUT"
 
 if echo "$OUTPUT" | grep -q "test" && \
@@ -60,7 +60,7 @@ echo
 # Test 3: Exit code
 echo "Test 3: Exit code propagation"
 echo "─────────────────────────────────────"
-cmd.exe /c bitbot.exe > /dev/null 2>&1
+cmd.exe /c launcher.exe > /dev/null 2>&1
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then
