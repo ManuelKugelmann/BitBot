@@ -378,9 +378,8 @@ scripts/
     │   ├── bitbot-config.sh     # Global config (06B, reusable)
     │   └── bitbot-serve.sh      # Future: Global service compose
     ├── workspace/               # Workspace commands (from projects)
-    │   ├── bitbot-work.sh       # Work mode
-    │   ├── bitbot-config.sh     # Config mode
-    │   ├── bitbot-vscode.sh     # VS Code launch
+    │   ├── bitbot-work.sh       # Work mode (handles vscode modifier)
+    │   ├── bitbot-config.sh     # Config mode (handles vscode modifier)
     │   ├── bitbot-init.sh       # Workspace init
     │   └── bitbot-help.sh       # Workspace help text
     ├── detect.sh                # Workspace detection (02)
@@ -395,6 +394,8 @@ scripts/
 - `04_mode-system.md` → `scripts/lib/mode.sh` (shared library)
 - `06_global-init.md` → `scripts/lib/global/bitbot-init.sh` (first run only)
 - `06B_global-config.md` → `scripts/lib/global/bitbot-config.sh` (reusable)
+- `scripts/lib/workspace/bitbot-work.sh` → Handles work mode + vscode modifier
+- `scripts/lib/workspace/bitbot-config.sh` → Handles config mode + vscode modifier
 - Each workspace command → `scripts/lib/workspace/bitbot-<command>.sh`
 
 **Commands with Same Name, Different Context**:

@@ -333,9 +333,13 @@ else
     shift || true
 
     case "$COMMAND" in
-        work|config|vscode|init|help|version)
+        work|config|init)
             source "$SCRIPT_DIR/lib/workspace/bitbot-$COMMAND.sh"
-            bitbot_$COMMAND "$@"
+            bitbot_$COMMAND "$@"  # Pass remaining args (vscode modifier, etc.)
+            ;;
+        help|--help|-h)
+            source "$SCRIPT_DIR/lib/workspace/bitbot-help.sh"
+            bitbot_help
             ;;
         *)
             echo "Unknown command: $COMMAND"
@@ -359,9 +363,8 @@ scripts/
     │   ├── bitbot-config.sh     # Global config (06B, reusable)
     │   └── bitbot-serve.sh      # Future: Global service compose
     ├── workspace/               # Workspace commands (from projects)
-    │   ├── bitbot-work.sh       # Work mode
-    │   ├── bitbot-config.sh     # Config mode
-    │   ├── bitbot-vscode.sh     # VS Code launch
+    │   ├── bitbot-work.sh       # Work mode (handles vscode modifier)
+    │   ├── bitbot-config.sh     # Config mode (handles vscode modifier)
     │   ├── bitbot-init.sh       # Workspace initialization
     │   └── bitbot-help.sh       # Workspace help text
     ├── detect.sh                # Workspace detection (02)
@@ -373,8 +376,9 @@ scripts/
 **Command Context**:
 - Universal: `version` (works everywhere)
 - Global-only: `init` (first run), `config` (settings), `serve` (future - services)
-- Workspace-only: `work`, `config`, `vscode`, `init`, `help`
+- Workspace-only: `work [vscode]`, `config [vscode]`, `init`, `help`
 - **Note**: `config` and `init` exist in both contexts but do different things!
+- **Note**: `vscode` is a modifier for work/config, not a separate command
 
 **Benefits of Modular Structure**:
 - Each pseudocode file maps to one bash script

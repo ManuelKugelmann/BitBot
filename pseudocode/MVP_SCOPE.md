@@ -15,13 +15,14 @@
 
 ## ✓ MVP Core Features (Keep)
 
-### Commands (6 total)
-1. **`bitbot work`** - Launch work devcontainer
-2. **`bitbot config`** - Launch config devcontainer (edit .devcontainer)
-3. **`bitbot vscode`** - Launch VS Code attached to work container
-4. **`bitbot init`** - Initialize workspace → launches config mode
-5. **`bitbot help`** - Basic help text
-6. **`bitbot version`** - Show version
+### Commands (5 total + vscode modifier)
+1. **`bitbot work [vscode]`** - Launch work devcontainer (optionally in VS Code)
+2. **`bitbot config [vscode]`** - Launch config devcontainer (optionally in VS Code)
+3. **`bitbot init`** - Initialize workspace → launches config mode
+4. **`bitbot help`** - Basic help text
+5. **`bitbot version`** - Show version
+
+**Note**: `vscode` is a modifier, not a command (e.g., `bitbot work vscode`)
 
 ### Core Features
 - **Workspace detection**: CWD only (no parent search), prompt for init if not found
@@ -108,14 +109,13 @@
 
 ## MVP Command Matrix
 
-| Command           | MVP | Future | Alternative for MVP                            |
-|-------------------|-----|--------|------------------------------------------------|
-| `bitbot work`     | ✓   | -      | -                                              |
-| `bitbot config`   | ✓   | -      | -                                              |
-| `bitbot init`     | ✓   | ✓      | Manual `.devcontainer` setup                   |
-| `bitbot help`     | ✓   | -      | -                                              |
-| `bitbot version`  | ✓   | -      | -                                              |
-| `bitbot vscode`   | ✓   | -      | -                                              |
+| Command                 | MVP | Future | Alternative for MVP                            |
+|-------------------------|-----|--------|------------------------------------------------|
+| `bitbot work [vscode]`  | ✓   | -      | -                                              |
+| `bitbot config [vscode]`| ✓   | -      | -                                              |
+| `bitbot init`           | ✓   | ✓      | Manual `.devcontainer` setup                   |
+| `bitbot help`           | ✓   | -      | -                                              |
+| `bitbot version`        | ✓   | -      | -                                              |
 | `bitbot list`     | ✗   | ✓      | `docker ps \| grep bitbot`                     |
 | `bitbot stop`     | ✗   | ✓      | `docker stop <container>`                      |
 | `bitbot kill`     | ✗   | ✓      | `docker stop $(docker ps -q --filter name=...)`|
