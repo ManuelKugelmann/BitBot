@@ -1,0 +1,113 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on v1.0.0, v1.1.0, etc.
+
+jobs:
+  create-release:
+    name: Create Release Archive
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          ref: release  # Always checkout release branch for tags
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Create release archive
+        run: |
+          echo "Creating bitbot-v${{ steps.version.outputs.version }}.zip..."
+
+          # Create zip with all release files
+          zip -r bitbot-v${{ steps.version.outputs.version }}.zip \
+            bitbot \
+            bitbot.exe \
+            bitbot.cmd \
+            lib/ \
+            templates/ \
+            config-devcontainer/ \
+            README.md \
+            LICENSE \
+            -x "*.git*" "*.log" "*~"
+
+          # Show zip contents
+          echo ""
+          echo "Archive contents:"
+          unzip -l bitbot-v${{ steps.version.outputs.version }}.zip | head -30
+
+          # Show archive size
+          ls -lh bitbot-v${{ steps.version.outputs.version }}.zip
+
+      - name: Generate checksums
+        run: |
+          echo "Generating checksums..."
+          sha256sum bitbot-v${{ steps.version.outputs.version }}.zip > CHECKSUMS.txt
+          cat CHECKSUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            bitbot-v${{ steps.version.outputs.version }}.zip
+            CHECKSUMS.txt
+          body: |
+            ## BitBot v${{ steps.version.outputs.version }}
+
+            ### Installation
+
+            **Quick install:**
+            ```bash
+            # Download and extract
+            wget https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/bitbot-v${{ steps.version.outputs.version }}.zip
+            unzip bitbot-v${{ steps.version.outputs.version }}.zip -d bitbot
+            cd bitbot
+
+            # Run BitBot
+            ./bitbot
+            ```
+
+            **Verify checksum:**
+            ```bash
+            sha256sum -c CHECKSUMS.txt
+            ```
+
+            ### What's Included
+
+            - `bitbot` - Main executable (bash)
+            - `bitbot.exe` - Windows launcher (38KB)
+            - `bitbot.cmd` - Windows wrapper
+            - `lib/` - All library scripts
+            - `templates/` - DevContainer templates
+            - `config-devcontainer/` - Config mode environment
+            - `README.md` - Documentation
+            - `LICENSE` - MIT License
+
+            ### Requirements
+
+            - Docker or Docker Desktop
+            - DevContainer CLI (installed automatically)
+            - Git
+            - For Windows: WSL2 recommended
+
+            ### Full Changelog
+
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/release/CHANGELOG.md) for details.
+          draft: false
+          prerelease: false
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitbot-release-v${{ steps.version.outputs.version }}
+          path: |
+            bitbot-v${{ steps.version.outputs.version }}.zip
+            CHECKSUMS.txt

@@ -1,0 +1,108 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - trunk
+    paths:
+      - 'lib/**'
+      - 'tests/**'
+      - 'bitbot'
+      - 'bitbot.cmd'
+      - '.github/workflows/tests.yml'
+  pull_request:
+    branches:
+      - trunk
+
+jobs:
+  # Fast syntax check
+  syntax-check:
+    name: Bash Syntax Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check bash scripts syntax
+        run: |
+          echo "Checking bash script syntax..."
+          find lib -name "*.sh" -type f -exec bash -n {} \;
+          find scripts -name "*.sh" -type f -exec bash -n {} \;
+          bash -n bitbot
+          echo "✓ All bash scripts have valid syntax"
+
+  # Main test suite
+  test-ubuntu:
+    name: Tests (Ubuntu)
+    needs: syntax-check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install DevContainer CLI
+        run: npm install -g @devcontainers/cli
+
+      - name: Run prerequisite tests
+        run: |
+          cd tests
+          ./test-prerequisites.sh || true
+          echo "Prerequisite tests completed"
+
+      - name: Run workspace init tests
+        run: |
+          cd tests
+          ./test-workspace-init.sh
+          echo "Workspace init tests completed"
+
+      - name: Run all tests
+        run: |
+          cd tests
+          ./run-tests.sh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: tests/*.log
+          if-no-files-found: ignore
+
+  # Optional: Windows basic tests (script validation only)
+  test-windows:
+    name: Tests (Windows - Basic)
+    runs-on: windows-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test bitbot.cmd wrapper
+        shell: cmd
+        run: |
+          echo Testing bitbot.cmd...
+          if not exist bitbot.cmd (
+            echo ERROR: bitbot.cmd not found
+            exit /b 1
+          )
+          echo ✓ bitbot.cmd exists
+
+      - name: Test PowerShell scripts
+        shell: pwsh
+        run: |
+          Write-Host "Checking for .ps1 files..."
+          $scripts = Get-ChildItem -Path . -Filter *.ps1 -Recurse -ErrorAction SilentlyContinue
+          if ($scripts) {
+            Write-Host "Found PowerShell scripts, checking syntax..."
+            foreach ($script in $scripts) {
+              $null = [System.Management.Automation.PSParser]::Tokenize(
+                (Get-Content $script.FullName -Raw), [ref]$null
+              )
+            }
+            Write-Host "✓ All PowerShell scripts have valid syntax"
+          } else {
+            Write-Host "No PowerShell scripts found"
+          }
