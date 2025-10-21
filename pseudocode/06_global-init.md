@@ -350,27 +350,32 @@ else
 fi
 ```
 
-Subscript structure (separated by global vs workspace context):
+Subscript structure (separated by context):
 ```
 scripts/
 ├── bitbot                       # Main router
 ├── bitbot.ps1                   # Windows PowerShell wrapper
 ├── bitbot.bat                   # Windows batch wrapper
-├── lib/
+├── lib/                         # Shared libraries & universal commands
 │   ├── detect.sh                # Workspace detection (02)
 │   ├── mode.sh                  # Mode launch helpers (04)
-│   └── helpers.sh               # Common utilities
-├── global/                      # Global commands (from install folder)
+│   ├── helpers.sh               # Common utilities
+│   └── bitbot-version.sh        # Universal command
+├── global/                      # Global-only commands
 │   ├── bitbot-init.sh           # Global initialization (this file)
-│   └── bitbot-mcp.sh            # Future: Launch global MCP compose
-└── workspace/                   # Workspace commands (from project folders)
+│   └── bitbot-mcp.sh            # Future: Global MCP compose
+└── workspace/                   # Workspace-only commands
     ├── bitbot-work.sh           # Work mode
     ├── bitbot-config.sh         # Config mode
     ├── bitbot-vscode.sh         # VS Code launch
     ├── bitbot-init.sh           # Workspace initialization
-    ├── bitbot-help.sh           # Help text
-    └── bitbot-version.sh        # Version display
+    └── bitbot-help.sh           # Workspace help text
 ```
+
+**Command Context**:
+- Universal: `version` (works everywhere)
+- Global-only: `init` (global setup), `mcp` (future)
+- Workspace-only: `work`, `config`, `vscode`, `init`, `help`
 
 **Benefits of Modular Structure**:
 - Each pseudocode file maps to one bash script

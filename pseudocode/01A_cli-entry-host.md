@@ -349,10 +349,6 @@ else
             source "$SCRIPT_DIR/workspace/bitbot-help.sh"
             bitbot_help
             ;;
-        version|--version|-v)
-            source "$SCRIPT_DIR/workspace/bitbot-version.sh"
-            bitbot_version
-            ;;
         *)
             echo "Unknown command: $COMMAND"
             source "$SCRIPT_DIR/workspace/bitbot-help.sh"
@@ -360,6 +356,13 @@ else
             exit 2
             ;;
     esac
+fi
+
+# Universal commands (work in both global and workspace context)
+if [[ "$1" == "version" ]] || [[ "$1" == "--version" ]] || [[ "$1" == "-v" ]]; then
+    source "$SCRIPT_DIR/lib/bitbot-version.sh"
+    bitbot_version
+    exit 0
 fi
 ```
 
@@ -369,20 +372,20 @@ scripts/
 ├── bitbot                       # Main router
 ├── bitbot.ps1                   # Windows wrapper
 ├── bitbot.bat                   # Windows wrapper
-├── lib/                         # Shared libraries
+├── lib/                         # Shared libraries & universal commands
 │   ├── detect.sh                # Workspace detection (02)
 │   ├── mode.sh                  # Mode launch (04)
-│   └── helpers.sh               # Common utilities
-├── global/                      # Global commands (from install folder)
+│   ├── helpers.sh               # Common utilities
+│   └── bitbot-version.sh        # Universal: Version display
+├── global/                      # Global-only commands (from install folder)
 │   ├── bitbot-init.sh           # Global initialization (06)
 │   └── bitbot-mcp.sh            # Future: Global MCP compose
-└── workspace/                   # Workspace commands (from projects)
+└── workspace/                   # Workspace-only commands (from projects)
     ├── bitbot-work.sh           # Work mode
     ├── bitbot-config.sh         # Config mode
     ├── bitbot-vscode.sh         # VS Code launch
     ├── bitbot-init.sh           # Workspace init
-    ├── bitbot-help.sh           # Help text
-    └── bitbot-version.sh        # Version
+    └── bitbot-help.sh           # Workspace help text
 ```
 
 **Pseudocode to Script Mapping**:
