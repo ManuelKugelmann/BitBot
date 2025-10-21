@@ -21,12 +21,12 @@ fail_count=0
 
 test_pass() {
     echo -e "${GREEN}✓ PASS${NC}: $1"
-    ((pass_count++))
+    pass_count=$((pass_count + 1))
 }
 
 test_fail() {
     echo -e "${RED}✗ FAIL${NC}: $1"
-    ((fail_count++))
+    fail_count=$((fail_count + 1))
 }
 
 test_info() {
@@ -57,11 +57,21 @@ echo "[Test 2] Check Docker availability..."
 if command -v docker &>/dev/null; then
     test_pass "docker command is available"
 
-    # Check if Docker is running
-    if docker ps &>/dev/null 2>&1; then
+    # Check if Docker is running (with timeout to handle I/O errors)
+    # Capture exit code before || true
+    set +e  # Temporarily disable exit on error
+    timeout 5 docker ps &>/dev/null 2>&1
+    exit_code=$?
+    set -e  # Re-enable exit on error
+
+    if [[ $exit_code -eq 0 ]]; then
         test_pass "Docker daemon is running"
+    elif [[ $exit_code -eq 124 ]]; then
+        test_fail "Docker command timed out (possible I/O error - restart Docker Desktop)"
+    elif [[ $exit_code -eq 126 ]]; then
+        test_fail "Docker I/O error (restart Docker Desktop or WSL)"
     else
-        test_fail "Docker daemon is not running (this is OK if testing auto-start)"
+        test_info "Docker daemon is not running (this is OK if testing auto-start)"
     fi
 else
     test_fail "docker command not found"

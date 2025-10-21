@@ -84,7 +84,7 @@ run_test() {
     local test_script="$2"
     local skip="${3:-false}"
 
-    ((total_tests++))
+    total_tests=$((total_tests + 1))
 
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
@@ -94,13 +94,13 @@ run_test() {
 
     if [[ "$skip" == "true" ]]; then
         echo -e "${YELLOW}⊘ SKIPPED${NC}: $test_name"
-        ((skipped_tests++))
+        skipped_tests=$((skipped_tests + 1))
         return 0
     fi
 
     if [[ ! -f "$test_script" ]]; then
         echo -e "${RED}✗ FAILED${NC}: Test script not found: $test_script"
-        ((failed_tests++))
+        failed_tests=$((failed_tests + 1))
         return 1
     fi
 
@@ -108,12 +108,12 @@ run_test() {
     if bash "$test_script"; then
         echo ""
         echo -e "${GREEN}✓ PASSED${NC}: $test_name"
-        ((passed_tests++))
+        passed_tests=$((passed_tests + 1))
         return 0
     else
         echo ""
         echo -e "${RED}✗ FAILED${NC}: $test_name"
-        ((failed_tests++))
+        failed_tests=$((failed_tests + 1))
         return 1
     fi
 }
