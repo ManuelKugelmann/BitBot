@@ -199,7 +199,7 @@ FUNCTION run_global_config():
     SET script_dir = directory_of_current_script()
 
     # Source and run global config script
-    SOURCE script_dir + "/bitbot-config.sh"
+    SOURCE script_dir + "/../global/bitbot-config.sh"
     CALL bitbot_global_config()
 END FUNCTION
 ```
@@ -305,23 +305,23 @@ if [[ "$PWD" == "$BITBOT_ROOT" ]]; then
 
     if [[ ! -f ~/.bitbot/first-run ]]; then
         # First run → force global init
-        source "$SCRIPT_DIR/global/bitbot-init.sh"
+        source "$SCRIPT_DIR/lib/global/bitbot-init.sh"
         bitbot_global_init "$@"
     else
         # Subsequent runs → global commands
         case "$COMMAND" in
             config)
-                source "$SCRIPT_DIR/global/bitbot-config.sh"
+                source "$SCRIPT_DIR/lib/global/bitbot-config.sh"
                 bitbot_global_config "$@"
                 ;;
-            mcp)
-                # Future: Launch global MCP compose
-                echo "Global MCP compose (future feature)"
+            serve)
+                # Future: Launch global service compose
+                echo "Global service compose (future feature)"
                 ;;
             *)
                 echo "In BitBot install folder. Available global commands:"
                 echo "  bitbot config  - Configure global settings"
-                echo "  bitbot mcp     - Launch global MCP (future)"
+                echo "  bitbot serve   - Launch global services (future)"
                 echo ""
                 echo "For workspace commands, run 'bitbot' from a project folder"
                 ;;
@@ -334,12 +334,12 @@ else
 
     case "$COMMAND" in
         work|config|vscode|init|help|version)
-            source "$SCRIPT_DIR/workspace/bitbot-$COMMAND.sh"
+            source "$SCRIPT_DIR/lib/workspace/bitbot-$COMMAND.sh"
             bitbot_$COMMAND "$@"
             ;;
         *)
             echo "Unknown command: $COMMAND"
-            source "$SCRIPT_DIR/workspace/bitbot-help.sh"
+            source "$SCRIPT_DIR/lib/workspace/bitbot-help.sh"
             bitbot_help
             exit 2
             ;;
@@ -347,32 +347,32 @@ else
 fi
 ```
 
-Subscript structure (separated by context):
+Subscript structure (organized under lib/):
 ```
 scripts/
 ├── bitbot                       # Main router
 ├── bitbot.ps1                   # Windows PowerShell wrapper
 ├── bitbot.bat                   # Windows batch wrapper
-├── lib/                         # Shared libraries & universal commands
-│   ├── detect.sh                # Workspace detection (02)
-│   ├── mode.sh                  # Mode launch helpers (04)
-│   ├── helpers.sh               # Common utilities
-│   └── bitbot-version.sh        # Universal command
-├── global/                      # Global-only commands
-│   ├── bitbot-init.sh           # First-run setup (this file)
-│   ├── bitbot-config.sh         # Global config (06B, reusable)
-│   └── bitbot-mcp.sh            # Future: Global MCP compose
-└── workspace/                   # Workspace-only commands
-    ├── bitbot-work.sh           # Work mode
-    ├── bitbot-config.sh         # Config mode
-    ├── bitbot-vscode.sh         # VS Code launch
-    ├── bitbot-init.sh           # Workspace initialization
-    └── bitbot-help.sh           # Workspace help text
+└── lib/
+    ├── global/                  # Global commands (from install folder)
+    │   ├── bitbot-init.sh       # First-run setup (this file)
+    │   ├── bitbot-config.sh     # Global config (06B, reusable)
+    │   └── bitbot-serve.sh      # Future: Global service compose
+    ├── workspace/               # Workspace commands (from projects)
+    │   ├── bitbot-work.sh       # Work mode
+    │   ├── bitbot-config.sh     # Config mode
+    │   ├── bitbot-vscode.sh     # VS Code launch
+    │   ├── bitbot-init.sh       # Workspace initialization
+    │   └── bitbot-help.sh       # Workspace help text
+    ├── detect.sh                # Workspace detection (02)
+    ├── mode.sh                  # Mode launch helpers (04)
+    ├── helpers.sh               # Common utilities
+    └── bitbot-version.sh        # Universal command
 ```
 
 **Command Context**:
 - Universal: `version` (works everywhere)
-- Global-only: `init` (first run), `config` (settings), `mcp` (future)
+- Global-only: `init` (first run), `config` (settings), `serve` (future - services)
 - Workspace-only: `work`, `config`, `vscode`, `init`, `help`
 - **Note**: `config` and `init` exist in both contexts but do different things!
 

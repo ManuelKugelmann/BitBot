@@ -193,7 +193,7 @@
 - Session management (`bitbot list/stop`)
 - Workspace override (`--workspace <path>`)
 - Parent directory workspace search
-- Global MCP compose (launch from BitBot folder)
+- Global service compose (launch from BitBot folder)
 
 **Phase 2b: Safety** (Week 6-7)
 - Audit logging (`.bitbot/audit.log`)

@@ -366,36 +366,36 @@ if [[ "$1" == "version" ]] || [[ "$1" == "--version" ]] || [[ "$1" == "-v" ]]; t
 fi
 ```
 
-Script structure (separated by context):
+Script structure (organized under lib/):
 ```
 scripts/
 ├── bitbot                       # Main router
 ├── bitbot.ps1                   # Windows wrapper
 ├── bitbot.bat                   # Windows wrapper
-├── lib/                         # Shared libraries & universal commands
-│   ├── detect.sh                # Workspace detection (02)
-│   ├── mode.sh                  # Mode launch (04)
-│   ├── helpers.sh               # Common utilities
-│   └── bitbot-version.sh        # Universal: Version display
-├── global/                      # Global-only commands (from install folder)
-│   ├── bitbot-init.sh           # First-run setup (06)
-│   ├── bitbot-config.sh         # Global config (06B, reusable)
-│   └── bitbot-mcp.sh            # Future: Global MCP compose
-└── workspace/                   # Workspace-only commands (from projects)
-    ├── bitbot-work.sh           # Work mode
-    ├── bitbot-config.sh         # Config mode
-    ├── bitbot-vscode.sh         # VS Code launch
-    ├── bitbot-init.sh           # Workspace init
-    └── bitbot-help.sh           # Workspace help text
+└── lib/
+    ├── global/                  # Global commands (from install folder)
+    │   ├── bitbot-init.sh       # First-run setup (06)
+    │   ├── bitbot-config.sh     # Global config (06B, reusable)
+    │   └── bitbot-serve.sh      # Future: Global service compose
+    ├── workspace/               # Workspace commands (from projects)
+    │   ├── bitbot-work.sh       # Work mode
+    │   ├── bitbot-config.sh     # Config mode
+    │   ├── bitbot-vscode.sh     # VS Code launch
+    │   ├── bitbot-init.sh       # Workspace init
+    │   └── bitbot-help.sh       # Workspace help text
+    ├── detect.sh                # Workspace detection (02)
+    ├── mode.sh                  # Mode launch (04)
+    ├── helpers.sh               # Common utilities
+    └── bitbot-version.sh        # Universal: Version
 ```
 
 **Pseudocode to Script Mapping**:
 - `01A_cli-entry-host.md` → `scripts/bitbot` (main router)
-- `02_workspace-detect.md` → `scripts/lib/detect.sh` + `scripts/workspace/bitbot-init.sh`
+- `02_workspace-detect.md` → `scripts/lib/detect.sh` + `scripts/lib/workspace/bitbot-init.sh`
 - `04_mode-system.md` → `scripts/lib/mode.sh` (shared library)
-- `06_global-init.md` → `scripts/global/bitbot-init.sh` (first run only)
-- `06B_global-config.md` → `scripts/global/bitbot-config.sh` (reusable)
-- Each workspace command → `scripts/workspace/bitbot-<command>.sh`
+- `06_global-init.md` → `scripts/lib/global/bitbot-init.sh` (first run only)
+- `06B_global-config.md` → `scripts/lib/global/bitbot-config.sh` (reusable)
+- Each workspace command → `scripts/lib/workspace/bitbot-<command>.sh`
 
 **Commands with Same Name, Different Context**:
 - `bitbot init`: Global (first run) vs Workspace (project setup)

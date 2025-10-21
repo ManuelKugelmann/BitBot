@@ -138,7 +138,7 @@ END FUNCTION
 FUNCTION get_bitbot_install_dir() → path:
     # Get absolute path to BitBot installation
     SET script_path = get_absolute_path_of_current_script()
-    SET install_dir = dirname(dirname(dirname(script_path)))  # global/ → scripts/ → BitBot/
+    SET install_dir = dirname(dirname(dirname(dirname(script_path))))  # global/ → lib/ → scripts/ → BitBot/
     RETURN install_dir
 END FUNCTION
 
