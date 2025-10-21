@@ -3,7 +3,7 @@
 # Sync trunk branch to release branch
 # Copies only production files, excludes dev clutter
 #
-# Usage: ./scripts/sync-dist-branch.sh
+# Usage: ./scripts/sync-release-branch.sh
 #
 
 set -e

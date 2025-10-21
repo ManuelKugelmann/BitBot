@@ -3,7 +3,7 @@
 # Create initial release branch (orphan)
 # Run this once to set up the release branch
 #
-# Usage: ./scripts/create-dist-branch.sh
+# Usage: ./scripts/create-release-branch.sh
 #
 
 set -e
@@ -96,5 +96,5 @@ echo "  git clone -b $RELEASE_BRANCH <repo-url>"
 echo "  git checkout $RELEASE_BRANCH"
 echo
 echo "To sync changes in the future:"
-echo "  ./scripts/sync-dist-branch.sh"
+echo "  ./scripts/sync-release-branch.sh"
 echo
