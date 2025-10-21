@@ -17,7 +17,7 @@ Command → Select Mode → Git Warning → Launch Devcontainer
 
 **Decision**: Two modes = two devcontainer configurations
 - Work: Workspace's `.devcontainer/` (RO .devcontainer mount via bind mount)
-- Config: Global `~/.bitbot/config-devcontainer/` (no RO mount = RW by default)
+- Config: Global `$BITBOT_HOME/config-devcontainer/` (no RO mount = RW by default)
 
 ---
 
@@ -117,11 +117,13 @@ END FUNCTION
 FUNCTION launch_config_devcontainer(workspace_path, flags, options):
     # Launch global config devcontainer parameterized for this workspace
 
-    SET config_devcontainer_path = "~/.bitbot/config-devcontainer"
+    SET bitbot_install = get_bitbot_install_dir()
+    SET config_devcontainer_path = bitbot_install + "/config-devcontainer"
 
     IF NOT directory_exists(config_devcontainer_path):
-        ERROR "Config devcontainer not found in ~/.bitbot/"
-        PRINT "This should have been created during 'bitbot' global init"
+        ERROR "Config devcontainer not found in BitBot installation"
+        PRINT "Expected at: " + config_devcontainer_path
+        PRINT "This should exist in the BitBot install folder"
         EXIT 1
     END IF
 
@@ -307,12 +309,12 @@ END FUNCTION
 
 **Mode Differences**:
 - **Work**: Uses workspace's `.devcontainer/` + RO bind mount for .devcontainer folder
-- **Config**: Uses global `~/.bitbot/config-devcontainer/` + no RO mount = RW by default
+- **Config**: Uses global `$BITBOT_HOME/config-devcontainer/` + no RO mount = RW by default
 - Config devcontainer: AI agent tuned for devcontainer/infrastructure docs
 
 **File Locations**:
 - Work config: `<workspace>/.devcontainer/devcontainer.json`
-- Config config: `~/.bitbot/config-devcontainer/devcontainer.json`
+- Config config: `$BITBOT_HOME/config-devcontainer/devcontainer.json`
 - Both mount workspace at: `/workspace`
 
 **Security (Simplified)**:

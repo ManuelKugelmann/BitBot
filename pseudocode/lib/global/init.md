@@ -9,16 +9,17 @@
 ## Overview
 
 ```
-User runs ./scripts/bitbot (from install folder) → Detect first run → Global init
+User runs ./bitbot (from install folder) → Detect first run → Global init
                                     ↓
-                    [Add to PATH | Set BITBOT_HOME | Create ~/.bitbot/]
+                    [Add to PATH | Set BITBOT_HOME | Create config.json in install folder]
 ```
 
 **Decision**: Minimal global setup for MVP
 - Add BitBot to PATH (prompt user)
 - Set BITBOT_HOME environment variable
-- Create ~/.bitbot/ with global config devcontainer template
+- Create config.json in install folder (serves as init marker)
 - Check prerequisites (Docker, etc.)
+- Portable design: No ~/.bitbot/ directory, everything in install folder
 
 ---
 

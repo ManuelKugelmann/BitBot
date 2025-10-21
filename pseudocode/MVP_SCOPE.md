@@ -51,34 +51,36 @@
 
 ### Architecture
 ```
-/opt/bitbot/  (or user's install location)
-├── scripts/
-│   ├── bitbot                       # Main entry script (bash)
-│   ├── bitbot.ps1                   # PowerShell wrapper
-│   ├── bitbot.bat                   # Batch wrapper
-│   └── lib/
-│       ├── global/                  # Global context commands
-│       │   ├── bitbot-init.sh
-│       │   └── bitbot-config.sh
-│       ├── workspace/               # Workspace context commands
-│       │   ├── bitbot-work.sh
-│       │   ├── bitbot-config.sh
-│       │   ├── bitbot-init.sh
-│       │   └── bitbot-help.sh
-│       ├── util/                    # Shared utilities
-│       │   ├── prerequisites.sh     # Dependency checking
-│       │   ├── devcontainer.sh      # DevContainer launch
-│       │   ├── detect.sh            # Workspace detection
-│       │   └── helpers.sh           # Common utilities
-│       └── bitbot-version.sh        # Version command (universal)
-└── pseudocode/                      # Documentation
-
-~/.bitbot/  (created after global init)
+{INSTALL_BASE_PATH}/bitbot/  (e.g., ~/bitbot, /opt/bitbot, etc.)
+├── bitbot                           # Main entry script (bash)
+├── bitbot.ps1                       # PowerShell wrapper
+├── bitbot.bat                       # Batch wrapper
+├── lib/
+│   ├── global/                      # Global context commands
+│   │   ├── bitbot-init.sh
+│   │   └── bitbot-config.sh
+│   ├── workspace/                   # Workspace context commands
+│   │   ├── bitbot-work.sh
+│   │   ├── bitbot-config.sh
+│   │   ├── bitbot-init.sh
+│   │   └── bitbot-help.sh
+│   ├── util/                        # Shared utilities
+│   │   ├── prerequisites.sh         # Dependency checking
+│   │   ├── devcontainer.sh          # DevContainer launch
+│   │   ├── detect.sh                # Workspace detection
+│   │   ├── git.sh                   # Git safety utilities
+│   │   └── helpers.sh               # Common utilities
+│   └── bitbot-version.sh            # Version command (universal)
 ├── config-devcontainer/             # Global config mode devcontainer
 │   ├── devcontainer.json            # Mounts any workspace via env var
 │   └── Dockerfile
-├── config.json                      # Global BitBot config (PATH, BITBOT_HOME)
-└── first-run                        # Marker file
+├── devcontainer-template/           # Base template for workspace .devcontainer
+│   ├── devcontainer.json            # Minimal template with BitBot defaults
+│   └── Dockerfile                   # Base Alpine/Ubuntu image
+├── config.json                      # Global BitBot config (created during global init)
+└── pseudocode/                      # Documentation
+
+Note: NO ~/.bitbot/ directory - everything stays in installation folder (portable design)
 
 <workspace>/
 ├── .devcontainer/                   # Work mode config

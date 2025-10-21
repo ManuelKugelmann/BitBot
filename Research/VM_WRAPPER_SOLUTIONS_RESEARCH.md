@@ -377,15 +377,65 @@ ssh my-workspace.devpod "ls -la /workspace"
 
 #### DevPod CLI vs Dev Container CLI
 
-**Important Distinction**:
-- **DevPod CLI**: Client for managing DevPod workspaces across providers (what BitBot would use)
-- **Dev Container CLI** (`devcontainer`): Official VS Code reference implementation for devcontainer.json parsing
+**Critical Distinction**: DevPod is a **REPLACEMENT/ALTERNATIVE** to @devcontainers/cli, NOT a wrapper.
 
-**DevPod does NOT use VS Code's Dev Container CLI**. Instead:
-- DevPod has its own devcontainer.json parser
-- DevPod creates containers directly via provider (Docker, Podman, K8s)
-- DevPod uses Remote-SSH (not Dev Containers extension) for VS Code connection
-- This allows DevPod to work with any SSH-capable IDE (VS Code, JetBrains, etc.)
+**Two Separate Implementations**:
+
+| Aspect                    | @devcontainers/cli                  | DevPod                               |
+|---------------------------|-------------------------------------|--------------------------------------|
+| **Language**              | TypeScript/JavaScript (Node.js)     | Go                                   |
+| **Parser**                | Reference implementation            | Own implementation (pkg/devcontainer)|
+| **Distribution**          | npm package (`@devcontainers/cli`)  | Single Go binary                     |
+| **Runtime Deps**          | Node.js, Python, C/C++              | None (static binary)                 |
+| **VS Code Integration**   | Dev Containers extension            | Remote-SSH extension                 |
+| **Connection Method**     | Docker exec/socket                  | SSH over STDIO tunnel                |
+| **Provider Support**      | Docker, Docker Compose              | 10+ providers (Docker, VMs, cloud)   |
+| **IDE Support**           | VS Code, Codespaces                 | VS Code, JetBrains, any SSH-capable  |
+| **Multi-Provider**        | ❌ No                               | ✅ Yes                               |
+| **Used By**               | VS Code, Codespaces, GitHub Actions | DevPod Desktop/CLI                   |
+
+**DevPod Implementation Details**:
+- Source: `github.com/loft-sh/devpod/pkg/devcontainer`
+- Has methods: `getRawConfig`, `getSubstitutedConfig`, etc.
+- Parses devcontainer.json directly in Go
+- Does NOT invoke or depend on `@devcontainers/cli`
+- Creates containers via provider APIs (Docker API, kubectl, AWS SDK, etc.)
+- Uses Remote-SSH (not Dev Containers extension) for VS Code connection
+
+**Why DevPod Built Its Own Parser**:
+1. **Language/Ecosystem**: Go vs Node.js - avoids Node.js dependency
+2. **Multi-Provider Architecture**: Needed provider abstraction @devcontainers/cli doesn't have
+3. **SSH-Based Connection**: Different connection model than VS Code Dev Containers extension
+4. **Single Binary Distribution**: No npm/Node.js runtime required
+
+**The Common Standard**: `devcontainer.json`
+- Both tools implement the **same spec** (from containers.dev)
+- ✅ devcontainer.json files are **portable between tools**
+- ✅ Both support features, lifecycle hooks, mounts, etc.
+- ✅ A project with devcontainer.json works with both
+
+**For BitBot**:
+
+BitBot can use **either** or **both** approaches:
+
+```bash
+# Option 1: Use @devcontainers/cli (BitBot MVP approach)
+npx @devcontainers/cli up --workspace-folder .
+# VS Code connects via Dev Containers extension
+
+# Option 2: Use DevPod
+devpod up . --provider docker --ide vscode
+# VS Code connects via Remote-SSH
+
+# Option 3: Hybrid (same devcontainer.json, different backends)
+bitbot work                    # Uses @devcontainers/cli for local Docker
+bitbot work --provider devpod-multipass  # Uses DevPod for VM isolation
+```
+
+**Recommendation for BitBot**:
+- **MVP**: Keep using `@devcontainers/cli` (already working)
+- **Phase 3**: Add DevPod as optional provider for VM/cloud support
+- **Benefit**: Same devcontainer.json works with both tools
 
 #### JetBrains IDE Support
 
