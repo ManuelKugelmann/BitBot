@@ -1,0 +1,6 @@
+# BitBot internal local data (not committed)
+.bitbot/internal/local/
+
+# Standard ignores
+*.log
+.DS_Store
