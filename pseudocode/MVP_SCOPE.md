@@ -9,31 +9,38 @@
 
 **Goal**: Prove the two-container security model works with minimal features
 **Timeline**: 2-3 weeks implementation
-**Success Criteria**: Can launch work/setup containers, basic safety works
+**Success Criteria**: Can launch work/config containers, basic safety works
+**Platform Strategy**: Linux, macOS, and Windows (via WSL) for cross-platform simplicity
 
 ---
 
 ## ✓ MVP Core Features (Keep)
 
-### Commands (5 total + vscode modifier)
+### Commands (6 total)
 1. **`bitbot work [vscode]`** - Launch work devcontainer (optionally in VS Code)
 2. **`bitbot config [vscode]`** - Launch config devcontainer (optionally in VS Code)
-3. **`bitbot init`** - Initialize workspace → launches config mode
-4. **`bitbot help`** - Basic help text
-5. **`bitbot version`** - Show version
+3. **`bitbot vscode`** - Launch VS Code in work container
+4. **`bitbot init`** - Initialize workspace → launches config mode
+5. **`bitbot help`** - Basic help text
+6. **`bitbot version`** - Show version + dependency status
 
-**Note**: `vscode` is a modifier, not a command (e.g., `bitbot work vscode`)
+**Note**: `vscode` can be used as both a command and a modifier
 
 ### Core Features
 - **Workspace detection**: CWD only (no parent search), prompt for init if not found
 - **Two devcontainers**:
   - Work: Uses workspace's `.devcontainer/`
   - Config: Uses global `~/.bitbot/config-devcontainer/`
-- **Single session**: One tmux session per container (auto-named by timestamp)
+- **Single session**: One tmux session per container (auto-named)
 - **Git safety warnings**: Non-blocking warnings on uncommitted changes (both modes)
 - **Global init**: First run in BitBot folder adds to PATH, creates `~/.bitbot/`
-- **UID sync**: Host UID = container UID for file permissions
+- **UID sync**: Handled natively by devcontainer CLI (updateRemoteUserUID + common-utils)
 - **VS Code integration**: `bitbot vscode` launches VS Code in work container
+- **Dependency checking**: Runtime validation of Docker, DevContainer CLI, VS Code extension
+  - Auto-start Docker if not running (with confirmation)
+  - Detect and offer to install missing devcontainer CLI
+  - WSL Docker integration setup assistance
+  - Comprehensive status in `bitbot version` command
 
 ### Security (Simplified)
 - **Work mode**: Workspace's `.devcontainer` + RO bind mount for .devcontainer folder
@@ -45,27 +52,43 @@
 ```
 /opt/bitbot/  (or user's install location)
 ├── scripts/
-│   ├── bitbot                   # Main entry script (bash)
-│   ├── bitbot.ps1               # PowerShell wrapper
-│   └── bitbot.bat               # Batch wrapper
-└── pseudocode/                  # Documentation
+│   ├── bitbot                       # Main entry script (bash)
+│   ├── bitbot.ps1                   # PowerShell wrapper
+│   ├── bitbot.bat                   # Batch wrapper
+│   └── lib/
+│       ├── global/                  # Global context commands
+│       │   ├── bitbot-init.sh
+│       │   └── bitbot-config.sh
+│       ├── workspace/               # Workspace context commands
+│       │   ├── bitbot-work.sh
+│       │   ├── bitbot-config.sh
+│       │   ├── bitbot-init.sh
+│       │   └── bitbot-help.sh
+│       ├── util/                    # Shared utilities
+│       │   ├── prerequisites.sh     # Dependency checking
+│       │   ├── devcontainer.sh      # DevContainer launch
+│       │   ├── detect.sh            # Workspace detection
+│       │   └── helpers.sh           # Common utilities
+│       └── bitbot-version.sh        # Version command (universal)
+└── pseudocode/                      # Documentation
 
 ~/.bitbot/  (created after global init)
-├── config-devcontainer/         # Global config mode devcontainer
-│   ├── devcontainer.json        # Mounts any workspace via env var
+├── config-devcontainer/             # Global config mode devcontainer
+│   ├── devcontainer.json            # Mounts any workspace via env var
 │   └── Dockerfile
-├── config.json                  # Global BitBot config (PATH, BITBOT_HOME)
-└── first-run                    # Marker file
+├── config.json                      # Global BitBot config (PATH, BITBOT_HOME)
+└── first-run                        # Marker file
 
 <workspace>/
-├── .devcontainer/               # Work mode config
-│   ├── devcontainer.json        # Includes RO mount for .devcontainer
+├── .devcontainer/                   # Work mode config
+│   ├── devcontainer.json            # Includes RO mount for .devcontainer
 │   └── Dockerfile
 └── .bitbot/
-    ├── config.json              # Workspace config
-    ├── state/                   # Runtime state (empty for MVP)
-    └── internal/                # BitBot internals (not mounted)
-        └── devcontainer.json    # Per-workspace config mode config
+    ├── config.json                  # Workspace config
+    ├── state/                       # Runtime state (history, cache, locks)
+    │   └── .bash_history            # Persistent bash history mountpoint
+    └── internal/                    # BitBot internals (not mounted)
+        └── devcontainer.json        # Per-workspace config mode config
 ```
 
 ---
@@ -104,6 +127,7 @@
 - **Config mode**: Just another devcontainer (no approval flow, flags, or audit)
 - **Error handling**: Basic error messages, no fancy recovery
 - **Session management**: Create one session, attach to it, done
+- **Platform support**: Windows supported via WSL (not native) for cross-platform simplicity
 
 ---
 
@@ -123,7 +147,7 @@
 | `bitbot agent`    | ✗   | ✓      | N/A (Phase 2 feature)                          |
 | `bitbot backup`   | ✗   | ✓      | `git commit && git push`                       |
 | `bitbot session`  | ✗   | ✓      | N/A (single session MVP)                       |
-| `bitbot doctor`   | ✗   | ✓      | Manual checks                                  |
+| `bitbot doctor`   | ✗   | ✓      | Use `bitbot version` (shows dependency status) |
 
 ---
 
@@ -133,13 +157,19 @@
 ```
 .bitbot/
 ├── config.json                # Workspace config (name, default_mode)
-├── state/                     # Runtime state (empty for MVP)
+├── state/                     # Runtime state (history, cache, locks)
+│   └── .bash_history          # Persistent bash history
 └── internal/                  # BitBot internals (not mounted)
     └── devcontainer.json      # Per-workspace config mode config
 ```
 
+**State directory contents**:
+- `.bash_history` - Persistent shell history mountpoint
+- Lock files (future) - Prevent concurrent operations
+- Cache (future) - Temporary runtime data
+
 **No MVP:**
-- `sessions/*.json` - Single session, no tracking
+- `sessions/*.json` - Single session, no metadata tracking
 - `backups/` - Use git directly
 - `approvals.json` - No audit trail
 - `audit.log` - No logging
@@ -152,21 +182,27 @@
 ## MVP Implementation Order
 
 ### Week 1: Core Foundation
-1. **Global init** (06_first-run.md) - Add to PATH, create ~/.bitbot/
-2. **Workspace detection** (02_workspace-detect.md) - CWD only
-3. **Container launch** (03_container-launch.md) - Work and config only
-4. **CLI entry** (01A_cli-entry-host.md) - 6 commands
+1. **Shared utilities** (lib/util/*.sh)
+   - helpers.sh - Common utilities (file, JSON, path, prompts)
+   - detect.sh - Workspace detection (CWD only)
+   - prerequisites.sh - Dependency checking + Docker auto-start
+   - devcontainer.sh - DevContainer CLI wrapper
+2. **Global init** (lib/global/bitbot-init.sh) - Add to PATH, create ~/.bitbot/
+3. **CLI entry** (scripts/bitbot) - Main router (6 commands)
 
-### Week 2: Integration
-5. **UID sync** (07_uid-sync.md)
-6. **Mode system** (04_mode-system.md) - Git warnings only
-7. **VS Code integration** - Simple code launch
+### Week 2: Commands
+4. **Work mode** (lib/workspace/bitbot-work.sh) - Launch work devcontainer
+5. **Config mode** (lib/workspace/bitbot-config.sh) - Launch config devcontainer
+6. **Init command** (lib/workspace/bitbot-init.sh) - Initialize workspace
+7. **Help/Version** (lib/workspace/bitbot-help.sh, lib/bitbot-version.sh)
+8. **VS Code integration** - Launch via `bitbot vscode`
 
 ### Week 3: Testing & Polish
-7. Test work/setup modes
-8. Test UID sync on different systems
-9. Polish error messages
-10. Write basic README
+9. Test work/config modes on WSL2, Linux, macOS
+10. Test dependency checking (missing Docker, devcontainer CLI, etc.)
+11. Test WSL Docker integration setup
+12. Polish error messages
+13. Write basic README
 
 ---
 
@@ -182,7 +218,10 @@
 - [ ] Git warnings show on uncommitted changes
 - [ ] Help and version commands work
 - [ ] `bitbot vscode` launches VS Code
-- [ ] Works on Linux, macOS, WSL2
+- [ ] Works on Linux, macOS, WSL2 (Windows support via WSL for simplicity)
+- [ ] Dependency checking validates Docker, DevContainer CLI, VS Code extension
+- [ ] Auto-starts Docker if not running (with confirmation)
+- [ ] WSL Docker integration setup assistance works
 
 ---
 

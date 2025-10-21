@@ -1,181 +1,243 @@
-# BitBot Pseudocode Implementation
+# BitBot Pseudocode (MVP)
 
 **Status**: Phase 2 (Pseudocode) - Complete
 **Created**: 2025-10-20
+**Updated**: 2025-10-21
 **SPARC Phase**: 2 of 5
 
 ---
 
 ## Overview
 
-This directory contains comprehensive pseudocode for BitBot's core components. These files define the algorithmic flows, decision trees, and error handling logic that will guide the actual implementation.
+Comprehensive pseudocode for BitBot MVP implementation. Files are organized to mirror the final script structure, providing a 1:1 mapping between pseudocode and implementation.
 
-**Purpose**: Bridge specification and implementation with clear, language-agnostic algorithms
+**Purpose**: Bridge specification and implementation with clear, implementation-ready algorithms
+**Platform**: Linux, macOS, Windows (via WSL)
+
+---
+
+## File Structure
+
+```
+pseudocode/
+├── bitbot.md                    # Main router (scripts/bitbot)
+├── lib/
+│   ├── global/                  # Global context commands
+│   │   ├── init.md             → scripts/lib/global/bitbot-init.sh
+│   │   └── config.md           → scripts/lib/global/bitbot-config.sh
+│   ├── workspace/              # Workspace context commands
+│   │   ├── work.md             → scripts/lib/workspace/bitbot-work.sh
+│   │   ├── config.md           → scripts/lib/workspace/bitbot-config.sh
+│   │   ├── init.md             → scripts/lib/workspace/bitbot-init.sh
+│   │   └── help.md             → scripts/lib/workspace/bitbot-help.sh
+│   ├── util/                   # Shared utilities
+│   │   ├── README.md           # Utilities documentation
+│   │   ├── prerequisites.md    → scripts/lib/util/prerequisites.sh
+│   │   ├── devcontainer.md     → scripts/lib/util/devcontainer.sh
+│   │   ├── detect.md           → scripts/lib/util/detect.sh
+│   │   └── helpers.md          → scripts/lib/util/helpers.sh
+│   └── version.md              → scripts/lib/bitbot-version.sh
+├── MVP_SCOPE.md                # MVP features and scope
+├── FUTURE_FEATURES.md          # Post-MVP features
+└── README.md                   # This file
+```
 
 ---
 
 ## Core Components
 
-### 01. CLI Entry Point
-**File**: `01_cli-entry.md`
-**Implements**: SPEC-05, SPEC-09
-**Description**: Main `bitbot` command entry point, context detection, and command routing
+### Main Router
+**File**: `bitbot.md`
+**Script**: `scripts/bitbot`
+**Purpose**: Entry point, context detection (global vs workspace), command routing
 
 **Key Functions**:
 - `main()` - Entry point with argument parsing
-- `detect_context()` - Determine if running on host or in container
-- `handle_host_commands()` - Route container management commands
-- `handle_container_commands()` - Route AI agent commands
-- `smart_launch()` - Intelligent session resumption
+- `handle_host_commands()` - Route to workspace or global commands
+- `validate_prerequisites()` - Check dependencies before commands
+- `show_help()` / `show_version()` - Help and version display
 
-**Dependencies**: None (entry point)
-
----
-
-### 02. Workspace Detection
-**File**: `02_workspace-detect.md`
-**Implements**: SPEC-09 Part B, TODO Item 3
-**Description**: Discover or initialize BitBot workspaces
-
-**Key Functions**:
-- `detect_workspace()` - CWD → parent → initialize logic
-- `prompt_use_parent_workspace()` - User confirmation for parent workspace
-- `initialize_workspace_in()` - Create `.bitbot/` structure
-- `validate_workspace()` - Check workspace integrity
-
-**Decision**: CWD first, then parent with prompt, else initialize
-
-**Dependencies**: None
+**Commands**: 6 total (work, config, vscode, init, help, version)
 
 ---
 
-### 03. Container Launch
-**File**: `03_container-launch.md`
-**Implements**: SPEC-01, SPEC-02
-**Description**: Launch and manage work/setup containers
+### Global Context Commands
 
-**Key Functions**:
-- `launch_work_mode()` - Start or attach to work container
-- `launch_setup_mode()` - Start setup container with approval
-- `launch_via_devcontainer_cli()` - Use @devcontainers/cli
-- `launch_via_docker()` - Fallback direct Docker launch
-- `build_mount_config()` - Configure security mounts
+#### Global Init (lib/global/init.md)
+**Purpose**: First-run setup (run `bitbot` from install folder)
+**Creates**: ~/.bitbot/ structure, adds to PATH, sets BITBOT_HOME
+**Calls**: Global config after setup
 
-**Security**: Work mode (ro .devcontainer), Setup mode (rw + docker socket with approval)
-
-**Dependencies**:
-- 02_workspace-detect.md (workspace path)
-- 07_uid-sync.md (UID/GID)
+#### Global Config (lib/global/config.md)
+**Purpose**: Configure global BitBot settings (reusable)
+**Manages**: ~/.bitbot/config.json, config devcontainer template
 
 ---
 
-### 04. Mode System
-**File**: `04_mode-system.md`
-**Implements**: SPEC-02, SPEC-02A
-**Description**: Security mode management and git safety
+### Workspace Context Commands
 
-**Key Functions**:
-- `enter_work_mode()` - Work mode entry with warnings
-- `enter_setup_mode()` - Setup mode with strict checks
-- `check_git_safety_strict()` - Blocking git checks
-- `log_setup_approval()` - Audit trail logging
-- `done_workflow()` - Review → commit → push → exit
+#### Work Mode (lib/workspace/work.md)
+**Purpose**: Launch work devcontainer (RO .devcontainer)
+**Uses**: Workspace's `.devcontainer/` + RO bind mount
+**Modifier**: `vscode` to launch in VS Code
 
-**Security**: Setup requires `--allow-socket` + `--reason`, git checks prevent data loss
+#### Config Mode (lib/workspace/config.md)
+**Purpose**: Launch config devcontainer (RW .devcontainer)
+**Uses**: Global `~/.bitbot/config-devcontainer/` (RW by default)
+**Modifier**: `vscode` to launch in VS Code
 
-**Dependencies**:
-- 02_workspace-detect.md (workspace path)
-- 03_container-launch.md (container launch)
+#### Init (lib/workspace/init.md)
+**Purpose**: Initialize new BitBot workspace
+**Creates**: `.bitbot/` structure
+**Launches**: Config mode after initialization
 
----
-
-### 05. Session Management
-**File**: `05_session-management.md`
-**Implements**: SPEC-04, D-06
-**Description**: tmux session management for resumability
-
-**Key Functions**:
-- `enter_session()` - Session entry point (resume or create)
-- `list_tmux_sessions()` - Get sessions from container
-- `create_new_session()` - Auto-timestamped session creation
-- `prompt_session_selection()` - Multi-session choice UI
-- `save_session_metadata()` - Context preservation
-
-**Decision**: Auto-timestamped sessions, optional user names, metadata tracking
-
-**Dependencies**:
-- 03_container-launch.md (container name)
+#### Help (lib/workspace/help.md)
+**Purpose**: Display workspace command help
+**Shows**: Commands, modes, examples
 
 ---
 
-### 06. First-Run Experience
-**File**: `06_first-run.md`
-**Implements**: SPEC-09 Part A, SPEC-08
-**Description**: Onboarding wizard for new users
+### Shared Utilities (lib/util/)
 
-**Key Functions**:
-- `first_run_wizard()` - Main wizard flow
-- `check_prerequisites()` - Docker, Git, VS Code, WSL2
-- `setup_global_bitbot()` - Create `~/.bitbot/` structure
-- `setup_windows_wsl()` - Install BitBot-Alpine (Windows)
-- `workspace_initialization_wizard()` - Template selection
+See `lib/util/README.md` for detailed documentation.
 
-**Flow**: Prerequisites → Global setup → Platform setup → Workspace init
+#### Prerequisites (lib/util/prerequisites.md)
+**Purpose**: Dependency checking and validation
+**Features**:
+- Docker check with auto-start (confirmation)
+- DevContainer CLI detection (builtin/standalone)
+- VS Code extension check
+- WSL Docker integration setup
+- Comprehensive dependency status display
 
-**Dependencies**:
-- 02_workspace-detect.md (workspace init)
+**Based on**: test-windows-launch/scripts/bitbot implementation
+
+#### DevContainer (lib/util/devcontainer.md)
+**Purpose**: DevContainer CLI wrapper and launch functions
+**Functions**:
+- `launch_mode()` - Main mode launcher (work or config)
+- `devcontainer_up()` - Work mode devcontainer launch
+- `devcontainer_up_with_config()` - Config mode devcontainer launch
+- `check_git_uncommitted()` - Git safety warnings
+
+**Note**: UID/GID sync handled natively by devcontainer CLI (updateRemoteUserUID + common-utils)
+
+#### Detect (lib/util/detect.md)
+**Purpose**: Workspace detection and validation
+**Functions**:
+- `detect_workspace()` - Find BitBot workspace from CWD
+- `validate_workspace()` - Check workspace validity
+- `is_workspace_initialized()` - Check for .bitbot/
+
+#### Helpers (lib/util/helpers.md)
+**Purpose**: Common utilities (file, JSON, path, prompts, output)
+**Used by**: All scripts
+**Categories**: File ops, JSON ops, path ops, prompts, output formatting, timestamps
 
 ---
 
-### 07. UID/GID Synchronization
-**File**: `07_uid-sync.md`
-**Implements**: SPEC-02 Section 1.3
-**Description**: Sync container user UID/GID with host
+### Universal Commands
 
-**Key Functions**:
-- `get_uid_gid()` - Detect host UID/GID
-- `configure_container_user()` - Pass to container config
-- `container_entrypoint_uid_sync()` - Runtime fixup in container
-- `validate_workspace_permissions()` - Check file accessibility
-
-**Decision**: Synced UID/GID for seamless file permissions
-
-**Dependencies**: None (used by 03_container-launch.md)
+#### Version (lib/version.md)
+**Purpose**: Show version and dependency status
+**Displays**: Version number + comprehensive dependency check (via show_doctor())
 
 ---
 
-## Component Dependency Graph
+## MVP Commands
+
+| Command | Description | Context |
+|---------|-------------|---------|
+| `bitbot work [vscode]` | Launch work mode | Workspace |
+| `bitbot config [vscode]` | Launch config mode | Workspace |
+| `bitbot vscode` | Launch VS Code | Workspace |
+| `bitbot init` | Initialize workspace | Workspace |
+| `bitbot help` | Show help | Workspace |
+| `bitbot version` | Version + dependency status | Universal |
+
+**Global context commands** (run from BitBot install folder):
+- First run: Global init (adds to PATH, creates ~/.bitbot/)
+- Subsequent: Global config or serve (future)
+
+---
+
+## Dependency Graph
 
 ```
-01_cli-entry.md
-    ↓
-    ├─→ 02_workspace-detect.md
-    │       ↓
-    │       └─→ 06_first-run.md (optional)
-    │
-    └─→ 03_container-launch.md
-            ↓
-            ├─→ 07_uid-sync.md
-            ├─→ 04_mode-system.md
-            └─→ 05_session-management.md
+bitbot.md (main router)
+├── lib/util/prerequisites.sh (dependency validation)
+├── lib/util/detect.sh (workspace detection)
+└── Command routing:
+    ├── Global context
+    │   ├── lib/global/init.sh (first run)
+    │   └── lib/global/config.sh (settings)
+    └── Workspace context
+        ├── lib/workspace/work.sh
+        │   └── lib/util/devcontainer.sh
+        ├── lib/workspace/config.sh
+        │   └── lib/util/devcontainer.sh
+        ├── lib/workspace/init.sh
+        │   └── lib/util/devcontainer.sh (launches config)
+        └── lib/workspace/help.sh
+
+All scripts use:
+└── lib/util/helpers.sh (common utilities)
 ```
+
+---
+
+## Key Architecture Decisions
+
+### Platform Support
+- **Linux**: Native support
+- **macOS**: Native support
+- **Windows**: Via WSL (not native) for cross-platform simplicity
+
+### UID/GID Synchronization
+- **Handled by**: DevContainer CLI natively
+- **Method**: `updateRemoteUserUID: true` + `common-utils` feature
+- **No manual sync**: No bash UID sync scripts needed
+
+### Dependency Checking
+- **Runtime**: Validates dependencies at every command invocation
+- **Auto-fix**: Offers to start Docker, install devcontainer CLI
+- **WSL**: Special Docker integration setup assistance
+- **Display**: Comprehensive status in `bitbot version`
+
+### Security Model
+- **Work mode**: Workspace's .devcontainer (RO bind mount)
+- **Config mode**: Global devcontainer (RW .devcontainer by default)
+- **Git safety**: Non-blocking warnings (both modes)
+- **Simplified**: No approval flow or audit logging in MVP
+
+### Session Management
+- **Single session**: One tmux session per container
+- **Auto-named**: Timestamp-based naming
+- **Auto-attach**: Attach to existing or create new
 
 ---
 
 ## Implementation Order
 
-### Phase 1: Foundation (Week 1)
-1. **07_uid-sync.md** - No dependencies, needed by others
-2. **02_workspace-detect.md** - Core workspace logic
-3. **01_cli-entry.md** - Entry point and routing
+### Week 1: Core Foundation
+1. Shared utilities (lib/util/*.sh)
+   - helpers.sh, detect.sh, prerequisites.sh, devcontainer.sh
+2. Global init (lib/global/bitbot-init.sh)
+3. CLI entry (scripts/bitbot)
 
-### Phase 2: Container Management (Week 2)
-4. **03_container-launch.md** - Docker/devcontainer launch
-5. **04_mode-system.md** - Security modes
+### Week 2: Commands
+4. Work mode (lib/workspace/bitbot-work.sh)
+5. Config mode (lib/workspace/bitbot-config.sh)
+6. Init command (lib/workspace/bitbot-init.sh)
+7. Help/Version (lib/workspace/bitbot-help.sh, lib/bitbot-version.sh)
+8. VS Code integration
 
-### Phase 3: User Experience (Week 3)
-6. **05_session-management.md** - tmux integration
-7. **06_first-run.md** - Onboarding wizard
+### Week 3: Testing & Polish
+9. Test work/config modes (WSL2, Linux, macOS)
+10. Test dependency checking
+11. Test WSL Docker integration
+12. Polish error messages
+13. Write README
 
 ---
 
@@ -204,36 +266,7 @@ This directory contains comprehensive pseudocode for BitBot's core components. T
 
 ---
 
-## Specifications Implemented
-
-| Pseudocode File          | Primary Spec           | Secondary Specs             |
-|--------------------------|------------------------|------------------------------|
-| 01_cli-entry.md          | SPEC-05, SPEC-09       | SPEC-00 (D-03)              |
-| 02_workspace-detect.md   | SPEC-09 Part B         | SPEC-08                     |
-| 03_container-launch.md   | SPEC-01, SPEC-02       | SPEC-05                     |
-| 04_mode-system.md        | SPEC-02, SPEC-02A      | SPEC-04                     |
-| 05_session-management.md | SPEC-04                | SPEC-00 (D-06)              |
-| 06_first-run.md          | SPEC-09 Part A         | SPEC-08, SPEC-10            |
-| 07_uid-sync.md           | SPEC-02 Section 1.3    | SPEC-01                     |
-
----
-
-## Key Decisions Implemented
-
-| Decision | File              | Description                                |
-|----------|-------------------|--------------------------------------------|
-| D-02     | 04_mode-system.md | Two modes (work/setup) via separate containers |
-| D-03     | 01_cli-entry.md   | Context-aware CLI (host vs container)      |
-| D-06     | 05_session-management.md | tmux with auto-timestamped sessions |
-| D-08     | 06_first-run.md   | 3-question setup + workspace wizard        |
-| UID Sync | 07_uid-sync.md    | Synced UID/GID (not static)                |
-| Workspace| 02_workspace-detect.md | CWD → parent → initialize              |
-
----
-
 ## Testing Strategy
-
-Each pseudocode file should have corresponding tests:
 
 ### Unit Tests
 - Individual function logic
@@ -243,99 +276,92 @@ Each pseudocode file should have corresponding tests:
 ### Integration Tests
 - Component interactions
 - Data flow between functions
-- State management
+- Dependency checking
 
 ### End-to-End Tests
 - Complete user workflows
 - First-run experience
-- Mode switching
-- Session management
+- Mode switching (work ↔ config)
+- VS Code integration
+
+### Platform Tests
+- Linux native
+- macOS native
+- WSL2 (Windows)
+- Docker auto-start
+- DevContainer CLI detection
+
+---
+
+## Success Metrics (MVP)
+
+- [ ] Global init adds bitbot to PATH
+- [ ] Can initialize workspace with `bitbot init`
+- [ ] Can launch work container with `bitbot work`
+- [ ] Can launch config container with `bitbot config`
+- [ ] Files in container have correct host ownership (native UID sync)
+- [ ] `.devcontainer` is read-only in work mode
+- [ ] `.devcontainer` is read-write in config mode
+- [ ] Git warnings show on uncommitted changes
+- [ ] Help and version commands work
+- [ ] `bitbot vscode` launches VS Code
+- [ ] Works on Linux, macOS, WSL2
+- [ ] Dependency checking validates Docker, DevContainer CLI
+- [ ] Auto-starts Docker if not running
+- [ ] WSL Docker integration setup works
 
 ---
 
 ## Next Steps (SPARC Phase 3: Architecture)
 
-1. **Define Module Boundaries**
-   - Bash script organization
-   - Function library structure
-   - Shared utilities
+1. **Bash Script Implementation**
+   - Translate pseudocode to bash
+   - Add platform-specific handling
+   - Implement error handling
 
-2. **Data Architecture**
-   - File formats (JSON, YAML)
-   - State persistence
-   - Configuration management
+2. **DevContainer Configurations**
+   - Work mode devcontainer.json (RO mount)
+   - Config mode devcontainer.json (global template)
+   - Feature configuration (common-utils for UID sync)
 
-3. **Error Handling Strategy**
-   - Exit codes (from 01_cli-entry.md)
-   - Logging levels
-   - Recovery procedures
+3. **Testing Framework**
+   - Unit tests for utilities
+   - Integration tests for commands
+   - End-to-end workflow tests
+   - Platform-specific tests (WSL, Linux, macOS)
 
-4. **Platform Abstraction**
-   - Linux/macOS/WSL2 differences
-   - Command availability checks
-   - Path handling
-
----
-
-## Usage
-
-**For Implementation**:
-1. Read pseudocode file
-2. Translate to bash/shell script
-3. Add error handling and logging
-4. Write tests
-5. Integrate with other components
-
-**For Review**:
-1. Check logic correctness
-2. Verify error handling
-3. Validate security considerations
-4. Ensure spec compliance
-
----
-
-## File Statistics
-
-| File                      | Lines | Functions | Complexity |
-|---------------------------|-------|-----------|------------|
-| 01_cli-entry.md           | ~300  | 12        | High       |
-| 02_workspace-detect.md    | ~280  | 10        | Medium     |
-| 03_container-launch.md    | ~350  | 15        | High       |
-| 04_mode-system.md         | ~270  | 11        | High       |
-| 05_session-management.md  | ~300  | 13        | Medium     |
-| 06_first-run.md           | ~290  | 12        | Medium     |
-| 07_uid-sync.md            | ~260  | 10        | Low        |
-| **Total**                 | ~2050 | 83        | -          |
+4. **Documentation**
+   - User guide
+   - Installation instructions
+   - Troubleshooting guide
+   - Development guide
 
 ---
 
 ## Contributing
 
-When adding new pseudocode:
+When modifying pseudocode:
 
 1. **Follow conventions** (see above)
-2. **Reference specs** (SPEC-XX)
+2. **Update mappings** (pseudocode file → script file)
 3. **Document functions** (purpose, params, returns)
 4. **Handle errors** (validate inputs, clear messages)
-5. **Update this README** (add to component list)
+5. **Update README** (this file) and lib/util/README.md
 
 ---
 
-## Validation Checklist
+## References
 
-Before moving to implementation:
-
-- [ ] All SPEC-00 decisions implemented
-- [ ] High-priority TODO items addressed
-- [ ] Error handling comprehensive
-- [ ] Security considerations documented
-- [ ] Platform compatibility noted
-- [ ] Dependencies identified
-- [ ] Test cases outlined
+- **MVP Scope**: `MVP_SCOPE.md`
+- **Future Features**: `FUTURE_FEATURES.md`
+- **Utilities**: `lib/util/README.md`
+- **Test Implementation**: `../test-windows-launch/scripts/bitbot`
+- **Specifications**: `../Copilot_Specification/*.md`
 
 ---
 
-**Status**: ✅ Phase 2 Complete - Ready for Phase 3 (Architecture)
-**Next Phase**: Detailed bash script architecture and module design
-**Created**: 2025-10-20
-**Last Updated**: 2025-10-20
+**Status**: ✅ Phase 2 Complete - Ready for Implementation
+**Next Phase**: Bash script implementation (Phase 3)
+**Platform**: Linux, macOS, Windows (via WSL)
+**Commands**: 6 total
+**Scripts**: 13 total (1 main + 12 lib)
