@@ -318,35 +318,56 @@ Main entry script (`scripts/bitbot`):
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BITBOT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Detect mode: global init vs workspace
-if [[ "$PWD" == "$BITBOT_ROOT" ]] && [[ ! -f ~/.bitbot/first-run ]]; then
-    # Global init mode
-    source "$SCRIPT_DIR/init/global-init.sh"
-    run_global_init "$@"
+# Detect mode: global vs workspace
+if [[ "$PWD" == "$BITBOT_ROOT" ]]; then
+    # Running from BitBot install folder
+    if [[ ! -f ~/.bitbot/first-run ]]; then
+        # First run → global init
+        source "$SCRIPT_DIR/global/bitbot-init.sh"
+        bitbot_global_init "$@"
+    else
+        # Subsequent runs → future: global MCP launch
+        echo "Global MCP compose launch (future feature)"
+        echo "For workspace commands, run 'bitbot' from a project folder"
+    fi
 else
-    # Workspace mode
-    source "$SCRIPT_DIR/workspace/main.sh"
-    run_workspace_mode "$@"
+    # Workspace mode - route to workspace commands
+    COMMAND="${1:-work}"
+    shift || true
+
+    case "$COMMAND" in
+        work|config|vscode|init|help|version)
+            source "$SCRIPT_DIR/workspace/bitbot-$COMMAND.sh"
+            bitbot_$COMMAND "$@"
+            ;;
+        *)
+            echo "Unknown command: $COMMAND"
+            source "$SCRIPT_DIR/workspace/bitbot-help.sh"
+            bitbot_help
+            exit 2
+            ;;
+    esac
 fi
 ```
 
-Subscript structure (each command = one script):
+Subscript structure (separated by global vs workspace context):
 ```
 scripts/
-├── bitbot                       # Main entry (routes to subscripts)
+├── bitbot                       # Main router
 ├── bitbot.ps1                   # Windows PowerShell wrapper
 ├── bitbot.bat                   # Windows batch wrapper
-├── init/
-│   └── bitbot-global-init.sh    # Global initialization (this file)
 ├── lib/
 │   ├── detect.sh                # Workspace detection (02)
 │   ├── mode.sh                  # Mode launch helpers (04)
 │   └── helpers.sh               # Common utilities
-└── commands/
-    ├── bitbot-work.sh           # Work mode command
-    ├── bitbot-config.sh         # Config mode command
-    ├── bitbot-vscode.sh         # VS Code launch command
-    ├── bitbot-init.sh           # Workspace init command
+├── global/                      # Global commands (from install folder)
+│   ├── bitbot-init.sh           # Global initialization (this file)
+│   └── bitbot-mcp.sh            # Future: Launch global MCP compose
+└── workspace/                   # Workspace commands (from project folders)
+    ├── bitbot-work.sh           # Work mode
+    ├── bitbot-config.sh         # Config mode
+    ├── bitbot-vscode.sh         # VS Code launch
+    ├── bitbot-init.sh           # Workspace initialization
     ├── bitbot-help.sh           # Help text
     └── bitbot-version.sh        # Version display
 ```

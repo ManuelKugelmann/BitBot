@@ -315,84 +315,82 @@ EXIT_LOCK_FAILED = 5       # Could not acquire lock
 - CWD-only workspace detection (no parent search)
 
 **Modular Script Implementation**:
-Main script (`scripts/bitbot`) routes to command subscripts:
+Main script (`scripts/bitbot`) routes to global or workspace commands:
 ```bash
 #!/bin/bash
-# Main entry - detects mode and routes to appropriate subscript
+# Main entry - routes to global or workspace commands
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BITBOT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Detect if running from install folder (global init)
-if [[ "$PWD" == "$BITBOT_ROOT" ]] && [[ ! -f ~/.bitbot/first-run ]]; then
-    source "$SCRIPT_DIR/init/bitbot-global-init.sh"
-    run_global_init "$@"
-    exit $?
+# Detect context: global (install folder) vs workspace (project folder)
+if [[ "$PWD" == "$BITBOT_ROOT" ]]; then
+    # Running from BitBot install folder → global context
+    if [[ ! -f ~/.bitbot/first-run ]]; then
+        # First run → global init
+        source "$SCRIPT_DIR/global/bitbot-init.sh"
+        bitbot_global_init "$@"
+    else
+        # Subsequent runs → future: global MCP launch
+        echo "Global MCP compose (future feature)"
+        echo "For workspace commands, run 'bitbot' from a project folder"
+    fi
+else
+    # Workspace context - route to workspace commands
+    COMMAND="${1:-work}"  # Default to work
+    shift || true
+
+    case "$COMMAND" in
+        work|config|vscode|init)
+            source "$SCRIPT_DIR/workspace/bitbot-$COMMAND.sh"
+            bitbot_$COMMAND "$@"
+            ;;
+        help|--help|-h)
+            source "$SCRIPT_DIR/workspace/bitbot-help.sh"
+            bitbot_help
+            ;;
+        version|--version|-v)
+            source "$SCRIPT_DIR/workspace/bitbot-version.sh"
+            bitbot_version
+            ;;
+        *)
+            echo "Unknown command: $COMMAND"
+            source "$SCRIPT_DIR/workspace/bitbot-help.sh"
+            bitbot_help
+            exit 2
+            ;;
+    esac
 fi
-
-# Workspace mode - parse command and route
-COMMAND="${1:-work}"  # Default to work
-shift || true
-
-case "$COMMAND" in
-    work)
-        source "$SCRIPT_DIR/commands/bitbot-work.sh"
-        bitbot_work "$@"
-        ;;
-    config)
-        source "$SCRIPT_DIR/commands/bitbot-config.sh"
-        bitbot_config "$@"
-        ;;
-    vscode)
-        source "$SCRIPT_DIR/commands/bitbot-vscode.sh"
-        bitbot_vscode "$@"
-        ;;
-    init)
-        source "$SCRIPT_DIR/commands/bitbot-init.sh"
-        bitbot_init "$@"
-        ;;
-    help|--help|-h)
-        source "$SCRIPT_DIR/commands/bitbot-help.sh"
-        bitbot_help
-        ;;
-    version|--version|-v)
-        source "$SCRIPT_DIR/commands/bitbot-version.sh"
-        bitbot_version
-        ;;
-    *)
-        echo "Unknown command: $COMMAND"
-        source "$SCRIPT_DIR/commands/bitbot-help.sh"
-        bitbot_help
-        exit 2
-        ;;
-esac
 ```
 
-Script structure:
+Script structure (separated by context):
 ```
 scripts/
-├── bitbot                       # Main router (this file)
-├── init/
-│   └── bitbot-global-init.sh    # 06_global-init.md
-├── lib/
-│   ├── detect.sh                # 02_workspace-detect.md
-│   ├── mode.sh                  # 04_mode-system.md
+├── bitbot                       # Main router
+├── bitbot.ps1                   # Windows wrapper
+├── bitbot.bat                   # Windows wrapper
+├── lib/                         # Shared libraries
+│   ├── detect.sh                # Workspace detection (02)
+│   ├── mode.sh                  # Mode launch (04)
 │   └── helpers.sh               # Common utilities
-└── commands/
-    ├── bitbot-work.sh           # Work mode (sources lib/mode.sh)
-    ├── bitbot-config.sh         # Config mode (sources lib/mode.sh)
+├── global/                      # Global commands (from install folder)
+│   ├── bitbot-init.sh           # Global initialization (06)
+│   └── bitbot-mcp.sh            # Future: Global MCP compose
+└── workspace/                   # Workspace commands (from projects)
+    ├── bitbot-work.sh           # Work mode
+    ├── bitbot-config.sh         # Config mode
     ├── bitbot-vscode.sh         # VS Code launch
-    ├── bitbot-init.sh           # Workspace init (sources lib/detect.sh)
+    ├── bitbot-init.sh           # Workspace init
     ├── bitbot-help.sh           # Help text
-    └── bitbot-version.sh        # Version info
+    └── bitbot-version.sh        # Version
 ```
 
 **Pseudocode to Script Mapping**:
 - `01A_cli-entry-host.md` → `scripts/bitbot` (main router)
-- `02_workspace-detect.md` → `scripts/lib/detect.sh` + `scripts/commands/bitbot-init.sh`
-- `04_mode-system.md` → `scripts/lib/mode.sh` (shared by work/config commands)
-- `06_global-init.md` → `scripts/init/bitbot-global-init.sh`
-- Each command pseudocode → `scripts/commands/bitbot-<command>.sh`
+- `02_workspace-detect.md` → `scripts/lib/detect.sh` + `scripts/workspace/bitbot-init.sh`
+- `04_mode-system.md` → `scripts/lib/mode.sh` (shared library)
+- `06_global-init.md` → `scripts/global/bitbot-init.sh`
+- Each workspace command → `scripts/workspace/bitbot-<command>.sh`
 - Basic error handling only
 
 **Key Simplifications**:
