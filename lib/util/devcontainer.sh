@@ -9,17 +9,16 @@
 #
 
 # Source helpers (if not already sourced)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -z "${BITBOT_HELPERS_LOADED:-}" ]]; then
     # shellcheck source=./helpers.sh
-    source "${SCRIPT_DIR}/helpers.sh"
+    source "${BITBOT_HOME}/lib/util/helpers.sh"
     BITBOT_HELPERS_LOADED=1
 fi
 
 # Source prerequisites for platform detection
 if [[ -z "${BITBOT_PREREQUISITES_LOADED:-}" ]]; then
     # shellcheck source=./prerequisites.sh
-    source "${SCRIPT_DIR}/prerequisites.sh"
+    source "${BITBOT_HOME}/lib/util/prerequisites.sh"
     BITBOT_PREREQUISITES_LOADED=1
 fi
 
