@@ -16,13 +16,10 @@
 set -euo pipefail
 
 # Source utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_DIR="$(dirname "$SCRIPT_DIR")"
-
 # shellcheck source=../util/helpers.sh
-source "${LIB_DIR}/util/helpers.sh"
+source "${BITBOT_HOME}/lib/util/helpers.sh"
 # shellcheck source=../util/prerequisites.sh
-source "${LIB_DIR}/util/prerequisites.sh"
+source "${BITBOT_HOME}/lib/util/prerequisites.sh"
 
 # ============================================================================
 # Global Init Detection

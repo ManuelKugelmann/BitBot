@@ -32,6 +32,18 @@ main() {
     local command="${1:-}"
     shift || true
 
+    # Handle help/version commands first (work anywhere)
+    case "$command" in
+        help|--help|-h)
+            bitbot_help
+            return 0
+            ;;
+        version|--version|-v)
+            bitbot_version
+            return 0
+            ;;
+    esac
+
     # Get current directory
     local cwd
     cwd=$(get_current_directory)
