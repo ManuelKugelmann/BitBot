@@ -59,8 +59,8 @@
 - **Features**:
   - `--allow-socket` and `--reason` flags
   - Approval tracking (`.bitbot/approvals.json`)
-  - Prompt for confirmation before setup mode
-  - Logged reason for each setup session
+  - Prompt for confirmation before config mode
+  - Logged reason for each config session
 - **Alternative for MVP**: Setup is just another devcontainer (no approval)
 - **Priority**: Medium (nice for audit, not essential)
 
@@ -82,7 +82,7 @@
   - Automatic git checkpoints/stash before changes
   - Git bundle backup before risky operations
   - Uncommitted changes protection (strict mode)
-- **Alternative for MVP**: Manual `git commit` before setup mode
+- **Alternative for MVP**: Manual `git commit` before config mode
 - **Priority**: High (data loss prevention)
 
 **Backup Management** (`bitbot backup`)
@@ -216,7 +216,7 @@
 
 **Commands** (6 total):
 - ✓ `bitbot [work]` - Launch work devcontainer (default)
-- ✓ `bitbot setup` - Launch setup devcontainer (edit .devcontainer)
+- ✓ `bitbot config` - Launch config devcontainer (edit .devcontainer)
 - ✓ `bitbot vscode` - Launch VS Code in work container
 - ✓ `bitbot init` - Initialize workspace
 - ✓ `bitbot help` - Show help
@@ -226,13 +226,13 @@
 - ✓ Workspace detection (CWD only, no parent search)
 - ✓ Two devcontainers:
   - Work: Workspace's `.devcontainer/` (RO .devcontainer mount)
-  - Setup: Global `~/.bitbot/setup-devcontainer/` (RW workspace)
+  - Config: Global `~/.bitbot/config-devcontainer/` (RW workspace)
 - ✓ VS Code integration (`bitbot vscode`)
 - ✓ Single session (auto-named, auto-attach)
 - ✓ Git warnings (non-blocking for both modes)
 - ✓ UID sync (host UID = container UID)
 - ✓ Basic first-run (prerequisites check)
-- ✓ Simple setup mode (no approval flow)
+- ✓ Simple config mode (no approval flow)
 
 ---
 
@@ -267,7 +267,7 @@
 1. **Add non-interactive mode** - Add flag handling, no breaking changes
 2. **Add session management** - Backward compatible, single session still works
 3. **Add audit logging** - Append-only log, no breaking changes
-4. **Add template system** - Optional during init, manual setup still works
+4. **Add template system** - Optional during init, manual config still works
 5. **Add advanced commands** - New commands, don't affect existing workflows
 
 **No Breaking Changes Expected**: MVP will be a true subset of full feature set

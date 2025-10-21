@@ -59,13 +59,13 @@ FUNCTION initialize_workspace_in(path):
     PRINT "[+] Workspace initialized"
     PRINT ""
 
-    # Always launch setup mode to configure .devcontainer
-    PRINT "Launching setup mode to configure workspace..."
-    PRINT "(Use setup mode to create/modify .devcontainer for bitbot)"
+    # Always launch config mode to configure .devcontainer
+    PRINT "Launching config mode to configure workspace..."
+    PRINT "(Use config mode to create/modify .devcontainer for bitbot)"
     PRINT ""
 
-    # Launch setup mode (will create .bitbot/setup/devcontainer.json)
-    CALL launch_mode("setup", empty_flags, empty_options)
+    # Launch config mode (will create .bitbot/internal/devcontainer.json)
+    CALL launch_mode("config", empty_flags, empty_options)
 END FUNCTION
 ```
 
@@ -246,7 +246,7 @@ END FUNCTION
 - Removed non-interactive mode (future feature)
 - Removed `--workspace` flag (future feature)
 - Minimal `.bitbot/` structure (config.json only)
-- Init always launches setup (no check for .devcontainer, setup helps create it)
+- Init always launches config mode (no check for .devcontainer, config helps create it)
 
 **Edge Cases**:
 - Symlinks: Follow to canonical path

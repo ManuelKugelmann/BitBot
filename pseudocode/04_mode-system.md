@@ -1,8 +1,8 @@
 # Mode System Pseudocode (MVP: Simplified)
 
-**Component**: Mode Management (Work/Setup)
+**Component**: Mode Management (Work/Config)
 **Implements**: SPEC-02 (Security Mode System), SPEC-02A (Git Safety - warnings only)
-**Purpose**: Launch work or setup devcontainers with different configurations
+**Purpose**: Launch work or config devcontainers with different configurations
 
 ---
 
@@ -11,12 +11,12 @@
 ```
 Command → Select Mode → Git Warning → Launch Devcontainer
                            ↓
-              [Work: RO .devcontainer | Setup: RW .devcontainer]
+              [Work: RO .devcontainer | Config: RW .devcontainer]
 ```
 
 **Decision**: Two modes = two devcontainer configurations
 - Work: Workspace's `.devcontainer/` (RO .devcontainer mount via bind mount)
-- Setup: Global `~/.bitbot/setup-devcontainer/` (no RO mount = RW by default)
+- Config: Global `~/.bitbot/config-devcontainer/` (no RO mount = RW by default)
 
 ---
 
@@ -34,8 +34,8 @@ FUNCTION detect_current_mode() → mode OR NULL:
 
     IF hostname contains "bitbot-work":
         RETURN "work"
-    ELSE IF hostname contains "bitbot-setup":
-        RETURN "setup"
+    ELSE IF hostname contains "bitbot-config":
+        RETURN "config"
     ELSE:
         RETURN NULL
     END IF
@@ -44,11 +44,11 @@ END FUNCTION
 
 ---
 
-## Launch Mode (Unified for Work and Setup)
+## Launch Mode (Unified for Work and Config)
 
 ```pseudocode
 FUNCTION launch_mode(mode, flags, options):
-    # mode = "work" or "setup"
+    # mode = "work" or "config"
 
     PRINT "[>] Launching " + mode + " mode"
 
@@ -74,11 +74,11 @@ FUNCTION launch_mode(mode, flags, options):
         # - Mounts workspace at /workspace
         # - Adds RO bind mount for /workspace/.devcontainer
         CALL launch_work_devcontainer(WORKSPACE_PATH, flags, options)
-    ELSE IF mode == "setup":
-        # Uses global ~/.bitbot/setup-devcontainer/
+    ELSE IF mode == "config":
+        # Uses global ~/.bitbot/config-devcontainer/
         # - Mounts workspace at /workspace
         # - No RO bind mount = /workspace/.devcontainer is RW by default
-        CALL launch_setup_devcontainer(WORKSPACE_PATH, flags, options)
+        CALL launch_config_devcontainer(WORKSPACE_PATH, flags, options)
     END IF
 END FUNCTION
 ```
@@ -110,31 +110,31 @@ END FUNCTION
 
 ---
 
-## Launch Setup Devcontainer
+## Launch Config Devcontainer
 
 ```pseudocode
-FUNCTION launch_setup_devcontainer(workspace_path, flags, options):
-    # Launch global setup devcontainer parameterized for this workspace
+FUNCTION launch_config_devcontainer(workspace_path, flags, options):
+    # Launch global config devcontainer parameterized for this workspace
 
-    SET setup_config_path = "~/.bitbot/setup-devcontainer"
+    SET config_devcontainer_path = "~/.bitbot/config-devcontainer"
 
-    IF NOT directory_exists(setup_config_path):
-        ERROR "Setup devcontainer not found in ~/.bitbot/"
-        PRINT "This should have been created during 'bitbot' installation"
+    IF NOT directory_exists(config_devcontainer_path):
+        ERROR "Config devcontainer not found in ~/.bitbot/"
+        PRINT "This should have been created during 'bitbot' global init"
         EXIT 1
     END IF
 
-    # Use devcontainer CLI with global setup config
+    # Use devcontainer CLI with global config devcontainer
     # Pass workspace path as environment variable for mounting
     SET env_vars = {
         "BITBOT_WORKSPACE": workspace_path
     }
 
-    # Setup devcontainer.json uses:
+    # Config devcontainer.json uses:
     # "workspaceFolder": "${localEnv:BITBOT_WORKSPACE}"
     # No RO mount for .devcontainer = writable by default
 
-    CALL devcontainer_up_with_config(setup_config_path, env_vars)
+    CALL devcontainer_up_with_config(config_devcontainer_path, env_vars)
 END FUNCTION
 ```
 

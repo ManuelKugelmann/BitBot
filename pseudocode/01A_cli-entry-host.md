@@ -11,7 +11,7 @@
 ```
 User Command (Host) → Parse Args → Check First-Run → Detect Workspace → Execute Command
                                            ↓
-                        [work | setup | vscode | list | stop | init | ...]
+                        [work | config | vscode | list | stop | init | ...]
 ```
 
 **Scope**: Host-side operations only (container management)
@@ -106,9 +106,9 @@ FUNCTION handle_host_commands(command, flags, options):
             # Default: launch work mode
             CALL launch_mode("work", flags, options)
 
-        CASE "setup":
-            # Setup mode: different devcontainer with RW .devcontainer
-            CALL launch_mode("setup", flags, options)
+        CASE "config":
+            # Config mode: different devcontainer with RW .devcontainer
+            CALL launch_mode("config", flags, options)
 
         CASE "vscode":
             CALL launch_vscode(flags, options)
@@ -192,7 +192,7 @@ FUNCTION show_help():
     PRINT ""
     PRINT "Commands:"
     PRINT "  bitbot [work]        Launch work mode (default)"
-    PRINT "  bitbot setup         Launch setup mode (edit .devcontainer)"
+    PRINT "  bitbot config        Launch config mode (edit .devcontainer)"
     PRINT "  bitbot vscode        Launch VS Code in container"
     PRINT "  bitbot init          Initialize workspace"
     PRINT "  bitbot help          Show this help"
@@ -200,12 +200,12 @@ FUNCTION show_help():
     PRINT ""
     PRINT "Modes:"
     PRINT "  work   - Development work (.devcontainer is read-only)"
-    PRINT "  setup  - Edit .devcontainer and infrastructure"
+    PRINT "  config - Edit .devcontainer and infrastructure"
     PRINT ""
     PRINT "Examples:"
     PRINT "  bitbot               # Launch work mode"
     PRINT "  bitbot work          # Launch work mode"
-    PRINT "  bitbot setup         # Edit devcontainer configuration"
+    PRINT "  bitbot config        # Edit devcontainer configuration"
     PRINT "  bitbot vscode        # Launch VS Code"
     PRINT "  bitbot init          # Initialize workspace"
     PRINT ""
@@ -308,7 +308,7 @@ EXIT_LOCK_FAILED = 5       # Could not acquire lock
 ## Implementation Notes (MVP Simplified)
 
 **MVP Scope**:
-- 6 commands only: work, setup, vscode, init, help, version
+- 6 commands only: work, config, vscode, init, help, version
 - No session management (single session per container)
 - No audit logging (future feature)
 - No non-interactive mode (future feature)
@@ -325,16 +325,16 @@ EXIT_LOCK_FAILED = 5       # Could not acquire lock
 
 **MVP Commands**:
 1. `bitbot` or `bitbot work` - Launch work mode (RO .devcontainer)
-2. `bitbot setup` - Launch setup mode (RW .devcontainer)
+2. `bitbot config` - Launch config mode (RW .devcontainer)
 3. `bitbot vscode` - Launch VS Code in work container
 4. `bitbot init` - Initialize workspace in CWD
 5. `bitbot help` - Show help
 6. `bitbot version` - Show version
 
-**Key Insight**: Setup is just another devcontainer with different:
-- Config location: Global `~/.bitbot/setup-devcontainer/` (not workspace)
+**Key Insight**: Config mode is just another devcontainer with different:
+- Config location: Global `~/.bitbot/config-devcontainer/` (not workspace)
 - Workspace mount: `/workspace` (no RO .devcontainer mount = RW by default)
-- AI agent: Tuned for devcontainer setup tasks
+- AI agent: Tuned for devcontainer configuration tasks
 - Can work on any workspace (parameterized via env var)
 
 **Next Steps**:
