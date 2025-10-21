@@ -23,11 +23,11 @@
 - **Alternative for MVP**: `cd` to workspace directory
 - **Priority**: Medium
 
-**VS Code Integration** (`bitbot vscode`)
-- **Cut from**: CLI commands (01A)
-- **Use case**: Launch VS Code attached to container
-- **Implementation**: `code --folder-uri` with devcontainer
-- **Alternative for MVP**: Use `code .` or VS Code UI "Reopen in Container"
+**Parent Workspace Search**
+- **Cut from**: Workspace detection (02)
+- **Use case**: Auto-use parent directory workspace
+- **Implementation**: Check parent → prompt user → auto-use or init in CWD
+- **Alternative for MVP**: Must run `bitbot` from workspace directory
 - **Priority**: Medium
 
 ### Phase 2b: Session Management (Post-MVP)
@@ -174,8 +174,7 @@
 
 ### Removed from MVP:
 
-**Commands** (11 removed, 5 kept):
-- ✗ `bitbot vscode` → Use VS Code UI
+**Commands** (10 removed, 6 kept):
 - ✗ `bitbot list` → Use `docker ps`
 - ✗ `bitbot stop` → Use `docker stop`
 - ✗ `bitbot kill` → Use `docker stop $(docker ps -q --filter name=bitbot)`
@@ -189,7 +188,7 @@
 
 **Flags/Options** (2 removed):
 - ✗ `--non-interactive` → Interactive only for MVP
-- ✗ `--workspace <path>` → CWD-based only
+- ✗ `--workspace <path>` → CWD-based only for MVP
 
 **Features**:
 - ✗ Multi-session support → Single session per container
@@ -199,21 +198,23 @@
 - ✗ Approval tracking → No `.bitbot/approvals.json`
 - ✗ Git strict checks → Warnings only
 - ✗ Template wizard → Requires existing `.devcontainer`
-- ✗ Workspace prompts → Auto-use parent workspace
+- ✗ Parent workspace search → CWD only
 - ✗ Smart launch logic → Default to `bitbot work`
 
 ### Kept in MVP:
 
-**Commands** (5 total):
+**Commands** (6 total):
 - ✓ `bitbot [work]` - Launch work mode (default)
 - ✓ `bitbot setup --allow-socket --reason "..."` - Launch setup mode
+- ✓ `bitbot vscode` - Launch VS Code in work container
 - ✓ `bitbot init` - Initialize workspace
 - ✓ `bitbot help` - Show help
 - ✓ `bitbot version` - Show version
 
 **Core Features**:
-- ✓ Workspace detection (CWD → parent → NULL)
+- ✓ Workspace detection (CWD only, no parent search)
 - ✓ Container launch (work/setup via devcontainer/compose)
+- ✓ VS Code integration (`bitbot vscode`)
 - ✓ Single session (auto-named, auto-attach)
 - ✓ Git warnings (non-blocking)
 - ✓ UID sync (host UID = container UID)

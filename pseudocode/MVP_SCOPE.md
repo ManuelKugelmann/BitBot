@@ -15,20 +15,22 @@
 
 ## ✓ MVP Core Features (Keep)
 
-### Commands (5 total)
+### Commands (6 total)
 1. **`bitbot work`** - Launch work container via @devcontainers/cli
 2. **`bitbot setup --allow-socket --reason "..."`** - Launch setup container
-3. **`bitbot init`** - Initialize workspace (default .devcontainer, no wizard)
-4. **`bitbot help`** - Basic help text
-5. **`bitbot version`** - Show version
+3. **`bitbot vscode`** - Launch VS Code attached to work container
+4. **`bitbot init`** - Initialize workspace (default .devcontainer, no wizard)
+5. **`bitbot help`** - Basic help text
+6. **`bitbot version`** - Show version
 
 ### Core Features
-- **Workspace detection**: CWD → parent (auto-use if found) → initialize
+- **Workspace detection**: CWD only (no parent search), prompt for init if not found
 - **Container launch**: Work (@devcontainers/cli) and Setup (docker-compose)
 - **Single session**: One tmux session per container (auto-named by timestamp)
 - **Git safety warnings**: Non-blocking warnings on uncommitted changes
 - **Basic first-run**: Check Docker/Git, create `~/.bitbot/` (no template wizard)
 - **UID sync**: Host UID = container UID for file permissions
+- **VS Code integration**: `bitbot vscode` launches VS Code in work container
 
 ### Security
 - Work mode: `.devcontainer` read-only, no docker socket
@@ -40,7 +42,6 @@
 ## ✗ Cut from MVP (Future Features)
 
 ### Commands (Cut)
-- `bitbot vscode` - User can use `code .` or VS Code UI directly
 - `bitbot list/stop/kill` - Use `docker ps`, `docker stop` for now
 - `bitbot config` - Manual `.bitbot/config.yml` editing for MVP
 - `bitbot mcp` - MCP services are future feature
@@ -54,6 +55,7 @@
 ### Features (Cut)
 - **Non-interactive mode** (`--non-interactive`) - Interactive only for MVP
 - **Workspace flag** (`--workspace <path>`) - CWD-based only for MVP
+- **Parent workspace search** - CWD only, no parent directory search
 - **Session selection menu** - Single session, no selection needed
 - **Session naming** - Auto-timestamped only (e.g., `work-20251020-143022`)
 - **Audit logging** (`.bitbot/audit.log`) - Future compliance feature
@@ -82,7 +84,7 @@
 | `bitbot init` | ✓ | Enhanced wizard | Manual `.devcontainer` setup |
 | `bitbot help` | ✓ | - | - |
 | `bitbot version` | ✓ | - | - |
-| `bitbot vscode` | ✗ | ✓ | Use `code .` or VS Code UI |
+| `bitbot vscode` | ✓ | - | - |
 | `bitbot list` | ✗ | ✓ | `docker ps \| grep bitbot` |
 | `bitbot stop` | ✗ | ✓ | `docker stop <container>` |
 | `bitbot kill` | ✗ | ✓ | `docker stop $(docker ps -q --filter name=bitbot)` |

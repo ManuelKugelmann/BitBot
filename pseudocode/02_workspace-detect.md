@@ -22,9 +22,8 @@ bitbot command → Detect workspace → Prompt if needed → Return workspace pa
 
 ```pseudocode
 FUNCTION detect_workspace() → workspace_path OR NULL:
-    # MVP: Simple CWD → parent (auto-use) → return NULL
+    # MVP: CWD only, no parent search
 
-    # Step 1: Check current directory
     SET cwd = get_current_directory()
 
     IF directory_exists(cwd + "/.bitbot"):
@@ -32,16 +31,7 @@ FUNCTION detect_workspace() → workspace_path OR NULL:
         RETURN cwd
     END IF
 
-    # Step 2: Check parent directory (auto-use if found)
-    SET parent = get_parent_directory(cwd)
-
-    IF parent != "/" AND directory_exists(parent + "/.bitbot"):
-        PRINT "[i] Using parent workspace: " + parent
-        PRINT "[i] (Current dir: " + cwd + ")"
-        RETURN parent
-    END IF
-
-    # Step 3: No workspace found
+    # No workspace found in CWD
     RETURN NULL
 END FUNCTION
 ```
@@ -264,26 +254,30 @@ END FUNCTION
 ## Implementation Notes (MVP Simplified)
 
 **Key Behaviors**:
-1. CWD takes priority over parent
-2. Parent workspace **automatically used** (no prompt)
-3. No workspace found → return NULL (caller handles init)
+1. Check CWD only (no parent directory search)
+2. Workspace found → use it
+3. No workspace → return NULL (caller prompts for init)
 
 **Simplifications for MVP**:
+- CWD only (no parent search)
 - Removed non-interactive mode (future feature)
-- Removed workspace prompts (auto-use parent)
 - Removed `--workspace` flag (future feature)
 - Minimal `.bitbot/` structure (metadata.json only)
 - No template wizard (requires existing .devcontainer)
 
 **Edge Cases**:
 - Symlinks: Follow to canonical path
-- Multiple .bitbot: Use closest (CWD > parent)
 - Permission issues: Error and exit 1
 - Corrupted metadata: Warn but continue
 
 **Error Handling**:
 - No .devcontainer during init → error + exit 4
 - Permission denied → error + exit 1
+
+**Future Features**:
+- Parent directory search with confirmation
+- `--workspace <path>` flag override
+- Template wizard during init
 
 **Next Steps**:
 - Container launch (03_container-launch.md)

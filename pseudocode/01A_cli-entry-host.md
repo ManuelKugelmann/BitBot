@@ -93,14 +93,14 @@ END FUNCTION
 
 ---
 
-## Host Command Handling (MVP: 5 Commands)
+## Host Command Handling (MVP: 6 Commands)
 
 ```pseudocode
 FUNCTION handle_host_commands(command, flags, options):
     # Validate Docker prerequisites
     CALL validate_prerequisites()
 
-    # Route to MVP commands only
+    # Route to MVP commands
     SWITCH command:
         CASE "" OR "work":
             # Default: launch work mode
@@ -108,6 +108,9 @@ FUNCTION handle_host_commands(command, flags, options):
 
         CASE "setup":
             CALL launch_setup_mode(flags, options)
+
+        CASE "vscode":
+            CALL launch_vscode(flags, options)
 
         CASE "init":
             CALL initialize_workspace_command(options)
@@ -123,6 +126,40 @@ FUNCTION handle_host_commands(command, flags, options):
             PRINT "Run 'bitbot help' for available commands"
             EXIT 2
     END SWITCH
+END FUNCTION
+```
+
+---
+
+## Launch VS Code (MVP)
+
+```pseudocode
+FUNCTION launch_vscode(flags, options):
+    # Launch VS Code attached to work container
+
+    # Get workspace and container name
+    SET workspace_path = WORKSPACE_PATH
+    SET workspace_hash = get_workspace_hash(workspace_path)
+    SET container_name = "bitbot-work-" + workspace_hash
+
+    # Check if work container exists and is running
+    IF NOT container_exists(container_name):
+        PRINT "[>] Work container not running, starting it first..."
+        CALL launch_work_mode(flags, options)
+        # Container created, continue below
+    ELSE IF NOT container_is_running(container_name):
+        PRINT "[>] Starting work container..."
+        CALL start_container(container_name)
+    END IF
+
+    # Launch VS Code with devcontainer URI
+    PRINT "[>] Launching VS Code..."
+    SET devcontainer_path = workspace_path + "/.devcontainer"
+    SET uri = "vscode-remote://dev-container+" + encode_path(devcontainer_path)
+
+    EXECUTE "code --folder-uri \"" + uri + "\""
+
+    PRINT "[+] VS Code launched"
 END FUNCTION
 ```
 
@@ -147,7 +184,8 @@ FUNCTION initialize_workspace_command(options):
 
     PRINT ""
     PRINT "Next steps:"
-    PRINT "  bitbot work    # Launch work mode"
+    PRINT "  bitbot work      # Launch work mode"
+    PRINT "  bitbot vscode    # Launch VS Code"
 END FUNCTION
 ```
 
@@ -164,6 +202,7 @@ FUNCTION show_help():
     PRINT "Commands:"
     PRINT "  bitbot [work]        Launch work mode (default)"
     PRINT "  bitbot setup         Launch setup mode"
+    PRINT "  bitbot vscode        Launch VS Code in container"
     PRINT "  bitbot init          Initialize workspace"
     PRINT "  bitbot help          Show this help"
     PRINT "  bitbot version       Show version"
@@ -175,6 +214,7 @@ FUNCTION show_help():
     PRINT "Examples:"
     PRINT "  bitbot                                     # Launch work mode"
     PRINT "  bitbot work                                # Launch work mode"
+    PRINT "  bitbot vscode                              # Launch VS Code"
     PRINT "  bitbot setup --allow-socket --reason \"...\" # Setup mode"
     PRINT "  bitbot init                                # Initialize workspace"
     PRINT ""
@@ -277,28 +317,30 @@ EXIT_LOCK_FAILED = 5       # Could not acquire lock
 ## Implementation Notes (MVP Simplified)
 
 **MVP Scope**:
-- 5 commands only: work, setup, init, help, version
+- 6 commands only: work, setup, vscode, init, help, version
 - No session management (single session per container)
 - No audit logging (future feature)
 - No non-interactive mode (future feature)
+- CWD-only workspace detection (no parent search)
 - Basic error handling only
 
 **Key Simplifications**:
 - Removed smart launch (default to `bitbot work`)
-- Removed session listing/stopping
-- Removed VS Code launch command
-- Removed config/mcp/agent/backup commands
+- Removed session listing/stopping/kill
+- Removed config/mcp/agent/backup/doctor/metadata commands
 - Removed audit logging
-- Auto-use parent workspace (no prompt)
+- CWD-only workspace (no parent directory search)
+- Prompt for init if no workspace in CWD
 
 **MVP Commands**:
 1. `bitbot` or `bitbot work` - Launch work mode
 2. `bitbot setup --allow-socket --reason "..."` - Launch setup mode
-3. `bitbot init` - Initialize workspace
-4. `bitbot help` - Show help
-5. `bitbot version` - Show version
+3. `bitbot vscode` - Launch VS Code in work container
+4. `bitbot init` - Initialize workspace in CWD
+5. `bitbot help` - Show help
+6. `bitbot version` - Show version
 
 **Next Steps**:
 - Simplify container entry (01B_cli-entry-container.md)
-- Simplify session management (05_session-management.md)
+- Simplify session management (05_session-management.md) ✓
 - Simplify first-run (06_first-run.md)
