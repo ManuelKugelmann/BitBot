@@ -50,7 +50,7 @@ Development and release automation scripts.
 - bitbot (main executable)
 - bitbot.exe (Windows launcher)
 - bitbot.cmd (Windows wrapper)
-- lib/ (all library scripts)
+- core/ (core runtime scripts)
 - templates/ (devcontainer templates)
 - config-devcontainer/ (config mode)
 - README.md
@@ -200,7 +200,7 @@ To include new files in release branch:
        "bitbot"
        "bitbot.exe"
        "bitbot.cmd"
-       "lib"
+       "core"
        "templates"
        "config-devcontainer"
        "README.md"
@@ -216,6 +216,7 @@ To include new files in release branch:
        VERSION \
        bitbot \
        bitbot.exe \
+       core \
        ...
        NEW_FILE \  # Add here
    ```
@@ -227,6 +228,7 @@ To include new files in release branch:
      VERSION \
      bitbot \
      bitbot.exe \
+     core/ \
      ...
      NEW_FILE \  # Add here
    ```

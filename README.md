@@ -254,7 +254,7 @@ bitbot/
 ├── bitbot                     # Main CLI router (bash)
 ├── bitbot.exe                 # Windows launcher (38KB C executable)
 ├── bitbot.cmd                 # Windows CMD wrapper
-├── lib/                       # Implementation libraries
+├── core/                      # Core runtime scripts
 │   ├── global/                # Global commands (first-run setup)
 │   ├── workspace/             # Workspace commands (work, config, init)
 │   └── util/                  # Utilities (detect, git, prerequisites)

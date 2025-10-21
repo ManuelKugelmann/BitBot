@@ -17,11 +17,11 @@ set -euo pipefail
 
 # Source utilities
 # shellcheck source=../util/helpers.sh
-source "${BITBOT_HOME}/lib/util/helpers.sh"
+source "${BITBOT_HOME}/core/util/helpers.sh"
 # shellcheck source=../util/prerequisites.sh
-source "${BITBOT_HOME}/lib/util/prerequisites.sh"
+source "${BITBOT_HOME}/core/util/prerequisites.sh"
 # shellcheck source=../util/logo.sh
-source "${BITBOT_HOME}/lib/util/logo.sh"
+source "${BITBOT_HOME}/core/util/logo.sh"
 
 # ============================================================================
 # Global Init Detection

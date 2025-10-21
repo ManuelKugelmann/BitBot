@@ -3,7 +3,7 @@
 # BitBot Help Command
 #
 
-source "${BITBOT_HOME}/lib/util/logo.sh"
+source "${BITBOT_HOME}/core/util/logo.sh"
 
 bitbot_help() {
     # Display logo

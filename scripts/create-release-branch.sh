@@ -54,7 +54,7 @@ git checkout "$TRUNK_BRANCH" -- \
     bitbot \
     bitbot.exe \
     bitbot.cmd \
-    lib \
+    core \
     templates \
     config-devcontainer \
     README.md \

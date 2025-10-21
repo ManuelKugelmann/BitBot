@@ -5,7 +5,7 @@ on:
     branches:
       - trunk
     paths:
-      - 'lib/**'
+      - 'core/**'
       - 'tests/**'
       - 'bitbot'
       - 'bitbot.cmd'
@@ -27,7 +27,7 @@ jobs:
       - name: Check bash scripts syntax
         run: |
           echo "Checking bash script syntax..."
-          find lib -name "*.sh" -type f -exec bash -n {} \;
+          find core -name "*.sh" -type f -exec bash -n {} \;
           find scripts -name "*.sh" -type f -exec bash -n {} \;
           bash -n bitbot
           echo "✓ All bash scripts have valid syntax"

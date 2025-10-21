@@ -5,10 +5,10 @@
 
 set -euo pipefail
 
-source "${BITBOT_HOME}/lib/util/helpers.sh"
-source "${BITBOT_HOME}/lib/util/detect.sh"
-source "${BITBOT_HOME}/lib/util/devcontainer.sh"
-source "${BITBOT_HOME}/lib/util/prerequisites.sh"
+source "${BITBOT_HOME}/core/util/helpers.sh"
+source "${BITBOT_HOME}/core/util/detect.sh"
+source "${BITBOT_HOME}/core/util/devcontainer.sh"
+source "${BITBOT_HOME}/core/util/prerequisites.sh"
 
 bitbot_config() {
     local workspace_path="$1"

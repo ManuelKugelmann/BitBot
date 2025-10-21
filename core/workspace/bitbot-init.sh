@@ -10,13 +10,13 @@ set -euo pipefail
 
 # Source utilities
 # shellcheck source=../util/helpers.sh
-source "${BITBOT_HOME}/lib/util/helpers.sh"
+source "${BITBOT_HOME}/core/util/helpers.sh"
 # shellcheck source=../util/git.sh
-source "${BITBOT_HOME}/lib/util/git.sh"
+source "${BITBOT_HOME}/core/util/git.sh"
 # shellcheck source=../util/detect.sh
-source "${BITBOT_HOME}/lib/util/detect.sh"
+source "${BITBOT_HOME}/core/util/detect.sh"
 # shellcheck source=../util/devcontainer.sh
-source "${BITBOT_HOME}/lib/util/devcontainer.sh"
+source "${BITBOT_HOME}/core/util/devcontainer.sh"
 
 # ============================================================================
 # Main Initialization Function

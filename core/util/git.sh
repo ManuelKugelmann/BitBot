@@ -11,7 +11,7 @@
 # Source helpers (if not already sourced)
 if [[ -z "${BITBOT_HELPERS_LOADED:-}" ]]; then
     # shellcheck source=./helpers.sh
-    source "${BITBOT_HOME}/lib/util/helpers.sh"
+    source "${BITBOT_HOME}/core/util/helpers.sh"
     BITBOT_HELPERS_LOADED=1
 fi
 

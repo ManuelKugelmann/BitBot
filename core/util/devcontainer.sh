@@ -11,14 +11,14 @@
 # Source helpers (if not already sourced)
 if [[ -z "${BITBOT_HELPERS_LOADED:-}" ]]; then
     # shellcheck source=./helpers.sh
-    source "${BITBOT_HOME}/lib/util/helpers.sh"
+    source "${BITBOT_HOME}/core/util/helpers.sh"
     BITBOT_HELPERS_LOADED=1
 fi
 
 # Source prerequisites for platform detection
 if [[ -z "${BITBOT_PREREQUISITES_LOADED:-}" ]]; then
     # shellcheck source=./prerequisites.sh
-    source "${BITBOT_HOME}/lib/util/prerequisites.sh"
+    source "${BITBOT_HOME}/core/util/prerequisites.sh"
     BITBOT_PREREQUISITES_LOADED=1
 fi
 

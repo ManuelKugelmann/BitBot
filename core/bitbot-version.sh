@@ -3,8 +3,8 @@
 # BitBot Version Command
 #
 
-source "${BITBOT_HOME}/lib/util/helpers.sh"
-source "${BITBOT_HOME}/lib/util/prerequisites.sh"
+source "${BITBOT_HOME}/core/util/helpers.sh"
+source "${BITBOT_HOME}/core/util/prerequisites.sh"
 
 # Get version from VERSION file
 get_version() {

@@ -12,8 +12,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BITBOT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 # Source utilities
-source "$BITBOT_ROOT/lib/util/helpers.sh"
-source "$BITBOT_ROOT/lib/util/prerequisites.sh"
+source "$BITBOT_ROOT/core/util/helpers.sh"
+source "$BITBOT_ROOT/core/util/prerequisites.sh"
 
 # Main function
 bitbot_vscode() {

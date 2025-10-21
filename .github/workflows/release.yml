@@ -33,7 +33,7 @@ jobs:
             bitbot \
             bitbot.exe \
             bitbot.cmd \
-            lib/ \
+            core/ \
             templates/ \
             config-devcontainer/ \
             README.md \
@@ -87,7 +87,7 @@ jobs:
             - `bitbot` - Main executable (bash)
             - `bitbot.exe` - Windows launcher (38KB)
             - `bitbot.cmd` - Windows wrapper
-            - `lib/` - All library scripts
+            - `core/` - Core runtime scripts
             - `templates/` - DevContainer templates
             - `config-devcontainer/` - Config mode environment
             - `README.md` - Documentation

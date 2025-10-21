@@ -12,17 +12,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export BITBOT_HOME="$SCRIPT_DIR"
 
 # Source utilities
-source "${SCRIPT_DIR}/lib/util/helpers.sh"
-source "${SCRIPT_DIR}/lib/util/detect.sh"
-source "${SCRIPT_DIR}/lib/util/prerequisites.sh"
+source "${SCRIPT_DIR}/core/util/helpers.sh"
+source "${SCRIPT_DIR}/core/util/detect.sh"
+source "${SCRIPT_DIR}/core/util/prerequisites.sh"
 
 # Source command handlers
-source "${SCRIPT_DIR}/lib/global/bitbot-init.sh"
-source "${SCRIPT_DIR}/lib/workspace/bitbot-init.sh"
-source "${SCRIPT_DIR}/lib/workspace/bitbot-work.sh"
-source "${SCRIPT_DIR}/lib/workspace/bitbot-config.sh"
-source "${SCRIPT_DIR}/lib/workspace/bitbot-help.sh"
-source "${SCRIPT_DIR}/lib/bitbot-version.sh"
+source "${SCRIPT_DIR}/core/global/bitbot-init.sh"
+source "${SCRIPT_DIR}/core/workspace/bitbot-init.sh"
+source "${SCRIPT_DIR}/core/workspace/bitbot-work.sh"
+source "${SCRIPT_DIR}/core/workspace/bitbot-config.sh"
+source "${SCRIPT_DIR}/core/workspace/bitbot-help.sh"
+source "${SCRIPT_DIR}/core/bitbot-version.sh"
 
 # ============================================================================
 # Main Entry Point

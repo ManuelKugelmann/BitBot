@@ -66,7 +66,7 @@ get_bitbot_install_dir() {
         echo "$BITBOT_HOME"
     else
         # Fallback: determine from script location
-        # Assumes this file is in {INSTALL}/lib/util/helpers.sh
+        # Assumes this file is in {INSTALL}/core/util/helpers.sh
         local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         echo "$(cd "$script_dir/../.." && pwd)"
     fi
