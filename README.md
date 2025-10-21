@@ -2,7 +2,7 @@
 
 **Secure Development Environments for AI-Assisted Coding**
 
-BitBot is a cross-platform CLI tool that creates isolated, AI-safe development environments using Docker containers. It enables AI coding assistants to work freely on your code while protecting critical infrastructure files from accidental modification.
+BitBot is a cross-platform CLI tool that sandboxes AI coding assistants in isolated container environments, reducing risk when working with AI agents. It enables AI assistants to work freely on your code while protecting critical infrastructure files from accidental modification.
 
 ---
 
@@ -16,7 +16,7 @@ When working with AI coding assistants like Claude Code, you want them to:
 But **not** accidentally:
 - ❌ Break your Docker configuration
 - ❌ Modify `.devcontainer` files incorrectly
-- ❌ Change CI/CD workflows unintentionally
+- ❌ Change infrastructure files unintentionally
 
 **BitBot solves this with two-mode containers:**
 
@@ -36,13 +36,19 @@ But **not** accidentally:
 
 ## Features
 
+🔒 **AI Agent Sandboxing**
+- Containerization isolates AI agents to reduce risk
+- AI works in controlled environment with limited access
+- Infrastructure files protected from accidental modification
+- WIP: VM containers for even stronger isolation
+
 ✨ **Two-Mode Security**
 - Work mode protects infrastructure files
 - Config mode for safe configuration editing
 - Both modes work with VS Code and CLI
 
 🚀 **Cross-Platform**
-- **Windows**: PowerShell/CMD launcher + WSL2
+- **Windows**: Launcher → isolated WSL bash environment
 - **macOS**: Native bash
 - **Linux**: Native bash
 
@@ -51,15 +57,20 @@ But **not** accidentally:
 - Container reuse across CLI and VS Code
 - Hex-encoded URI protocol for seamless workflow
 
-📦 **Simple Installation**
-- Minimal dependencies
-- Template system for quick workspace setup
-- Windows: ~8MB Alpine WSL distro (no Docker in WSL needed!)
+📦 **Flexible Templates**
+- Basic template: Ubuntu + Node.js + Claude Code
+- Rootless Docker template for Docker-in-Docker workflows (WIP)
+- WIP: Agent steering templates for different workloads
 
 🛡️ **Git Safety**
 - Warnings for uncommitted changes
 - Non-blocking (won't stop your workflow)
 - Helps prevent AI from making risky changes to dirty repos
+
+🤖 **Self-Improving System (WIP)**
+- BitBot self-configuration capabilities
+- Agent-driven self-improvement mechanisms
+- AI agents can help optimize their own environment
 
 ---
 
@@ -74,13 +85,26 @@ But **not** accidentally:
 
 **Windows Only:**
 - WSL2 enabled
-- PowerShell 5.1+
 
 ### Installation
 
-**Option 1: Download Release (Recommended)**
+**Recommended: Clone Release Branch (Easy Updates)**
 ```bash
-# Download latest release
+# Clone release branch for easy updates via git pull
+git clone -b release https://github.com/ManuelKugelmann/BitBot.git ~/bitbot
+cd ~/bitbot
+
+# Add to PATH (bash)
+echo 'export PATH="$HOME/bitbot:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# Update later with:
+# cd ~/bitbot && git pull
+```
+
+**Alternative: Download Release Archive**
+```bash
+# Download specific version
 wget https://github.com/ManuelKugelmann/BitBot/releases/latest/download/bitbot-v1.0.0.zip
 
 # Extract
@@ -91,35 +115,25 @@ echo 'export PATH="$HOME/bitbot:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-**Option 2: Clone Repository**
-```bash
-git clone -b release https://github.com/ManuelKugelmann/BitBot.git ~/bitbot
-cd ~/bitbot
-
-# Add to PATH (bash)
-echo 'export PATH="$HOME/bitbot:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-
-# Add to PATH (PowerShell on Windows)
-# Add ~/bitbot to your system PATH via System Properties
-```
-
 ### First Use
 
-1. **Navigate to your project:**
+1. **Initialize BitBot (one-time):**
+   ```bash
+   cd ~/bitbot
+   bitbot
+   ```
+   This runs the first-time setup wizard to configure BitBot preferences.
+
+2. **Initialize your workspace:**
    ```bash
    cd ~/Projects/MyApp
-   ```
-
-2. **Initialize workspace:**
-   ```bash
    bitbot init
    ```
    This creates a `.devcontainer/` folder with a basic Ubuntu template.
 
 3. **Start working:**
    ```bash
-   bitbot work          # Default mode (terminal or VS Code based on first-run setup)
+   bitbot work          # Default mode (terminal or VS Code based on setup)
    bitbot work vscode   # Explicitly launch in VS Code
    ```
 
@@ -264,14 +278,17 @@ bitbot/
 **Phase 2:**
 - [ ] macOS testing and packaging
 - [ ] Linux testing and packaging
-- [ ] Additional templates (Python, Go, Rust, etc.)
+- [ ] Rootless Docker template for Docker-in-Docker workflows
+- [ ] Agent steering templates for different workloads (code, docs, testing)
 - [ ] Hash matching for CLI-built containers with VS Code
 
 **Phase 3:**
+- [ ] VM containers for enhanced isolation
+- [ ] BitBot self-configuration capabilities
+- [ ] Agent-driven self-improvement mechanisms
 - [ ] Multi-container orchestration (Docker Compose)
 - [ ] MCP service architecture
 - [ ] Session management (tmux)
-- [ ] Workspace cloning from Git repos
 
 **Future:**
 - [ ] Cloud integration (GitHub Codespaces)
@@ -284,9 +301,9 @@ bitbot/
 
 ### Windows
 
-BitBot uses a minimal Alpine WSL distro (~8MB) for cross-platform consistency:
-- **No Docker CLI in WSL** (avoids WSL corruption issues)
-- **No Node.js in WSL** (only needed for VS Code Server)
+BitBot uses a minimal isolated Alpine WSL distro (~8MB) for cross-platform consistency:
+- Isolated environment separate from your main WSL distribution
+- Minimal footprint with only essential tools (bash, git, coreutils)
 - Uses Windows interop to call `code.exe`
 
 Installation creates `BitBot-Alpine` WSL distro automatically.
