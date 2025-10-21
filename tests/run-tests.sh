@@ -133,7 +133,15 @@ run_test "Prerequisites Check" \
 run_test "Workspace Initialization" \
     "${SCRIPT_DIR}/test-workspace-init.sh"
 
-# Test 3: Integration tests (skipped in quick mode)
+# Test 3: BitBot Commands
+run_test "BitBot Commands" \
+    "${SCRIPT_DIR}/test-bitbot-commands.sh"
+
+# Test 4: Platform Detection
+run_test "Platform Detection" \
+    "${SCRIPT_DIR}/test-platform-detection.sh"
+
+# Test 5: Integration tests (skipped in quick mode)
 if [[ "$QUICK" == "true" ]]; then
     run_test "Full Integration Test" \
         "${SCRIPT_DIR}/test-integration.sh" \

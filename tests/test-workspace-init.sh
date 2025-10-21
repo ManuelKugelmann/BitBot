@@ -9,6 +9,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BITBOT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEST_WORKSPACE="$SCRIPT_DIR/test-workspace"
 
+# Export BITBOT_HOME for library functions
+export BITBOT_HOME="$BITBOT_ROOT"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
