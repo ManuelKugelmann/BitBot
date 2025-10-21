@@ -174,10 +174,142 @@ END FUNCTION
 
 ---
 
+## DevContainer CLI Wrapper Functions
+
+```pseudocode
+FUNCTION devcontainer_up(workspace_path):
+    # Launch devcontainer using workspace's .devcontainer/
+
+    # Determine devcontainer binary (.cmd on Windows/WSL)
+    IF platform == "windows" OR platform == "wsl":
+        SET devcontainer_bin = "devcontainer.cmd"
+    ELSE:
+        SET devcontainer_bin = "devcontainer"
+    END IF
+
+    # Get UID/GID for file permissions
+    CALL get_uid_gid() → host_uid, host_gid
+
+    # Build command
+    SET command = [
+        devcontainer_bin,
+        "up",
+        "--workspace-folder", workspace_path,
+        "--remove-existing-container",
+        "--remote-env", "BITBOT_MODE=work",
+        "--remote-env", "BITBOT_UID=" + host_uid,
+        "--remote-env", "BITBOT_GID=" + host_gid
+    ]
+
+    PRINT "[>] Building and starting devcontainer..."
+    EXECUTE command
+
+    IF exit_code != 0:
+        ERROR "Failed to launch devcontainer"
+        EXIT 1
+    END IF
+
+    PRINT "[+] Devcontainer launched"
+
+    # Attach to container with tmux
+    CALL devcontainer_exec_tmux(workspace_path, "work")
+END FUNCTION
+
+FUNCTION devcontainer_up_with_config(config_devcontainer_path, env_vars):
+    # Launch devcontainer using global config with workspace path as env var
+
+    # Determine devcontainer binary
+    IF platform == "windows" OR platform == "wsl":
+        SET devcontainer_bin = "devcontainer.cmd"
+    ELSE:
+        SET devcontainer_bin = "devcontainer"
+    END IF
+
+    # Get UID/GID
+    CALL get_uid_gid() → host_uid, host_gid
+
+    # Build command with env vars
+    SET command = [
+        devcontainer_bin,
+        "up",
+        "--config", config_devcontainer_path,
+        "--remove-existing-container"
+    ]
+
+    # Add environment variables
+    APPEND "--remote-env" to command
+    APPEND "BITBOT_MODE=config" to command
+
+    APPEND "--remote-env" to command
+    APPEND "BITBOT_UID=" + host_uid to command
+
+    APPEND "--remote-env" to command
+    APPEND "BITBOT_GID=" + host_gid to command
+
+    FOR EACH key, value IN env_vars:
+        APPEND "--remote-env" to command
+        APPEND key + "=" + value to command
+    END FOR
+
+    PRINT "[>] Building and starting config devcontainer..."
+    EXECUTE command
+
+    IF exit_code != 0:
+        ERROR "Failed to launch config devcontainer"
+        EXIT 1
+    END IF
+
+    PRINT "[+] Config devcontainer launched"
+
+    # Attach to container with tmux
+    CALL devcontainer_exec_tmux_with_config(config_devcontainer_path, "config")
+END FUNCTION
+
+FUNCTION devcontainer_exec_tmux(workspace_path, session_name):
+    # Execute tmux inside devcontainer (attach or create)
+
+    IF platform == "windows" OR platform == "wsl":
+        SET devcontainer_bin = "devcontainer.cmd"
+    ELSE:
+        SET devcontainer_bin = "devcontainer"
+    END IF
+
+    SET command = [
+        devcontainer_bin,
+        "exec",
+        "--workspace-folder", workspace_path,
+        "tmux", "new-session", "-A", "-s", session_name
+    ]
+
+    EXECUTE command
+END FUNCTION
+
+FUNCTION devcontainer_exec_tmux_with_config(config_path, session_name):
+    # Execute tmux inside config devcontainer
+
+    IF platform == "windows" OR platform == "wsl":
+        SET devcontainer_bin = "devcontainer.cmd"
+    ELSE:
+        SET devcontainer_bin = "devcontainer"
+    END IF
+
+    SET command = [
+        devcontainer_bin,
+        "exec",
+        "--config", config_path,
+        "tmux", "new-session", "-A", "-s", session_name
+    ]
+
+    EXECUTE command
+END FUNCTION
+```
+
+---
+
 ## Implementation Notes (MVP Simplified)
 
 **Key Simplifications**:
-- Setup mode is just another devcontainer (no approval flow)
+- Config mode is just another devcontainer (no approval flow)
 - No `--allow-socket` or `--reason` flags
 - No approval tracking or audit logging
 - Git warnings only (non-blocking for both modes)
@@ -185,23 +317,23 @@ END FUNCTION
 
 **Mode Differences**:
 - **Work**: Uses workspace's `.devcontainer/` + RO bind mount for .devcontainer folder
-- **Setup**: Uses global `~/.bitbot/setup-devcontainer/` + no RO mount = RW by default
-- Setup devcontainer: AI agent tuned for devcontainer/infrastructure docs
+- **Config**: Uses global `~/.bitbot/config-devcontainer/` + no RO mount = RW by default
+- Config devcontainer: AI agent tuned for devcontainer/infrastructure docs
 
 **File Locations**:
 - Work config: `<workspace>/.devcontainer/devcontainer.json`
-- Setup config: `~/.bitbot/setup-devcontainer/devcontainer.json`
+- Config config: `~/.bitbot/config-devcontainer/devcontainer.json`
 - Both mount workspace at: `/workspace`
 
 **Security (Simplified)**:
 - Work mode: `.devcontainer` folder read-only via explicit bind mount
-- Setup mode: `.devcontainer` folder writable (no RO mount)
+- Config mode: `.devcontainer` folder writable (no RO mount)
 - Both modes: Git warnings for uncommitted changes (non-blocking)
 - No docker socket mounting needed (devcontainer CLI handles it)
 
 **User Experience**:
-- Simple: `bitbot work` or `bitbot setup`
-- No flags required for setup
+- Simple: `bitbot work` or `bitbot config`
+- No flags required for config
 - Clear mode indication in shell prompt
 - Git warnings help prevent accidents
 
@@ -210,8 +342,9 @@ END FUNCTION
 - Audit logging (`.bitbot/audit.log`)
 - Strict git checks (blocking mode)
 - `bitbot done` workflow
-- Setup mode approval prompts
+- Config mode approval prompts
 
-**Next Steps**:
-- Container launch implementation (03_container-launch.md)
-- First-run simplified (06_first-run.md)
+**Dependencies**:
+- Uses `lib/uid-sync.md` for get_uid_gid()
+- Uses `lib/helpers.md` for file/directory operations
+- Uses `lib/detect.md` for validate_workspace()
