@@ -98,6 +98,12 @@ check_docker() {
         if [[ "$should_start" == "yes" ]]; then
             if start_docker; then
                 print_success "Docker started"
+
+                # After starting Docker, check WSL integration (WSL only)
+                if ! check_docker_wsl_integration; then
+                    return 1
+                fi
+
                 return 0
             else
                 print_error "Failed to start Docker"
@@ -109,6 +115,11 @@ check_docker() {
             echo "Please start Docker Desktop manually and try again"
             return 1
         fi
+    fi
+
+    # Docker is running - still check WSL integration (WSL only)
+    if ! check_docker_wsl_integration; then
+        return 1
     fi
 
     # Check Docker Compose v2 (quick check)
@@ -201,6 +212,90 @@ start_docker() {
 docker_is_running() {
     # Check if Docker daemon is accessible
     docker ps &>/dev/null 2>&1
+}
+
+check_docker_wsl_integration() {
+    # Check if Docker WSL integration is configured (WSL only)
+    # If not, offer to configure it automatically
+    # Returns: 0 if Docker accessible or integration configured, 1 on failure
+
+    local platform
+    platform=$(detect_platform)
+
+    # Only check on WSL
+    if [[ "$platform" != "wsl" ]]; then
+        return 0
+    fi
+
+    # Try docker command
+    if docker ps &>/dev/null 2>&1; then
+        return 0  # Docker works, all good
+    fi
+
+    # Check the error
+    local error
+    error=$(docker ps 2>&1)
+
+    # Check if it's a WSL integration issue
+    if echo "$error" | grep -q "Cannot connect to the Docker daemon"; then
+        echo ""
+        print_warning "Docker WSL Integration not configured"
+        echo ""
+        echo "BitBot needs Docker Desktop WSL integration enabled."
+        echo ""
+        echo "This is a one-time setup that will:"
+        echo "  - Stop Docker Desktop"
+        echo "  - Enable ${WSL_DISTRO_NAME:-Ubuntu} in Docker settings"
+        echo "  - Restart Docker Desktop (~30 seconds)"
+        echo ""
+
+        local should_setup
+        should_setup=$(prompt_yes_no "Enable Docker WSL integration now?" "yes")
+
+        if [[ "$should_setup" == "yes" ]]; then
+            # Get BitBot install directory
+            local bitbot_install
+            bitbot_install=$(get_bitbot_install_dir)
+
+            local setup_script="${bitbot_install}/tests/helpers/enable-docker-wsl-integration.sh"
+
+            if [[ ! -f "$setup_script" ]]; then
+                print_error "Setup script not found: $setup_script"
+                echo ""
+                echo "Manual setup:"
+                echo "  1. Open Docker Desktop"
+                echo "  2. Settings → Resources → WSL Integration"
+                echo "  3. Enable your WSL distribution"
+                echo "  4. Apply & Restart"
+                echo ""
+                return 1
+            fi
+
+            # Run setup script
+            echo ""
+            if bash "$setup_script" "${WSL_DISTRO_NAME:-Ubuntu}"; then
+                echo ""
+                print_success "Docker WSL integration configured"
+                return 0
+            else
+                print_error "Failed to configure Docker WSL integration"
+                return 1
+            fi
+        else
+            echo ""
+            echo "Manual setup required:"
+            echo "  1. Open Docker Desktop"
+            echo "  2. Settings → Resources → WSL Integration"
+            echo "  3. Enable your WSL distribution"
+            echo "  4. Apply & Restart"
+            echo ""
+            return 1
+        fi
+    fi
+
+    # Other error
+    print_error "Docker error: $error"
+    return 1
 }
 
 # ============================================================================
