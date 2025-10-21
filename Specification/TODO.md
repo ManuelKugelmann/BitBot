@@ -26,102 +26,69 @@ This document tracks specification items that need clarification, enhancement, o
 
 ---
 
-## 🔴 High Priority TODO Items
+### 2. User ID (UID/GID) Synchronization Strategy ✅
+**Status**: **FULLY ADDRESSED** in SPEC-02 Section 1.3
+**Completed**: 2025-10-20
 
-### 2. User ID (UID/GID) Synchronization Strategy 🔴
-**Status**: **NOT DOCUMENTED** (Decision needed)
-**Priority**: P1 (High - Affects container design)
+**Decision**: Synced UID/GID (host UID = container UID)
 
-**Issue**:
-- Standard devcontainer practice: Sync container UID/GID with host user
-- BitBot approach: Static UIDs (2001=sketch, 2002=work, 2003=setup)
-- Potential conflict between approaches
+**Rationale**:
+- Seamless file permissions between host and container
+- No ownership mismatches on workspace files
+- Standard devcontainer practice (VS Code compatible)
+- Security via mount restrictions (not UID separation)
 
-**Required Documentation**:
-1. **Explicit decision statement** in SPEC-02 (Security Mode System)
-2. **Justification** for choosing static UIDs over synchronized UIDs
-3. **Trade-offs analysis**:
-   - ✅ Static UIDs: Clear security separation, predictable permissions
-   - ❌ Static UIDs: File ownership mismatches on host
-   - ✅ Synced UIDs: Seamless file permissions
-   - ❌ Synced UIDs: Breaks multi-mode security model (all modes run as same UID)
+**Trade-offs**:
+- All modes run as same UID (no UID-based isolation)
+- Rejected static UIDs: File ownership complexity outweighs security benefit
+- Security achieved through mount flags and git protection instead
 
-**Recommendation**:
-BitBot should use **static UIDs** because:
-- Core security model depends on different UIDs for different modes
-- Workspace state isolation relies on UID-based separation
-- File permission issues can be mitigated with proper volume mounts and bind mount options
-- Alternative: Document hybrid approach (synced UID for work mode, different UIDs for sketch/setup)
-
-**Files to Update**:
-- `Specification/02_SECURITY_MODE_SYSTEM.md` - Add section "D. UID/GID Strategy"
-- `Specification/01_CONTAINER_ORCHESTRATION_STRATEGY.md` - Update container user configs
-
-**Decision Needed**: Confirm static UID approach and add justification to specs
+**Reference**: `Specification/02_SECURITY_MODE_SYSTEM.md` Section 1.3
 
 ---
 
-### 3. CLI Workspace Detection Logic 🔴
-**Status**: **PARTIALLY DOCUMENTED** (Needs detailed flow)
-**Priority**: P1 (High - Affects CLI UX)
+### 3. CLI Workspace Detection Logic ✅
+**Status**: **SIMPLIFIED FOR MVP** in SPEC-09 Part B
+**Completed**: 2025-10-20
+**Updated**: 2025-10-21 (MVP simplification)
 
-**Issue**:
-Current specs mention `.bitbot/` directory and "workspace not initialized" errors, but don't document the discovery logic.
+**MVP Decision**: CWD only (no parent directory search)
 
-**Required Documentation**:
-
-**Workspace Discovery Algorithm**:
+**Workspace Discovery Algorithm** (MVP):
 ```bash
 # When `bitbot` command is run:
 
-1. Check current directory for `.bitbot/`
+1. Check current directory (CWD) for `.bitbot/`
    ↓ Found → Use this workspace
    ↓ Not found → Continue
 
-2. Walk up directory tree (parent → grandparent → ...)
-   ↓ Found `.bitbot/` in parent → Prompt user
-   ↓ Not found → Continue
-
-3. Reached filesystem root without finding `.bitbot/`
-   ↓ Check ~/.bitbot/first-run marker
-   ↓ If first run → Launch first-run wizard (SPEC-09)
-   ↓ If not first run → Prompt for workspace initialization
-
-# User prompts:
-
-Scenario A: Found `.bitbot/` in parent directory
-  "Found BitBot workspace in: /home/user/projects/
-   Use this workspace? [Y/n]"
-   → Yes: cd to parent, use that workspace
-   → No: Initialize new workspace in current directory
-
-Scenario B: No workspace found
-  "No BitBot workspace found.
-   Initialize workspace here? (/home/user/projects/subfolder)
-   [Y/n]"
-   → Yes: Run `bitbot init` (SPEC-08)
+2. No workspace found in CWD
+   → Prompt to initialize workspace
+   → Yes: Run `bitbot init`
    → No: Exit with code 4
-
-Scenario C: Multiple `.bitbot/` in hierarchy
-  "Found multiple BitBot workspaces:
-   1. /home/user/projects/.bitbot
-   2. /home/user/.bitbot
-   Which workspace? [1/2]"
 ```
 
-**Edge Cases to Document**:
-- Symlinks in path (follow or ignore?)
-- Multiple `.bitbot/` directories in hierarchy
-- Workspace in `/tmp` or other temporary locations (warn user?)
-- Workspace on different filesystem/mount (permission issues?)
-- Non-interactive mode behavior (`--workspace` required)
+**MVP Simplifications**:
+- ✅ CWD-only detection (no parent directory walk-up)
+- ✅ No `--workspace <path>` flag
+- ✅ Prompt for init if not found
 
-**Files to Update**:
-- `Specification/09_CLI_UX_AND_ONBOARDING.md` - Add section "B0. Workspace Discovery" before command reference
-- `Specification/08_WORKSPACE_MANAGEMENT.md` - Update "Workspace Initialization" to reference discovery logic
-- `Specification/05_CROSS_PLATFORM_CLI.md` - Add workspace discovery to `bitbot-core.sh` implementation
+**Future Features** (Post-MVP):
+- Parent directory search with confirmation prompt
+- `--workspace <path>` flag to override detection
+- Multiple .bitbot/ resolution in hierarchy
+- Non-interactive mode with required flags
 
-**Implementation Phase**: Phase 2 (Core Commands) in SPEC-09
+**Edge Cases Handled** (MVP):
+- ✅ Symlinks in path (follow to canonical path)
+- ✅ Workspace in `/tmp` (allow with warning)
+- ✅ Different filesystem/mount (allow)
+
+**Reference**: `Specification/09_CLI_UX_AND_ONBOARDING.md` Part B (Workspace Discovery)
+
+---
+
+## 🔴 High Priority TODO Items
 
 ---
 
