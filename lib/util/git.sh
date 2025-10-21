@@ -9,10 +9,9 @@
 #
 
 # Source helpers (if not already sourced)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -z "${BITBOT_HELPERS_LOADED:-}" ]]; then
     # shellcheck source=./helpers.sh
-    source "${SCRIPT_DIR}/helpers.sh"
+    source "${BITBOT_HOME}/lib/util/helpers.sh"
     BITBOT_HELPERS_LOADED=1
 fi
 
