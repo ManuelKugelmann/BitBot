@@ -1,0 +1,29 @@
+{
+  "name": "BitBot Config Mode",
+  "dockerFile": "Dockerfile",
+
+  "workspaceFolder": "/workspace",
+
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+  ],
+
+  "remoteUser": "root",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode-remote.remote-containers",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "files.associations": {
+          "devcontainer.json": "jsonc",
+          "Dockerfile": "dockerfile"
+        }
+      }
+    }
+  }
+}

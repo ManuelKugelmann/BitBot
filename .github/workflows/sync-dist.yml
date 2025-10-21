@@ -5,8 +5,12 @@ on:
     branches:
       - trunk
     paths:
-      - 'bitbot.exe'
       - 'bitbot'
+      - 'bitbot.exe'
+      - 'bitbot.cmd'
+      - 'lib/**'
+      - 'templates/**'
+      - 'config-devcontainer/**'
       - 'README.md'
       - 'LICENSE'
   workflow_dispatch:
@@ -46,7 +50,16 @@ jobs:
 
           # Copy release files from trunk
           echo "Copying release files..."
-          git checkout trunk -- bitbot.exe bitbot README.md LICENSE 2>/dev/null || echo "Some files may not exist yet"
+          git checkout trunk -- \
+            bitbot \
+            bitbot.exe \
+            bitbot.cmd \
+            lib \
+            templates \
+            config-devcontainer \
+            README.md \
+            LICENSE \
+            2>/dev/null || echo "Some files may not exist yet"
 
           # Create release-specific .gitignore
           cat > .gitignore << 'EOF'

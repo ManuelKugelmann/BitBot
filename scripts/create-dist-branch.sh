@@ -49,7 +49,16 @@ git rm -rf . 2>/dev/null || true
 
 echo "→ Copying release files..."
 # Copy files from working directory (they're still there, just unstaged)
-git checkout "$TRUNK_BRANCH" -- bitbot.exe bitbot README.md LICENSE 2>/dev/null || {
+git checkout "$TRUNK_BRANCH" -- \
+    bitbot \
+    bitbot.exe \
+    bitbot.cmd \
+    lib \
+    templates \
+    config-devcontainer \
+    README.md \
+    LICENSE \
+    2>/dev/null || {
     echo "  ⚠ Warning: Some release files may not exist yet"
 }
 

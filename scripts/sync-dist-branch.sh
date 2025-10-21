@@ -19,8 +19,12 @@ echo
 
 # List of files/folders to include in release
 RELEASE_FILES=(
-    "bitbot.exe"
     "bitbot"
+    "bitbot.exe"
+    "bitbot.cmd"
+    "lib"
+    "templates"
+    "config-devcontainer"
     "README.md"
     "LICENSE"
 )
