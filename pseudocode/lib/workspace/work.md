@@ -9,7 +9,7 @@
 ## Overview
 
 ```
-bitbot work [vscode] → Validate workspace → Git warning → Launch work devcontainer
+bitbot work [vscode] → Validate workspace → Git push recommendation → Launch work devcontainer
 ```
 
 **Work Mode**: Uses workspace's `.devcontainer/` with RO bind mount for .devcontainer
@@ -24,11 +24,8 @@ FUNCTION bitbot_work(args):
 
     SET workspace_path = get_current_directory()
 
-    # Check for vscode modifier
-    SET use_vscode = false
-    IF "vscode" IN args:
-        SET use_vscode = true
-    END IF
+    # Determine launch mode: check args, then global config default
+    SET use_vscode = get_launch_mode_preference(args)
 
     # Validate workspace
     IF NOT validate_workspace(workspace_path):
@@ -36,22 +33,63 @@ FUNCTION bitbot_work(args):
         EXIT 4
     END IF
 
-    # Git safety warning (non-blocking)
-    CALL check_git_uncommitted(workspace_path) → has_uncommitted
+    # Git push recommendation (non-blocking with skip options)
+    # From lib/util/git.md
+    CALL recommend_git_push_before_init(workspace_path)
 
-    IF has_uncommitted:
-        WARN "[!] Uncommitted changes detected"
-        PRINT "    Recommendation: Commit before making changes"
-        PRINT ""
+    # Git safety checks (public repo warnings)
+    # From lib/util/git.md
+    CALL check_git_safety(workspace_path)
+
+    IF use_vscode:
+        PRINT "[>] Launching work mode in VS Code..."
+    ELSE:
+        PRINT "[>] Launching work mode in terminal..."
     END IF
-
-    PRINT "[>] Launching work mode..."
 
     # Launch work devcontainer
     IF use_vscode:
         CALL launch_work_via_vscode(workspace_path)
     ELSE:
         CALL launch_work_via_devcontainer_cli(workspace_path)
+    END IF
+END FUNCTION
+```
+
+---
+
+## Get Launch Mode Preference
+
+```pseudocode
+FUNCTION get_launch_mode_preference(args) → boolean:
+    # Determine launch mode from args or global config
+    # Returns true if should use VS Code, false for terminal
+
+    # Check for explicit flag in args (overrides default)
+    IF "--vscode" IN args OR "vscode" IN args:
+        RETURN true
+    END IF
+
+    IF "--terminal" IN args OR "terminal" IN args:
+        RETURN false
+    END IF
+
+    # No explicit flag - check global config default
+    SET bitbot_install = get_bitbot_install_dir()
+    SET config_file = bitbot_install + "/config.json"
+
+    IF NOT file_exists(config_file):
+        # No config - default to terminal
+        RETURN false
+    END IF
+
+    CALL read_json(config_file) → config
+
+    IF config.launch_mode:
+        RETURN config.launch_mode == "vscode"
+    ELSE:
+        # No default set - use terminal
+        RETURN false
     END IF
 END FUNCTION
 ```
@@ -106,15 +144,36 @@ END FUNCTION
 
 ---
 
+## Git Utilities
+
+Git recommendation and safety check functions are defined in `lib/util/git.md`:
+
+- `recommend_git_push_before_init(workspace_path)` - Recommends git setup, remote, and push with skip options
+- `check_git_safety(workspace_path)` - Warns about uncommitted changes and public repo secrets
+
+Both functions provide clear instructions and allow users to skip if needed.
+
+---
+
 ## Implementation Notes
 
-**Modifiers**:
-- `vscode` - Launch in VS Code instead of devcontainer CLI
+**Work Mode Architecture**:
+- Uses workspace `.devcontainer/devcontainer.json`
+- Workspace mounted (excluding `.bitbot/internal/`)
+- `.devcontainer/` mounted read-only for security
+- Special submounts: `.bitbot/local/.bash_history` → container bash history
+- Default shell: bash (zsh support in future, see FUTURE_FEATURES.md)
+
+**Flags**:
+- `--vscode` or `vscode` - Launch in VS Code (overrides default)
+- `--terminal` or `terminal` - Launch in terminal (overrides default)
+- No flag: Uses global config default (set during global init)
 
 **MVP Scope**:
 - Single session (auto-named)
-- Git warnings only (non-blocking)
+- Git push recommendations with skip options (non-blocking)
 - RO .devcontainer mount via bind mount in devcontainer.json
+- Workspace mount excludes `.bitbot/internal/` directory
 
 **Future**:
 - Named sessions

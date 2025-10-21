@@ -20,7 +20,7 @@ Comprehensive pseudocode for BitBot MVP implementation. Files are organized to m
 
 ```
 pseudocode/
-├── bitbot.md                    # Main router (scripts/bitbot)
+├── bitbot.md                    # Main router (bitbot)
 ├── lib/
 │   ├── global/                  # Global context commands
 │   │   ├── init.md             → scripts/lib/global/bitbot-init.sh
@@ -35,6 +35,7 @@ pseudocode/
 │   │   ├── prerequisites.md    → scripts/lib/util/prerequisites.sh
 │   │   ├── devcontainer.md     → scripts/lib/util/devcontainer.sh
 │   │   ├── detect.md           → scripts/lib/util/detect.sh
+│   │   ├── git.md              → scripts/lib/util/git.sh
 │   │   └── helpers.md          → scripts/lib/util/helpers.sh
 │   └── version.md              → scripts/lib/bitbot-version.sh
 ├── MVP_SCOPE.md                # MVP features and scope
@@ -48,7 +49,7 @@ pseudocode/
 
 ### Main Router
 **File**: `bitbot.md`
-**Script**: `scripts/bitbot`
+**Script**: `bitbot`
 **Purpose**: Entry point, context detection (global vs workspace), command routing
 
 **Key Functions**:
@@ -65,12 +66,37 @@ pseudocode/
 
 #### Global Init (lib/global/init.md)
 **Purpose**: First-run setup (run `bitbot` from install folder)
-**Creates**: ~/.bitbot/ structure, adds to PATH, sets BITBOT_HOME
-**Calls**: Global config after setup
+**Creates**: config.json in install folder, adds to PATH, sets BITBOT_HOME
+**Configures**: Default launch mode (terminal or VS Code)
+**MVP**: After init, running from install folder only validates environment
 
-#### Global Config (lib/global/config.md)
-**Purpose**: Configure global BitBot settings (reusable)
-**Manages**: ~/.bitbot/config.json, config devcontainer template
+**config.json structure** (global):
+```json
+{
+  "version": "0.1.0-mvp",
+  "created": "2025-01-15T10:30:00Z",
+  "updated": "2025-01-15T10:30:00Z",
+  "launch_mode": "vscode",              // "terminal", "vscode", or future options
+  "skip_push_recommendation": false,
+  "skip_safety_checks": false
+}
+```
+
+**Workspace config.json structure** (`.bitbot/config.json`):
+```json
+{
+  "default_mode": "work",
+  "workspace_name": "my-project",
+  "skip_push_recommendation": false,    // Override global setting
+  "skip_safety_checks": false           // Override global setting
+}
+```
+
+**Config merging**: Workspace settings override global settings (simple top-level merge)
+
+#### Global Config (lib/global/config.md) - MVP+ Future
+**Purpose**: Configure global BitBot settings (not in MVP)
+**Will manage**: Template selection, MCP configuration, AI agent defaults
 
 ---
 
@@ -79,17 +105,20 @@ pseudocode/
 #### Work Mode (lib/workspace/work.md)
 **Purpose**: Launch work devcontainer (RO .devcontainer)
 **Uses**: Workspace's `.devcontainer/` + RO bind mount
-**Modifier**: `vscode` to launch in VS Code
+**Flags**: `--vscode` or `--terminal` to override default launch mode
 
 #### Config Mode (lib/workspace/config.md)
-**Purpose**: Launch config devcontainer (RW .devcontainer)
-**Uses**: Global `~/.bitbot/config-devcontainer/` (RW by default)
-**Modifier**: `vscode` to launch in VS Code
+**Purpose**: Launch config devcontainer with AI agent (RW .devcontainer)
+**Uses**: Workspace-specific `.bitbot/internal/devcontainer.json` (references global `config-devcontainer/Dockerfile`)
+**Created**: During `bitbot init` - adjusted copy of global config devcontainer template
+**Flags**: `--vscode` or `--terminal` to override default launch mode
+**MVP**: AI agent provides guidance and help for .devcontainer setup - no wizard
 
 #### Init (lib/workspace/init.md)
 **Purpose**: Initialize new BitBot workspace
 **Creates**: `.bitbot/` structure
-**Launches**: Config mode after initialization
+**Copies**: Base .devcontainer template (if not present)
+**Launches**: Config mode after initialization (AI agent configures devcontainer)
 
 #### Help (lib/workspace/help.md)
 **Purpose**: Display workspace command help
@@ -129,10 +158,33 @@ See `lib/util/README.md` for detailed documentation.
 - `validate_workspace()` - Check workspace validity
 - `is_workspace_initialized()` - Check for .bitbot/
 
+#### Git (lib/util/git.md)
+**Purpose**: Git safety recommendations and checks
+**Functions**:
+- `recommend_git_push_before_init()` - Recommend git push before init/work/config
+- `check_git_safety()` - Warn about uncommitted changes and public repo secrets
+**Features**:
+- Three scenarios: No repo, no remote, uncommitted/unpushed changes
+- Config-based skip options (`skip_push_recommendation`, `skip_safety_checks`)
+- Non-blocking 3-choice prompts (exit and fix / skip once / skip permanently)
+- Instructions-only (no git automation)
+
 #### Helpers (lib/util/helpers.md)
-**Purpose**: Common utilities (file, JSON, path, prompts, output)
+**Purpose**: Common utilities (file, JSON, path, prompts, output, config merging)
 **Used by**: All scripts
-**Categories**: File ops, JSON ops, path ops, prompts, output formatting, timestamps
+**Categories**:
+- File ops (create, read, write, check existence)
+- JSON ops (read, write, **merge configs**)
+- Path ops (current dir, absolute, basename, dirname)
+- Prompts (yes/no, user input)
+- Output formatting
+- Timestamps
+
+**Key Functions**:
+- `merge_configs()` - Merge global + workspace configs (simple top-level merge)
+- `get_merged_workspace_config()` - Helper for workspace config merging
+- `update_workspace_config()` - Update specific config key (for saving user preferences)
+- `prompt_choice()` - Multi-choice prompt helper (numbered choices)
 
 ---
 
@@ -156,8 +208,8 @@ See `lib/util/README.md` for detailed documentation.
 | `bitbot version` | Version + dependency status | Universal |
 
 **Global context commands** (run from BitBot install folder):
-- First run: Global init (adds to PATH, creates ~/.bitbot/)
-- Subsequent: Global config or serve (future)
+- First run: Global init (creates config.json, adds to PATH, sets BITBOT_HOME)
+- Subsequent: Environment validation only (MVP+: config and serve commands)
 
 ---
 
@@ -193,10 +245,48 @@ All scripts use:
 - **macOS**: Native support
 - **Windows**: Via WSL (not native) for cross-platform simplicity
 
+### Portable Installation
+- **Self-contained**: BitBot folder can be moved anywhere, everything stays in install folder
+- **No ~/.bitbot/ directory**: All files including config.json are in the installation folder
+- **No absolute paths**: config.json doesn't store install location
+- **Auto-detection**: Detects when folder is moved and offers to update PATH/env
+- **Environment validation**: All global commands validate and fix environment
+- **WSL support**: Updates both WSL shell config AND Windows environment variables
+  - Automatically converts WSL paths to Windows paths (e.g., /mnt/c/... → C:\...)
+  - Uses PowerShell to set BITBOT_HOME and PATH in Windows User environment
+  - Falls back to manual instructions if PowerShell not accessible
+
+### DevContainer Template System
+- **Base template**: Global `devcontainer-template/` provides minimal working config
+- **Config devcontainer**:
+  - Global `config-devcontainer/` contains Dockerfile and resources for AI agent setup
+  - Each workspace gets `.bitbot/internal/devcontainer.json` (adjusted copy referencing global Dockerfile)
+  - Created during `bitbot init` with workspace-specific mount configuration
+- **AI-guided setup**: No interactive wizard in MVP - AI agent provides guidance and help
+- **Template copying**: Workspace init copies base template if .devcontainer missing
+- **AI agent capabilities**:
+  - Runs in devcontainer with tools for devcontainer configuration
+  - Provides guidance to configure .devcontainer for your tech stack
+  - Helps set up development tools and dependencies
+  - Parallel testing: Open another terminal and run `bitbot work` to test workspace devcontainer while config mode is running
+- **Exit**: Close VS Code or terminal to finish config mode
+
 ### UID/GID Synchronization
 - **Handled by**: DevContainer CLI natively
 - **Method**: `updateRemoteUserUID: true` + `common-utils` feature
 - **No manual sync**: No bash UID sync scripts needed
+
+### Shell History Persistence (Bash)
+- **MVP uses bash as default shell** (universal compatibility, pre-installed on all Linux distributions)
+- **Work mode history**: `.bitbot/local/.bash_history`
+- **Config mode history**: `.bitbot/internal/local/.bash_history`
+- **Separate histories per mode**: Work and config have different contexts (development vs setup)
+- **DevContainer configuration**: Sets `HISTFILE` environment variable
+  - Configured in `remoteEnv` section of devcontainer.json
+  - Work mode: `"HISTFILE": "/workspace/.bitbot/local/.bash_history"`
+  - Config mode: `"HISTFILE": "/workspace/.bitbot/internal/local/.bash_history"`
+- **Persistence**: History files persist across container rebuilds via host mounts
+- **Future enhancement**: Zsh support with separate `.zsh_history` files (see FUTURE_FEATURES.md)
 
 ### Dependency Checking
 - **Runtime**: Validates dependencies at every command invocation
@@ -204,10 +294,35 @@ All scripts use:
 - **WSL**: Special Docker integration setup assistance
 - **Display**: Comprehensive status in `bitbot version`
 
+### Config Merging System
+- **Two-level config**: Global (`{INSTALL}/config.json`) + Workspace (`.bitbot/config.json`)
+- **Merge strategy**: Workspace overrides global (simple top-level merge)
+- **No dependencies**: Pure bash implementation, no external tools required
+- **Settings**:
+  - `launch_mode` - Launch mode: "terminal", "vscode", etc. (global default, workspace can override)
+  - `skip_push_recommendation` - Disable git push prompts (global or per-workspace)
+  - `skip_safety_checks` - Disable git safety warnings (global or per-workspace)
+- **Use case**: Set global defaults, override for specific projects
+- **Implementation**: `get_merged_workspace_config()` in lib/util/helpers.md
+
+### Mount Structure
+- **Work mode**:
+  - Workspace mounted (excluding `.bitbot/internal/`)
+  - `.devcontainer/` mounted read-only for security
+  - Special submounts: `.bitbot/local/.bash_history` → container bash history
+- **Config mode**:
+  - Workspace mounted (excluding `.bitbot/internal/`)
+  - `.devcontainer/` writable (can be edited)
+  - Special submounts: `.bitbot/internal/local/.bash_history` → container bash history
+- **Exclusions**:
+  - `.bitbot/internal/` never mounted in containers (contains config mode devcontainer.json on host)
+  - Each mode has separate bash history and local data
+- **Default shell**: bash (MVP), zsh support in future (see FUTURE_FEATURES.md)
+
 ### Security Model
 - **Work mode**: Workspace's .devcontainer (RO bind mount)
-- **Config mode**: Global devcontainer (RW .devcontainer by default)
-- **Git safety**: Non-blocking warnings (both modes)
+- **Config mode**: Uses `.bitbot/internal/devcontainer.json` (references global Dockerfile, RW workspace)
+- **Git safety**: Non-blocking warnings (both modes), configurable via `skip_*` settings
 - **Simplified**: No approval flow or audit logging in MVP
 
 ### Session Management
@@ -223,7 +338,7 @@ All scripts use:
 1. Shared utilities (lib/util/*.sh)
    - helpers.sh, detect.sh, prerequisites.sh, devcontainer.sh
 2. Global init (lib/global/bitbot-init.sh)
-3. CLI entry (scripts/bitbot)
+3. CLI entry (bitbot)
 
 ### Week 2: Commands
 4. Work mode (lib/workspace/bitbot-work.sh)
@@ -321,7 +436,7 @@ All scripts use:
 
 2. **DevContainer Configurations**
    - Work mode devcontainer.json (RO mount)
-   - Config mode devcontainer.json (global template)
+   - Config mode devcontainer.json (workspace-specific, references global Dockerfile)
    - Feature configuration (common-utils for UID sync)
 
 3. **Testing Framework**
@@ -364,4 +479,4 @@ When modifying pseudocode:
 **Next Phase**: Bash script implementation (Phase 3)
 **Platform**: Linux, macOS, Windows (via WSL)
 **Commands**: 6 total
-**Scripts**: 13 total (1 main + 12 lib)
+**Scripts**: 14 total (1 main + 13 lib)

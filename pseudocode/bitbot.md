@@ -29,23 +29,53 @@ FUNCTION main(args):
     # Set up error handling
     CALL setup_error_handlers()
 
-    # Check for first-run
-    IF NOT file_exists("~/.bitbot/first-run"):
-        CALL first_run_wizard()
-        RETURN
-    END IF
+    # Detect context: global (install folder) vs workspace (project folder)
+    SET bitbot_install = get_bitbot_install_dir()
+    SET cwd = get_current_directory()
 
-    # Detect workspace (unless command doesn't need it)
-    IF command NOT IN ["help", "version", "doctor"]:
-        CALL detect_workspace(options) → workspace_path
+    IF cwd == bitbot_install:
+        # GLOBAL CONTEXT: Running from BitBot install folder
+        IF NOT file_exists(bitbot_install + "/config.json"):
+            # First run - no config.json → run global init
+            CALL run_global_init()  # From lib/global/init.md
+            RETURN
+        ELSE:
+            # Subsequent run from install folder → validate environment
+            CALL validate_global_environment()  # From lib/global/init.md
+            RETURN
+        END IF
+    ELSE:
+        # WORKSPACE CONTEXT: Running from project folder
 
-        IF workspace_path is NULL AND command != "init":
-            ERROR "No workspace found. Run 'bitbot init' to create one."
-            EXIT 4
+        # Check if workspace is initialized
+        IF NOT directory_exists(cwd + "/.bitbot"):
+            # Workspace not initialized
+            IF command == "" OR command == "work":
+                # Running bare "bitbot" or "bitbot work" in uninitialized workspace
+                # Offer to initialize
+                PRINT "[!] Workspace not initialized in: " + cwd
+                PRINT ""
+                CALL prompt_yes_no("Initialize workspace now?", "yes") → should_init
+
+                IF should_init:
+                    CALL initialize_workspace_in(cwd)  # From lib/workspace/init.md
+                    PRINT ""
+                    PRINT "Workspace initialized! Run 'bitbot work' to start."
+                    RETURN
+                ELSE:
+                    PRINT ""
+                    PRINT "To initialize later, run: bitbot init"
+                    EXIT 4
+                END IF
+            ELSE IF command != "init" AND command NOT IN ["help", "version"]:
+                # Other commands require initialized workspace
+                ERROR "Workspace not initialized. Run 'bitbot init' first."
+                EXIT 4
+            END IF
         END IF
 
         # Set global workspace path
-        SET WORKSPACE_PATH = workspace_path
+        SET WORKSPACE_PATH = cwd
     END IF
 
     # Route to host commands
@@ -176,8 +206,8 @@ FUNCTION initialize_workspace_command(options):
 
     PRINT ""
     PRINT "Next steps:"
-    PRINT "  bitbot work      # Launch work mode"
-    PRINT "  bitbot vscode    # Launch VS Code"
+    PRINT "  bitbot work      # Launch work mode (uses your default: terminal or VS Code)"
+    PRINT "  bitbot config    # Edit .devcontainer configuration"
 END FUNCTION
 ```
 
@@ -203,12 +233,19 @@ FUNCTION show_help():
     PRINT "  work   - Development work (.devcontainer is read-only)"
     PRINT "  config - Edit .devcontainer and infrastructure"
     PRINT ""
+    PRINT "Flags:"
+    PRINT "  --vscode             Launch in VS Code (overrides default)"
+    PRINT "  --terminal           Launch in terminal (overrides default)"
+    PRINT ""
     PRINT "Examples:"
-    PRINT "  bitbot               # Launch work mode"
-    PRINT "  bitbot work          # Launch work mode"
-    PRINT "  bitbot config        # Edit devcontainer configuration"
-    PRINT "  bitbot vscode        # Launch VS Code"
+    PRINT "  bitbot               # Launch work mode (uses default from global config)"
+    PRINT "  bitbot work          # Launch work mode (uses default)"
+    PRINT "  bitbot work --vscode # Launch work mode in VS Code"
+    PRINT "  bitbot config        # Launch config mode (uses default)"
     PRINT "  bitbot init          # Initialize workspace"
+    PRINT ""
+    PRINT "Note: Default launch mode (terminal/vscode) is set during global init."
+    PRINT "      Use --vscode or --terminal flags to override the default."
     PRINT ""
     PRINT "For more info, see: https://docs.bitbot.dev/"
 END FUNCTION
@@ -299,94 +336,129 @@ EXIT_LOCK_FAILED = 5       # Could not acquire lock
 - CWD-only workspace detection (no parent search)
 
 **Modular Script Implementation**:
-Main script (`scripts/bitbot`) routes to global or workspace commands:
+Main script (`bitbot` in install root) routes to global or workspace commands:
 ```bash
 #!/bin/bash
 # Main entry - routes to global or workspace commands
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BITBOT_ROOT="$(dirname "$SCRIPT_DIR")"
+BITBOT_ROOT="$SCRIPT_DIR"  # bitbot script is in install root
 
 # Detect context: global (install folder) vs workspace (project folder)
 if [[ "$PWD" == "$BITBOT_ROOT" ]]; then
     # Running from BitBot install folder → global context
-    if [[ ! -f ~/.bitbot/first-run ]]; then
-        # First run → global init
-        source "$SCRIPT_DIR/global/bitbot-init.sh"
-        bitbot_global_init "$@"
+    if [[ ! -f "$BITBOT_ROOT/config.json" ]]; then
+        # First run - no config.json → global init
+        source "$BITBOT_ROOT/lib/global/init.sh"
+        run_global_init "$@"
     else
-        # Subsequent runs → future: global MCP launch
-        echo "Global MCP compose (future feature)"
-        echo "For workspace commands, run 'bitbot' from a project folder"
+        # Subsequent runs from install folder → validate environment
+        source "$BITBOT_ROOT/lib/global/init.sh"
+        validate_global_environment
+        echo ""
+        echo "To use BitBot, navigate to a project and run:"
+        echo "  cd ~/my-project"
+        echo "  bitbot init    # Initialize workspace"
+        echo "  bitbot work    # Start working"
     fi
 else
     # Workspace context - route to workspace commands
     COMMAND="${1:-work}"  # Default to work
     shift || true
 
+    # Check if workspace is initialized
+    if [[ ! -d "$PWD/.bitbot" ]]; then
+        # Workspace not initialized
+        if [[ "$COMMAND" == "work" ]] || [[ -z "$COMMAND" ]]; then
+            # Offer to initialize
+            echo "[!] Workspace not initialized in: $PWD"
+            echo ""
+            read -p "Initialize workspace now? (Y/n): " -n 1 -r
+            echo ""
+            if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+                source "$BITBOT_ROOT/lib/workspace/init.sh"
+                initialize_workspace_in "$PWD"
+                echo ""
+                echo "Workspace initialized! Run 'bitbot work' to start."
+                exit 0
+            else
+                echo ""
+                echo "To initialize later, run: bitbot init"
+                exit 4
+            fi
+        elif [[ "$COMMAND" != "init" ]] && [[ "$COMMAND" != "help" ]] && [[ "$COMMAND" != "version" ]]; then
+            echo "ERROR: Workspace not initialized. Run 'bitbot init' first."
+            exit 4
+        fi
+    fi
+
     case "$COMMAND" in
         work|config|vscode|init)
-            source "$SCRIPT_DIR/workspace/bitbot-$COMMAND.sh"
+            source "$BITBOT_ROOT/lib/workspace/$COMMAND.sh"
             bitbot_$COMMAND "$@"
             ;;
         help|--help|-h)
-            source "$SCRIPT_DIR/workspace/bitbot-help.sh"
+            source "$BITBOT_ROOT/lib/workspace/help.sh"
             bitbot_help
+            ;;
+        version|--version|-v)
+            source "$BITBOT_ROOT/lib/util/version.sh"
+            bitbot_version
             ;;
         *)
             echo "Unknown command: $COMMAND"
-            source "$SCRIPT_DIR/workspace/bitbot-help.sh"
+            source "$BITBOT_ROOT/lib/workspace/help.sh"
             bitbot_help
             exit 2
             ;;
     esac
 fi
-
-# Universal commands (work in both global and workspace context)
-if [[ "$1" == "version" ]] || [[ "$1" == "--version" ]] || [[ "$1" == "-v" ]]; then
-    source "$SCRIPT_DIR/lib/bitbot-version.sh"
-    bitbot_version
-    exit 0
-fi
 ```
 
-Script structure (organized under lib/):
+Script structure (bitbot in install root, organized under lib/):
 ```
-scripts/
-├── bitbot                       # Main router
+{INSTALL_BASE_PATH}/bitbot/
+├── bitbot                       # Main router (bash script)
 ├── bitbot.ps1                   # Windows wrapper
 ├── bitbot.bat                   # Windows wrapper
+├── config.json                  # Created during first run
+├── config-devcontainer/         # Config mode devcontainer
+│   ├── devcontainer.json
+│   └── Dockerfile
+├── devcontainer-template/       # Base template for workspace .devcontainer
+│   ├── devcontainer.json        # Minimal template with BitBot defaults
+│   └── Dockerfile               # Base Alpine/Ubuntu image
 └── lib/
     ├── global/                  # Global commands (from install folder)
-    │   ├── bitbot-init.sh       # First-run setup (06)
-    │   ├── bitbot-config.sh     # Global config (06B, reusable)
-    │   └── bitbot-serve.sh      # Future: Global service compose
+    │   └── init.sh              # First-run setup + environment validation
     ├── workspace/               # Workspace commands (from projects)
-    │   ├── bitbot-work.sh       # Work mode (handles vscode modifier)
-    │   ├── bitbot-config.sh     # Config mode (handles vscode modifier)
-    │   ├── bitbot-init.sh       # Workspace init
-    │   └── bitbot-help.sh       # Workspace help text
-    ├── detect.sh                # Workspace detection (02)
-    ├── mode.sh                  # Mode launch (04)
-    ├── helpers.sh               # Common utilities
-    └── bitbot-version.sh        # Universal: Version
+    │   ├── work.sh              # Work mode
+    │   ├── config.sh            # Config mode
+    │   ├── vscode.sh            # VS Code launch
+    │   ├── init.sh              # Workspace init
+    │   └── help.sh              # Workspace help text
+    └── util/                    # Shared utilities
+        ├── prerequisites.sh     # Dependency checking
+        ├── version.sh           # Universal: Version
+        └── helpers.sh           # Common utilities
 ```
 
 **Pseudocode to Script Mapping**:
-- `01A_cli-entry-host.md` → `scripts/bitbot` (main router)
-- `02_workspace-detect.md` → `scripts/lib/detect.sh` + `scripts/lib/workspace/bitbot-init.sh`
-- `04_mode-system.md` → `scripts/lib/mode.sh` (shared library)
-- `06_global-init.md` → `scripts/lib/global/bitbot-init.sh` (first run only)
-- `06B_global-config.md` → `scripts/lib/global/bitbot-config.sh` (reusable)
-- `scripts/lib/workspace/bitbot-work.sh` → Handles work mode + vscode modifier
-- `scripts/lib/workspace/bitbot-config.sh` → Handles config mode + vscode modifier
-- Each workspace command → `scripts/lib/workspace/bitbot-<command>.sh`
+- `bitbot.md` (this file) → `bitbot` (main router in install root)
+- `lib/global/init.md` → `lib/global/init.sh` (first run + environment validation)
+- `lib/workspace/init.md` → `lib/workspace/init.sh` (workspace initialization)
+- `lib/workspace/work.md` → `lib/workspace/work.sh` (work mode)
+- `lib/workspace/config.md` → `lib/workspace/config.sh` (config mode)
+- `lib/util/prerequisites.md` → `lib/util/prerequisites.sh` (dependency checking)
 
-**Commands with Same Name, Different Context**:
-- `bitbot init`: Global (first run) vs Workspace (project setup)
-- `bitbot config`: Global (BitBot settings) vs Workspace (devcontainer edit)
-- Context determined by PWD (install folder vs project folder)
-- Basic error handling only
+**Context Detection**:
+- **Global context**: Running `bitbot` from install folder
+  - First run (no config.json): Runs global init
+  - Subsequent runs: Validates environment, shows usage
+- **Workspace context**: Running `bitbot` from project folder
+  - Uninitialized (.bitbot/ missing): Prompts to initialize (for bare `bitbot` or `bitbot work`)
+  - Initialized: Bare `bitbot` defaults to `bitbot work` (launches work mode)
+  - Other commands: Routes to workspace commands (config, vscode, init, help, version)
 
 **Key Simplifications**:
 - Removed smart launch (default to `bitbot work`)

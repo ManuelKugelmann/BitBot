@@ -16,86 +16,38 @@
 
 ## Flow Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ User navigates to project folder                                │
-│ $ cd ~/my-awesome-project                                       │
-└───────────────┬─────────────────────────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ User runs: bitbot init                                          │
-└───────────────┬─────────────────────────────────────────────────┘
-                │
-                ▼
-        ┌───────┴───────┐
-        │ .bitbot/      │
-        │ exists?       │
-        └───┬───────┬───┘
-            │ YES   │ NO
-            ▼       │
-    ┌──────────┐    │
-    │ ERROR:   │    │
-    │ Already  │    │
-    │ init'd   │    │
-    └──────────┘    │
-                    │
-                    ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Step 1: Check Prerequisites                                     │
-│ (Docker, DevContainer CLI)                                      │
-└───────────────┬─────────────────────────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Step 2: Create .bitbot/ Structure                               │
-│ - .bitbot/config.json                                           │
-│ - .bitbot/state/                                                │
-│ - .bitbot/internal/                                             │
-└───────────────┬─────────────────────────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Step 3: Check for Existing .devcontainer/                       │
-└───────────────┬─────────────────────────────────────────────────┘
-                │
-        ┌───────┴───────┐
-        │.devcontainer/ │
-        │ exists?       │
-        └───┬───────┬───┘
-            │ YES   │ NO
-            ▼       ▼
-    ┌──────────┐┌──────────┐
-    │ Inform   ││ Create   │
-    │ user it  ││ from     │
-    │ will be  ││ template │
-    │ used     ││ in config│
-    └────┬─────┘└────┬─────┘
-         │           │
-         └─────┬─────┘
-               │
-               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Step 4: Launch Config Mode                                      │
-│ Auto-launch config devcontainer to configure .devcontainer      │
-└───────────────┬─────────────────────────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Config mode launches (in devcontainer)                          │
-│ User can now create/edit .devcontainer files                    │
-└───────────────┬─────────────────────────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ User exits config mode (exit or Ctrl+D)                         │
-└───────────────┬─────────────────────────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ DONE - Workspace initialized                                    │
-│ User can now run: bitbot work                                   │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Start["User navigates to project<br/>cd ~/my-awesome-project"]
+    Run["User runs: bitbot init"]
+    CheckInit{.bitbot/<br/>exists?}
+
+    Start --> Run --> CheckInit
+
+    CheckInit -->|YES| Error[ERROR: Already initialized]
+    CheckInit -->|NO| GitCheck[Step 1: Git push recommendation<br/>if uncommitted/unpushed changes]
+
+    GitCheck --> Step2[Step 2: Check Prerequisites<br/>Docker, DevContainer CLI]
+    Step2 --> Step3[Step 3: Create .bitbot/ Structure<br/>config.json, local/, .gitignore]
+    Step3 --> Step4[Step 4: Setup .devcontainer/]
+
+    Step4 --> DevContainerExists{.devcontainer/<br/>exists?}
+
+    DevContainerExists -->|YES| Inform[Inform: Will use existing config]
+    DevContainerExists -->|NO| CopyTemplate[Copy base template NOW]
+
+    Inform --> Step5
+    CopyTemplate --> Step5
+
+    Step5[Step 5: Launch Config Mode<br/>AI agent in devcontainer]
+    Step5 --> InConfig[Work with AI agent<br/>to configure .devcontainer]
+    InConfig --> Exit[Exit config mode when done<br/>exit or Ctrl+D]
+    Exit --> Done[DONE - Workspace ready<br/>User can run: bitbot work]
+
+    style CheckInit fill:#f9cb9c,stroke:#333,color:#000
+    style DevContainerExists fill:#f9cb9c,stroke:#333,color:#000
+    style Error fill:#cc4125,stroke:#333
+    style Done fill:#6aa84f,stroke:#333
 ```
 
 ---
@@ -122,12 +74,58 @@ user@laptop:~/my-awesome-project$ bitbot init
 
 ---
 
-### Step 2: Prerequisites Check
+### Step 2: Git Push Recommendation
 
-**Output:**
+**Output (if uncommitted/unpushed changes detected):**
 ```
 [>] Initializing BitBot workspace: /home/user/my-awesome-project
 
+┌─────────────────────────────────────────────────────────┐
+│ ⚠️  RECOMMENDATION: Push to remote before init          │
+└─────────────────────────────────────────────────────────┘
+
+BitBot will create .bitbot/ and .devcontainer files.
+AI agent in config mode will help you configure your .devcontainer.
+Push your current state first to easily revert if needed.
+
+On branch main
+Your branch is ahead of 'origin/main' by 2 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   README.md
+        modified:   src/main.py
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+Recommended steps:
+  $ git add .         # Stage changes (if needed)
+  $ git commit -m "..." # Commit (if needed)
+  $ git push          # Push to remote
+
+What would you like to do?
+
+  1. Exit and push changes (default)
+  2. Skip this time
+  3. Skip permanently (update config)
+
+Choice [1]: █
+```
+
+**User input:** `2` (skip this time)
+
+```
+
+```
+
+---
+
+### Step 3: Prerequisites Check
+
+**Output:**
+```
 Checking prerequisites...
   ✓ Docker is running
   ✓ DevContainer CLI available
@@ -154,68 +152,71 @@ Start Docker now? (Y/n): █
 
 ---
 
-### Step 3: Create .bitbot/ Structure
+### Step 4: Create .bitbot/ Structure
 
 **Output:**
 ```
 Creating workspace structure...
   ✓ Created .bitbot/
-  ✓ Created .bitbot/state/
+  ✓ Created .bitbot/local/
   ✓ Created .bitbot/internal/
+  ✓ Created .bitbot/internal/local/
   ✓ Created .bitbot/config.json
+  ✓ Created config mode devcontainer
+  ✓ Added .bitbot/local/ and .bitbot/internal/local/ to .gitignore
 
 Workspace configuration:
   Name: my-awesome-project
   Default mode: work
 
+Config mode devcontainer:
+  .bitbot/internal/devcontainer.json (references global Dockerfile)
+
 ```
 
 ---
 
-### Step 4: Check for Existing .devcontainer
+### Step 5: Setup .devcontainer
 
 **Scenario A: No existing .devcontainer**
 
 **Output:**
 ```
-Checking for .devcontainer...
-  [i] No .devcontainer found
+[>] Creating base .devcontainer from template...
+  ✓ Created .devcontainer/ from template
 
 [+] Workspace initialized
-
-Launching config mode to set up .devcontainer...
-
-  You'll be dropped into a devcontainer where you can:
-  - Create .devcontainer/devcontainer.json
-  - Add a Dockerfile
-  - Install development tools
-  - Configure features
-
-  When done, type 'exit' to return to your host
-
 ```
 
 **Scenario B: Existing .devcontainer found**
 
 **Output:**
 ```
-Checking for .devcontainer...
-  ✓ Found existing .devcontainer/
+[i] Found existing .devcontainer/
+    AI agent can help you review and adjust it in config mode
 
 [+] Workspace initialized
+```
 
-Launching config mode to review/edit .devcontainer...
+**Both scenarios then launch config mode:**
 
-  Your existing .devcontainer will be used.
-  Config mode allows you to safely edit it.
+```
+Launching config mode...
 
-  When done, type 'exit' to return to your host
+Config mode runs BitBot AI agent in a devcontainer optimized for devcontainer setup.
+The AI provides guidance and help to configure your .devcontainer.
+Close VS Code or terminal when finished.
+
+You can test your workspace devcontainer in parallel:
+  • Open another terminal
+  • Run: bitbot work
+  • Test your .devcontainer changes while config mode is still running
 
 ```
 
 ---
 
-### Step 5: Config Mode Launch
+### Step 6: Config Mode Launch & Inner BitBot
 
 **Output:**
 ```
@@ -224,16 +225,11 @@ Launching config mode to review/edit .devcontainer...
 Building devcontainer...
 [+] Building config devcontainer
  => [internal] load build definition from Dockerfile
- => => transferring dockerfile: 450B
- => [internal] load .dockerignore
- => [1/4] FROM mcr.microsoft.com/devcontainers/base:ubuntu
- => [2/4] RUN apt-get update && apt-get install -y nodejs npm
- => [3/4] RUN npm install -g @devcontainers/cli
- => [4/4] COPY setup-devcontainer-docs.sh /usr/local/bin/
+ => [1/3] FROM mcr.microsoft.com/devcontainers/base:ubuntu
+ => [2/3] RUN apt-get update && apt-get install -y nodejs npm
+ => [3/3] COPY bitbot /usr/local/bin/
  => exporting to image
- => => exporting layers
  => => writing image sha256:abc123...
- => => naming to docker.io/library/bitbot-config-my-awesome-project
 
 [+] Devcontainer built successfully
 
@@ -244,7 +240,7 @@ Entering devcontainer with tmux session 'config'...
 
 ```
 
-**Screen transitions to inside the container:**
+**Screen transitions to inside the container, BitBot (inner) launches automatically:**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -253,131 +249,64 @@ Entering devcontainer with tmux session 'config'...
 │ Workspace: /workspace                                           │
 └─────────────────────────────────────────────────────────────────┘
 
-vscode@bitbot-config:/workspace$ █
+[>] Starting BitBot AI Helper...
+
+BitBot AI Helper is ready to assist with devcontainer setup.
+
+You can ask questions like:
+  • "Help me configure this devcontainer for a Node.js project"
+  • "What features should I add for Python development?"
+  • "How do I set up VS Code extensions?"
+  • "Review my devcontainer.json"
+
+Your workspace files are at: /workspace
+Your .devcontainer is at: /workspace/.devcontainer
+
+Type your questions or close VS Code or terminal when finished.
+
+> █
 ```
 
----
-
-### Step 6: User Creates .devcontainer (No Existing Config)
-
-**Inside config mode container:**
-
-```bash
-vscode@bitbot-config:/workspace$ ls
+**User asks for help:**
+```
+> Help me set up a Node.js devcontainer with ESLint
 ```
 
-**Output:**
+**AI Agent responds:**
 ```
-README.md  src/  package.json  .git/  .bitbot/
-```
+I'll help you configure a Node.js devcontainer with ESLint. Let me update
+your .devcontainer/devcontainer.json with the recommended settings:
 
-**User creates .devcontainer:**
-```bash
-vscode@bitbot-config:/workspace$ mkdir .devcontainer
-vscode@bitbot-config:/workspace$ cd .devcontainer
-```
+Recommended configuration:
+  • Base image: Node.js 20
+  • Features: common-utils (for UID sync)
+  • Extensions: ESLint extension
+  • PostCreate: npm install
 
-**User can use helper script:**
-```bash
-vscode@bitbot-config:/workspace/.devcontainer$ devcontainer-init-helper
-
-BitBot DevContainer Helper
-===========================
-
-This will create a basic devcontainer.json for you.
-
-Select base image:
-  1) Node.js 20
-  2) Python 3.11
-  3) Ubuntu (minimal)
-  4) Custom
-
-Choice (1-4): █
+Would you like me to update the devcontainer.json file? (Y/n): █
 ```
 
-**User selects option 1:**
-```
-Choice (1-4): 1
+**User can test in parallel while config mode is running:**
+- Open another terminal
+- Run `bitbot work` to test the workspace devcontainer
+- Make adjustments in config mode based on test results
 
-Creating devcontainer.json for Node.js 20...
-  ✓ Created devcontainer.json
-  ✓ Added common-utils feature (UID/GID sync)
-  ✓ Added RO mount for .devcontainer (work mode security)
-  ✓ Added .bash_history persistence
-
-Review the file:
-  /workspace/.devcontainer/devcontainer.json
-
-Edit as needed, then 'exit' to finish setup.
-```
-
-**User reviews the file:**
-```bash
-vscode@bitbot-config:/workspace/.devcontainer$ cat devcontainer.json
-```
-
-**Output:**
-```json
-{
-  "name": "my-awesome-project",
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
-
-  "features": {
-    "ghcr.io/devcontainers/features/common-utils:2": {
-      "installZsh": true,
-      "username": "vscode",
-      "upgradePackages": true
-    }
-  },
-
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "dbaeumer.vscode-eslint"
-      ]
-    }
-  },
-
-  "mounts": [
-    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly"
-  ],
-
-  "remoteEnv": {
-    "HISTFILE": "/workspace/.bitbot/state/.bash_history"
-  },
-
-  "postCreateCommand": "npm install",
-
-  "remoteUser": "vscode",
-  "updateRemoteUserUID": true
-}
-```
-
-**User is satisfied and exits:**
-```bash
-vscode@bitbot-config:/workspace/.devcontainer$ exit
-```
+**User continues working with AI agent until satisfied, then closes VS Code or terminal**
 
 ---
 
 ### Step 7: Exit Config Mode
 
-**Output:**
+**User closes VS Code or terminal when finished configuring devcontainer**
+
+**User is back on host:**
+```bash
+user@laptop:~/my-awesome-project$ █
 ```
-[i] Exiting config mode...
 
-Stopping devcontainer...
-  ✓ Container stopped
-
-==============================================
-  Workspace Setup Complete!
-==============================================
-
-Your BitBot workspace is ready:
-  /home/user/my-awesome-project
-
-DevContainer configured:
-  .devcontainer/devcontainer.json
+**Workspace is ready:**
+```
+Your BitBot workspace is initialized and configured.
 
 Next steps:
 
@@ -386,13 +315,6 @@ Next steps:
 
 2. Or launch in VS Code:
    $ bitbot vscode
-
-==============================================
-```
-
-**User is back on host:**
-```bash
-user@laptop:~/my-awesome-project$ █
 ```
 
 ---
@@ -497,123 +419,36 @@ Or just launch work mode:
 
 ---
 
-### Git Uncommitted Changes (Warning Only)
+### Git Safety Warnings (Public Repo)
 
-**User has uncommitted changes when launching config mode:**
-
-**Output:**
-```
-Validating workspace...
-  ✓ Workspace initialized
-
-Git status check...
-  [!] Uncommitted changes detected
-      Files modified: 3
-      Recommendation: Commit before infrastructure changes
-
-Continue anyway? (y/N): █
-```
-
-**User chooses to commit first:**
-```
-Continue anyway? (y/N): n
-
-Setup cancelled.
-
-Commit your changes first:
-  $ git add .
-  $ git commit -m "Work in progress"
-  $ bitbot init
-
-```
-
-**Or user continues anyway:**
-```
-Continue anyway? (y/N): y
-
-[>] Launching config mode...
-```
-
----
-
-### Existing .devcontainer with .gitignore
-
-**User has .devcontainer/ already:**
-
-```bash
-user@laptop:~/existing-project$ ls -la .devcontainer/
-```
+**User has a public GitHub repo:**
 
 **Output:**
 ```
-total 12
-drwxr-xr-x 2 user user 4096 Oct 21 10:30 .
-drwxr-xr-x 8 user user 4096 Oct 21 10:30 ..
--rw-r--r-- 1 user user  850 Oct 21 10:30 devcontainer.json
+[>] Initializing BitBot workspace: /home/user/my-project
+
+┌─────────────────────────────────────────────────────────┐
+│ ⚠️  PUBLIC REPOSITORY DETECTED                          │
+└─────────────────────────────────────────────────────────┘
+
+  This appears to be a public repository.
+
+  WARNING: AI agents may accidentally commit secrets:
+    • API keys, tokens, passwords
+    • Environment variables (.env files)
+    • SSH keys, certificates
+    • Database credentials
+
+  Recommendations:
+    1. Review ALL changes before committing
+    2. Use .gitignore for sensitive files
+    3. Consider using git-secrets or similar tools
+    4. Never commit credentials - use environment variables
+
+Press Enter to continue with initialization...█
 ```
 
-**User runs init:**
-```bash
-user@laptop:~/existing-project$ bitbot init
-```
-
-**Output:**
-```
-[>] Initializing BitBot workspace: /home/user/existing-project
-
-Creating workspace structure...
-  ✓ Created .bitbot/
-  ✓ Created .bitbot/state/
-  ✓ Created .bitbot/config.json
-
-Checking for .devcontainer...
-  ✓ Found existing .devcontainer/
-
-[+] Workspace initialized
-
-IMPORTANT: Your existing .devcontainer will be used.
-
-BitBot will add a read-only mount for work mode security.
-Review/edit in config mode if needed.
-
-Launching config mode...
-
-[>] Building devcontainer...
-```
-
-**Inside config mode:**
-```bash
-vscode@bitbot-config:/workspace$ cat .devcontainer/devcontainer.json
-```
-
-**User sees existing config and can edit:**
-```bash
-vscode@bitbot-config:/workspace$ vi .devcontainer/devcontainer.json
-```
-
-**User adds BitBot-specific mounts:**
-```json
-{
-  "name": "existing-project",
-  "image": "mcr.microsoft.com/devcontainers/python:3.11",
-
-  "mounts": [
-    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly"
-  ],
-
-  "remoteEnv": {
-    "HISTFILE": "/workspace/.bitbot/state/.bash_history"
-  },
-
-  "remoteUser": "vscode",
-  "updateRemoteUserUID": true
-}
-```
-
-**User saves and exits:**
-```bash
-vscode@bitbot-config:/workspace$ exit
-```
+**This is non-blocking - user can continue after reading the warnings**
 
 ---
 
@@ -626,12 +461,15 @@ my-awesome-project/
 ├── .devcontainer/
 │   └── devcontainer.json         # Work mode config (created or existing)
 ├── .bitbot/
-│   ├── config.json               # Workspace config
-│   ├── state/
-│   │   └── .bash_history         # Persistent history mountpoint
-│   └── internal/
-│       └── devcontainer.json     # Per-workspace config mode config
+│   ├── config.json               # Workspace config (committed)
+│   ├── local/                    # Work mode local data (gitignored)
+│   │   └── .bash_history         # Work mode bash history mountpoint
+│   └── internal/                 # Config mode internals (excluded from mounts)
+│       ├── devcontainer.json     # Config mode devcontainer (committed, references global Dockerfile)
+│       └── local/                # Config mode local data (gitignored)
+│           └── .bash_history     # Config mode bash history mountpoint
 ├── .git/                         # Existing git repo
+├── .gitignore                    # Updated to ignore .bitbot/local/ and .bitbot/internal/local/
 ├── src/                          # Existing project files
 └── README.md
 ```
@@ -639,9 +477,10 @@ my-awesome-project/
 **Contents of .bitbot/config.json:**
 ```json
 {
-  "workspace_name": "my-awesome-project",
   "default_mode": "work",
-  "initialized": "2025-10-21T14:30:22Z"
+  "workspace_name": "my-awesome-project",
+  "skip_push_recommendation": false,
+  "skip_safety_checks": false
 }
 ```
 
@@ -659,9 +498,9 @@ my-awesome-project/
 
 ### User Interactions
 - **Init command**: 1 command (`bitbot init`)
-- **Inside config mode**: User creates/edits .devcontainer files
-- **Exit**: Simple `exit` command
-- **Optional**: Can skip manual creation with helper script
+- **Inside config mode**: Work with AI agent to set up .devcontainer
+- **Exit**: Simple `exit` command when finished
+- **Testing**: Can test workspace devcontainer in parallel (separate terminal)
 
 ### Error Handling
 - **Already initialized**: Clear error with instructions
@@ -691,9 +530,9 @@ my-awesome-project/
 
 **User knows init succeeded when:**
 1. See "✓ Workspace initialized" message
-2. Config mode launches automatically
+2. Config mode launches (BitBot AI agent running in devcontainer)
 3. .bitbot/ directory exists with proper structure
-4. Can exit config mode and launch work mode
+4. Can work with AI agent to configure .devcontainer
 
 **What user can do next:**
 1. Run `bitbot work` to start development

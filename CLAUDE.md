@@ -55,3 +55,4 @@
 - do not overengineer or add unasked for features. do not add backward for previous implementation interation steps.
 - tables in .md files should have aligned columns
 - do not use pwsh to run powershel scripts
+- use mermaid for flow diagrams

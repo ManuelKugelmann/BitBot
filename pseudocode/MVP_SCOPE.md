@@ -11,6 +11,7 @@
 **Timeline**: 2-3 weeks implementation
 **Success Criteria**: Can launch work/config containers, basic safety works
 **Platform Strategy**: Linux, macOS, and Windows (via WSL) for cross-platform simplicity
+**Installation**: Portable - self-contained folder that can be moved anywhere
 
 ---
 
@@ -29,11 +30,11 @@
 ### Core Features
 - **Workspace detection**: CWD only (no parent search), prompt for init if not found
 - **Two devcontainers**:
-  - Work: Uses workspace's `.devcontainer/`
-  - Config: Uses global `~/.bitbot/config-devcontainer/`
+  - Work: Uses workspace's `.devcontainer/` (read-only mount)
+  - Config: Uses global `{INSTALL_BASE_PATH}/bitbot/config-devcontainer/`
 - **Single session**: One tmux session per container (auto-named)
 - **Git safety warnings**: Non-blocking warnings on uncommitted changes (both modes)
-- **Global init**: First run in BitBot folder adds to PATH, creates `~/.bitbot/`
+- **Global init**: First run creates `config.json` in install folder, adds to PATH, sets BITBOT_HOME
 - **UID sync**: Handled natively by devcontainer CLI (updateRemoteUserUID + common-utils)
 - **VS Code integration**: `bitbot vscode` launches VS Code in work container
 - **Dependency checking**: Runtime validation of Docker, DevContainer CLI, VS Code extension
@@ -85,7 +86,7 @@
 │   └── Dockerfile
 └── .bitbot/
     ├── config.json                  # Workspace config
-    ├── state/                       # Runtime state (history, cache, locks)
+    ├── local/                       # Local runtime data (gitignored - history, cache, locks)
     │   └── .bash_history            # Persistent bash history mountpoint
     └── internal/                    # BitBot internals (not mounted)
         └── devcontainer.json        # Per-workspace config mode config
@@ -121,7 +122,7 @@
 - **Multi-container scenarios** - Work and setup only for MVP
 
 ### Simplified Behaviors
-- **Global init** (first run in BitBot folder): Add to PATH → set BITBOT_HOME → create ~/.bitbot/
+- **Global init** (first run in BitBot folder): Create config.json → add to PATH → set BITBOT_HOME
 - **Workspace init**: Create `.bitbot/` → always launch config mode to configure .devcontainer
 - **Git safety**: Warning messages only (non-blocking for both work and config)
 - **Config mode**: Just another devcontainer (no approval flow, flags, or audit)
@@ -157,13 +158,13 @@
 ```
 .bitbot/
 ├── config.json                # Workspace config (name, default_mode)
-├── state/                     # Runtime state (history, cache, locks)
+├── local/                     # Local runtime data (gitignored - history, cache, locks)
 │   └── .bash_history          # Persistent bash history
 └── internal/                  # BitBot internals (not mounted)
     └── devcontainer.json      # Per-workspace config mode config
 ```
 
-**State directory contents**:
+**Local directory contents** (gitignored):
 - `.bash_history` - Persistent shell history mountpoint
 - Lock files (future) - Prevent concurrent operations
 - Cache (future) - Temporary runtime data
@@ -187,8 +188,8 @@
    - detect.sh - Workspace detection (CWD only)
    - prerequisites.sh - Dependency checking + Docker auto-start
    - devcontainer.sh - DevContainer CLI wrapper
-2. **Global init** (lib/global/bitbot-init.sh) - Add to PATH, create ~/.bitbot/
-3. **CLI entry** (scripts/bitbot) - Main router (6 commands)
+2. **Global init** (lib/global/bitbot-init.sh) - Create config.json, add to PATH, set env
+3. **CLI entry** (bitbot) - Main router (6 commands)
 
 ### Week 2: Commands
 4. **Work mode** (lib/workspace/bitbot-work.sh) - Launch work devcontainer

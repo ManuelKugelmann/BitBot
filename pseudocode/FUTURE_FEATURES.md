@@ -30,6 +30,35 @@
 - **Alternative for MVP**: Must run `bitbot` from workspace directory
 - **Priority**: Medium
 
+**Default Shell Selection**
+- **Cut from**: Global init, workspace init
+- **Use case**: User preference for bash vs zsh in devcontainers
+- **Implementation**:
+  - Add shell selection prompt during global init
+  - Store in global config: `"default_shell": "bash"` or `"zsh"`
+  - Allow per-workspace override in `.bitbot/config.json`
+  - Template devcontainer.json sets shell via `"containerEnv": {"SHELL": "/bin/bash"}` or `/bin/zsh`
+  - Adjust history file configuration based on shell choice
+- **Alternative for MVP**: Both bash and zsh history supported, user manually sets shell
+- **Priority**: Low (nice-to-have, not essential)
+- **Config Example**:
+  ```json
+  {
+    "default_shell": "zsh",
+    "shell_preferences": {
+      "install_oh_my_zsh": false,
+      "install_plugins": []
+    }
+  }
+  ```
+- **Commands**:
+  - `bitbot config shell bash` - Set default shell to bash
+  - `bitbot config shell zsh` - Set default shell to zsh
+- **Files affected**:
+  - Global init (shell preference prompt)
+  - DevContainer templates (shell configuration)
+  - Workspace init (copy shell preference to workspace)
+
 ### Phase 2b: Session Management (Post-MVP)
 
 **Multi-Session Support**
@@ -46,10 +75,11 @@
 **Session Commands**
 - `bitbot list` - List active sessions
 - `bitbot stop --session <name>` - Stop specific session
+- `bitbot stop` - Stop current workspace's devcontainers (work and config)
 - `bitbot kill` - Stop all BitBot containers
 - `bitbot session` - Session management subcommands
-- **Alternative for MVP**: Use `docker ps`, `docker stop`
-- **Priority**: Low
+- **Alternative for MVP**: Close VS Code or terminal to exit, use `docker ps`, `docker stop`
+- **Priority**: Medium
 
 ### Phase 2c: Safety & Audit (Post-MVP)
 
@@ -257,6 +287,173 @@
 10. MCP services (Phase 2 architecture)
 11. AI agent integration (Phase 2 architecture)
 12. Advanced features (config, doctor, metadata)
+
+**Phase 3b** (Week 11-15):
+13. VM-based deployment (DevPod integration)
+14. Enhanced security isolation (VM-backed containers)
+15. Cloud provider support (AWS, GCP, Azure)
+
+---
+
+## Phase 3b: VM-Based Deployment (Post-Phase 3)
+
+### VM Provider Integration (DevPod)
+
+**Priority**: High (security isolation, cloud deployment)
+**Depends on**: MVP complete, devcontainer architecture stable
+
+**Goal**: Support VM-backed devcontainer deployment for:
+- Enhanced security isolation (VM + container)
+- Cloud/remote development workflows
+- Multi-provider flexibility (local VMs, AWS, GCP, Azure)
+
+**Implementation Approach**: DevPod Integration (Recommended)
+
+**DevPod Provider Support**
+- **Cut from**: MVP, Phase 2
+- **Use case**: VM-level isolation, cloud deployment
+- **Solution**: DevPod (https://github.com/loft-sh/devpod)
+- **Features**:
+  - Multi-provider architecture (Multipass, AWS, GCP, Azure, K8s, Docker)
+  - Standard `devcontainer.json` support (no custom config)
+  - Client-agent model with SSH tunneling
+  - VS Code + JetBrains IDE support
+  - Multipass provider: https://github.com/minhio/devpod-provider-multipass
+- **Alternative for MVP**: Docker on host only
+- **Priority**: High (security + cloud-ready)
+- **Research**: `Research/VM_WRAPPER_SOLUTIONS_RESEARCH.md`
+
+**Commands**:
+```bash
+bitbot init --provider devpod-multipass    # Init with Multipass VM
+bitbot init --provider devpod-aws          # Init with AWS EC2
+bitbot init --provider docker              # Default (no VM)
+
+bitbot work --provider devpod-multipass    # Launch in Multipass VM
+bitbot config --provider devpod-multipass  # Config mode in VM
+
+bitbot provider list                       # List available providers
+bitbot provider info multipass             # Show provider details
+bitbot provider install multipass          # Install provider
+
+bitbot cloud deploy --provider aws         # Deploy to AWS
+bitbot cloud cost                          # Estimate cloud costs
+bitbot cloud destroy                       # Tear down cloud resources
+```
+
+**Implementation Tasks**:
+
+1. **Provider Detection** (Week 11)
+   - Detect if DevPod is installed
+   - Check available DevPod providers
+   - Add `bitbot provider` commands
+   - Add provider selection to `bitbot init` wizard
+
+2. **DevPod Integration** (Week 12-13)
+   - Wrap DevPod CLI for workspace creation
+   - Pass BitBot's devcontainer.json to DevPod
+   - Handle provider-specific configuration
+   - Support `MULTIPASS_MOUNTS` for Multipass provider
+   - Test work/config container separation in VM
+
+3. **Provider Management** (Week 13-14)
+   - `bitbot provider list` - Show available providers
+   - `bitbot provider info <name>` - Show provider details
+   - `bitbot provider install <name>` - Install provider (wraps `devpod provider add`)
+   - Provider validation and health checks
+
+4. **Hybrid Fallback** (Week 14)
+   - Auto-detect: DevPod → Docker
+   - Graceful fallback if DevPod not available
+   - Warning messages for security implications
+   - `bitbot doctor` diagnostics for VM backends
+
+5. **Cloud Provider Support** (Week 15+)
+   - Test AWS provider (EC2)
+   - Test GCP provider (Compute Engine)
+   - Test Azure provider (VMs)
+   - Add cost estimation warnings
+   - Document cloud setup for teams
+   - Add `bitbot cloud` command group
+
+**Files Affected**:
+- `bitbot` (main CLI) - Add `--provider` flag
+- `lib/global/init.md` - Provider detection
+- `lib/workspace/init.md` - Provider-aware workspace init
+- `lib/workspace/work.md` - Provider-aware container launch
+- New: `lib/provider/` - Provider management logic
+- New: `lib/cloud/` - Cloud-specific commands
+
+**Configuration**:
+```yaml
+# .bitbot/config.yml
+provider:
+  default: docker                        # docker, devpod-multipass, devpod-aws, etc.
+  devpod:
+    multipass:
+      mounts: []                         # MULTIPASS_MOUNTS option
+    aws:
+      region: us-east-1
+      instance_type: t3.medium
+      disk_size: 50                      # GB
+    gcp:
+      region: us-central1
+      machine_type: e2-medium
+      disk_size: 50
+```
+
+**Security Benefits**:
+
+| Solution              | Isolation Level      | Container Escape Risk | Use Case                |
+|-----------------------|----------------------|-----------------------|-------------------------|
+| Docker (MVP)          | Namespace/cgroups    | Medium                | Fast local dev          |
+| VM + Docker (DevPod)  | VM + namespace       | Low                   | Security-critical work  |
+| Kata Containers       | Micro-VM per container| Very Low             | Maximum isolation       |
+
+**Alternative Approaches Considered**:
+
+1. **Direct VM Management** (Multipass/Lima)
+   - ❌ More custom setup logic
+   - ❌ Less cloud-ready
+   - ❌ Team patterns need custom implementation
+   - ✅ Simpler for single-user
+   - **Decision**: Not chosen (DevPod is more mature)
+
+2. **Kata Containers Integration**
+   - ✅ Excellent isolation (micro-VM per container)
+   - ❌ No specific VS Code devcontainer integration found
+   - ❌ High complexity
+   - ❌ Performance overhead
+   - **Decision**: Future consideration (Phase 4+)
+
+3. **Hybrid Strategy** (DevPod + Direct VM)
+   - ✅ Best of both worlds
+   - ✅ Graceful fallback
+   - ⚠️  Increased maintenance
+   - **Decision**: Chosen for Phase 3b
+
+**Testing Plan**:
+- [ ] Validate DevPod with BitBot's work/config containers
+- [ ] Test Multipass provider (Ubuntu VMs)
+- [ ] Test AWS provider (EC2 instances)
+- [ ] Benchmark performance: Docker vs VM+Docker
+- [ ] Security testing: Container escape attempts
+- [ ] Multi-user team workflow testing
+- [ ] Cross-platform testing (Windows, macOS, Linux)
+
+**Documentation Requirements**:
+- User guide: Choosing a provider
+- User guide: Setting up Multipass/Lima
+- User guide: Cloud provider setup (AWS, GCP, Azure)
+- Admin guide: Team deployment patterns
+- Admin guide: Cost optimization for cloud providers
+- Security guide: VM isolation benefits
+
+**Migration Path from MVP**:
+1. MVP users continue using Docker (default)
+2. Add `--provider` flag (backward compatible)
+3. Users opt-in to VM providers
+4. No breaking changes to existing workflows
 
 ---
 

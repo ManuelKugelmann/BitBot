@@ -340,6 +340,18 @@ END FUNCTION
 - Use `common-utils` feature to set UID/GID automatically
 - No manual UID sync needed in bash scripts
 
+**Shell History Configuration (Bash)**:
+- **MVP uses bash as default shell** (universal compatibility)
+- Bash history: `.bash_history` (plain text, one command per line)
+- **Work mode history**: `.bitbot/local/.bash_history`
+- **Config mode history**: `.bitbot/internal/local/.bash_history`
+- Each mode has separate history (different contexts: work vs setup)
+- DevContainer configures `HISTFILE` environment variable:
+  - Work mode: `"HISTFILE": "/workspace/.bitbot/local/.bash_history"`
+  - Config mode: `"HISTFILE": "/workspace/.bitbot/internal/local/.bash_history"`
+- Template devcontainer.json includes `remoteEnv` setting
+- **Future**: Zsh support with separate `.zsh_history` files (see FUTURE_FEATURES.md)
+
 **Dependencies**:
 - Uses `lib/util/helpers.md` for file/directory operations
 - Uses `lib/util/detect.md` for validate_workspace()

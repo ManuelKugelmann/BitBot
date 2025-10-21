@@ -9,10 +9,16 @@
 ## Overview
 
 ```
-bitbot config [vscode] → Validate workspace → Git warning → Launch config devcontainer
+bitbot config [vscode] → Validate workspace → Git push recommendation → Launch config devcontainer
 ```
 
-**Config Mode**: Uses global `~/.bitbot/config-devcontainer/` with workspace mounted (RW .devcontainer)
+**Config Mode**: Uses global `config-devcontainer/` with workspace mounted (RW .devcontainer)
+
+**Purpose in MVP**:
+- AI agent analyzes project and configures .devcontainer
+- No interactive wizard - AI handles tech stack detection and setup
+- Uses base template from `devcontainer-template/` as starting point
+- AI adjusts configuration for specific project needs
 
 ---
 
@@ -24,11 +30,8 @@ FUNCTION bitbot_config(args):
 
     SET workspace_path = get_current_directory()
 
-    # Check for vscode modifier
-    SET use_vscode = false
-    IF "vscode" IN args:
-        SET use_vscode = true
-    END IF
+    # Determine launch mode: check args, then global config default
+    SET use_vscode = get_launch_mode_preference(args)
 
     # Validate workspace
     IF NOT validate_workspace(workspace_path):
@@ -36,17 +39,19 @@ FUNCTION bitbot_config(args):
         EXIT 4
     END IF
 
-    # Git safety warning (non-blocking)
-    CALL check_git_uncommitted(workspace_path) → has_uncommitted
+    # Git push recommendation (non-blocking with skip options)
+    # From lib/util/git.md
+    CALL recommend_git_push_before_init(workspace_path)
 
-    IF has_uncommitted:
-        WARN "[!] Uncommitted changes detected"
-        PRINT "    Files modified: " + count_uncommitted_files()
-        PRINT "    Recommendation: Commit before infrastructure changes"
-        PRINT ""
+    # Git safety checks (public repo warnings)
+    # From lib/util/git.md
+    CALL check_git_safety(workspace_path)
+
+    IF use_vscode:
+        PRINT "[>] Launching config mode in VS Code..."
+    ELSE:
+        PRINT "[>] Launching config mode in terminal..."
     END IF
-
-    PRINT "[>] Launching config mode..."
 
     # Launch config devcontainer
     IF use_vscode:
@@ -59,43 +64,82 @@ END FUNCTION
 
 ---
 
+## Get Launch Mode Preference
+
+```pseudocode
+FUNCTION get_launch_mode_preference(args) → boolean:
+    # Determine launch mode from args or global config
+    # Returns true if should use VS Code, false for terminal
+
+    # Check for explicit flag in args (overrides default)
+    IF "--vscode" IN args OR "vscode" IN args:
+        RETURN true
+    END IF
+
+    IF "--terminal" IN args OR "terminal" IN args:
+        RETURN false
+    END IF
+
+    # No explicit flag - check global config default
+    SET bitbot_install = get_bitbot_install_dir()
+    SET config_file = bitbot_install + "/config.json"
+
+    IF NOT file_exists(config_file):
+        # No config - default to terminal
+        RETURN false
+    END IF
+
+    CALL read_json(config_file) → config
+
+    IF config.launch_mode:
+        RETURN config.launch_mode == "vscode"
+    ELSE:
+        # No default set - use terminal
+        RETURN false
+    END IF
+END FUNCTION
+```
+
+---
+
 ## Launch Methods
 
 ```pseudocode
 FUNCTION launch_config_via_devcontainer_cli(workspace_path):
-    # Use global config devcontainer with workspace mounted
+    # Use workspace-specific config devcontainer (created during init)
+    # This is an adjusted copy of global config devcontainer.json
+    # It references global Dockerfile but mounts this specific workspace
 
-    SET config_devcontainer_path = "~/.bitbot/config-devcontainer"
-    SET workspace_config_path = workspace_path + "/.bitbot/internal"
+    SET bitbot_install = get_bitbot_install_dir()
+    SET global_config_dir = bitbot_install + "/config-devcontainer"
+    SET workspace_config_devcontainer = workspace_path + "/.bitbot/internal/devcontainer.json"
 
-    # Check global config devcontainer exists
-    IF NOT directory_exists(config_devcontainer_path):
-        ERROR "Config devcontainer not found in ~/.bitbot/"
-        PRINT "This should have been created during 'bitbot' global init"
+    # Verify workspace config devcontainer exists (created during init)
+    IF NOT file_exists(workspace_config_devcontainer):
+        ERROR "Config devcontainer.json not found in .bitbot/internal/"
+        PRINT "This should have been created during 'bitbot init'"
+        PRINT "Try re-initializing: bitbot init"
         EXIT 1
     END IF
 
-    # Create workspace-specific config if doesn't exist
-    IF NOT directory_exists(workspace_config_path):
-        CALL create_directory(workspace_config_path)
-        # Copy global template, customize for this workspace
-        CALL copy_file(config_devcontainer_path + "/devcontainer.json",
-                      workspace_config_path + "/devcontainer.json")
+    # Verify global config-devcontainer directory exists (for Dockerfile, etc.)
+    IF NOT directory_exists(global_config_dir):
+        ERROR "Global config-devcontainer not found in BitBot installation"
+        PRINT "This should have been created during BitBot installation"
+        EXIT 1
     END IF
 
-    # Set environment variable for workspace path
-    SET_ENV("BITBOT_WORKSPACE", workspace_path)
-
-    # Launch using devcontainer CLI with global config
-    # Config devcontainer.json uses: "workspaceFolder": "${localEnv:BITBOT_WORKSPACE}"
+    # Launch using workspace-specific devcontainer.json
+    # The devcontainer.json references global Dockerfile via "dockerFile" or "build.dockerfile"
+    # Workspace is already mounted via workspaceMount in devcontainer.json
     # No RO mount = .devcontainer is writable
 
-    EXECUTE "devcontainer up --config " + config_devcontainer_path
+    EXECUTE "devcontainer up --workspace-folder " + workspace_path + " --config " + workspace_path + "/.bitbot/internal"
 
     IF exit_code == 0:
         PRINT "[+] Config container launched successfully"
         # Attach to container
-        EXECUTE "devcontainer exec --config " + config_devcontainer_path + " tmux new-session -A -s config"
+        EXECUTE "devcontainer exec --workspace-folder " + workspace_path + " --config " + workspace_path + "/.bitbot/internal tmux new-session -A -s config"
     ELSE:
         ERROR "Failed to launch config container"
         EXIT 1
@@ -124,25 +168,56 @@ END FUNCTION
 
 ---
 
+## Git Utilities
+
+Git recommendation and safety check functions are defined in `lib/util/git.md`:
+
+- `recommend_git_push_before_init(workspace_path)` - Recommends git setup, remote, and push with skip options
+- `check_git_safety(workspace_path)` - Warns about uncommitted changes and public repo secrets
+
+Both functions provide clear instructions and allow users to skip if needed.
+
+---
+
 ## Implementation Notes
 
-**Key Difference from Work Mode**:
-- Uses global config devcontainer, not workspace's .devcontainer
-- Workspace mounted without RO .devcontainer mount = RW by default
-- Can edit .devcontainer files
+**Config Mode Architecture**:
+- Uses workspace-specific `.bitbot/internal/devcontainer.json` (adjusted copy of global template)
+- This copy references global `config-devcontainer/Dockerfile` and other global resources
+- Workspace mounted via `workspaceMount` setting in devcontainer.json (excluding `.bitbot/internal/`)
+- Special submounts: `.bitbot/internal/local/.bash_history` → container bash history
+- No RO mount for .devcontainer = RW by default
+- Can edit workspace .devcontainer files
+- Default shell: bash (zsh support in future, see FUTURE_FEATURES.md)
 
-**Modifiers**:
-- `vscode` - Launch in VS Code (limited support in MVP)
+**Key Difference from Work Mode**:
+- Work mode:
+  - Uses workspace `.devcontainer/devcontainer.json`
+  - `.devcontainer/` mounted read-only for security
+  - Bash history: `.bitbot/local/.bash_history`
+- Config mode:
+  - Uses `.bitbot/internal/devcontainer.json` (references global Dockerfile)
+  - `.devcontainer/` writable (can be edited)
+  - Bash history: `.bitbot/internal/local/.bash_history`
+- Both modes exclude `.bitbot/internal/` from workspace mount
+
+**Flags**:
+- `--vscode` or `vscode` - Launch in VS Code (overrides default, limited support in MVP)
+- `--terminal` or `terminal` - Launch in terminal (overrides default)
+- No flag: Uses global config default (set during global init)
 
 **MVP Scope**:
 - Single session
-- Git warnings only (non-blocking)
-- Global config devcontainer template
-- VS Code support is basic (just launches code)
+- Git push recommendations with skip options (non-blocking)
+- Workspace-specific config devcontainer.json (created during init)
+- References global config-devcontainer/Dockerfile
+- VS Code integration (fully supported via devcontainer CLI)
+- Exit: Close VS Code or terminal to finish config mode
+- Parallel testing: Open another terminal and run `bitbot work` to test workspace devcontainer while config mode is running
 
 **Future**:
-- Full VS Code config mode support
 - Template customization
 - Multiple config devcontainer variants
+- `bitbot stop` command to cleanly stop containers
 
 **Counterpart**: `lib/global/config.md` for global BitBot configuration
