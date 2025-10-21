@@ -19,6 +19,7 @@ echo
 
 # List of files/folders to include in release
 RELEASE_FILES=(
+    "VERSION"
     "bitbot"
     "bitbot.exe"
     "bitbot.cmd"

@@ -50,6 +50,7 @@ git rm -rf . 2>/dev/null || true
 echo "→ Copying release files..."
 # Copy files from working directory (they're still there, just unstaged)
 git checkout "$TRUNK_BRANCH" -- \
+    VERSION \
     bitbot \
     bitbot.exe \
     bitbot.cmd \

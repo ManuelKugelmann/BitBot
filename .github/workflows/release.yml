@@ -29,6 +29,7 @@ jobs:
 
           # Create zip with all release files
           zip -r bitbot-v${{ steps.version.outputs.version }}.zip \
+            VERSION \
             bitbot \
             bitbot.exe \
             bitbot.cmd \
@@ -82,6 +83,7 @@ jobs:
 
             ### What's Included
 
+            - `VERSION` - Version identifier
             - `bitbot` - Main executable (bash)
             - `bitbot.exe` - Windows launcher (38KB)
             - `bitbot.cmd` - Windows wrapper

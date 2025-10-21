@@ -46,6 +46,7 @@ Development and release automation scripts.
 **Run this:** Before each release, when trunk has changes to publish
 
 **Files included:**
+- VERSION (version identifier)
 - bitbot (main executable)
 - bitbot.exe (Windows launcher)
 - bitbot.cmd (Windows wrapper)
@@ -195,6 +196,7 @@ To include new files in release branch:
    ```bash
    # Update RELEASE_FILES array
    RELEASE_FILES=(
+       "VERSION"
        "bitbot"
        "bitbot.exe"
        "bitbot.cmd"
@@ -211,6 +213,7 @@ To include new files in release branch:
    ```bash
    # Update file list
    git checkout "$TRUNK_BRANCH" -- \
+       VERSION \
        bitbot \
        bitbot.exe \
        ...
@@ -221,6 +224,7 @@ To include new files in release branch:
    ```yaml
    # Update zip command
    zip -r bitbot-v${{ steps.version.outputs.version }}.zip \
+     VERSION \
      bitbot \
      bitbot.exe \
      ...
