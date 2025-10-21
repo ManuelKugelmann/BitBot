@@ -65,34 +65,16 @@ FUNCTION initialize_workspace_in(path):
 
     CALL write_json(path + "/.bitbot/config.json", config)
 
-    # Check for existing .devcontainer
-    IF NOT directory_exists(path + "/.devcontainer"):
-        ERROR "No .devcontainer found. Please create one manually or copy from a template."
-        PRINT "Example: cp -r ~/.bitbot/templates/default/.devcontainer ."
-        EXIT 4
-    END IF
-
     PRINT "[+] Workspace initialized"
     PRINT ""
 
-    # Prompt to launch setup mode for devcontainer configuration
-    PRINT "Would you like to launch setup mode to configure this workspace?"
-    PRINT "(Setup mode lets you edit .devcontainer with AI assistance)"
+    # Always launch setup mode to configure .devcontainer
+    PRINT "Launching setup mode to configure workspace..."
+    PRINT "(Use setup mode to create/modify .devcontainer for bitbot)"
     PRINT ""
-    CALL prompt_yes_no("Launch setup mode?", default="no") → launch_setup
 
-    IF launch_setup:
-        PRINT ""
-        PRINT "[>] Launching setup mode..."
-        # Launch setup mode (will create .bitbot/setup/devcontainer.json)
-        CALL launch_mode("setup", empty_flags, empty_options)
-    ELSE:
-        PRINT ""
-        PRINT "Next steps:"
-        PRINT "  bitbot work      # Launch work mode"
-        PRINT "  bitbot setup     # Launch setup mode (edit .devcontainer)"
-        PRINT "  bitbot vscode    # Launch VS Code"
-    END IF
+    # Launch setup mode (will create .bitbot/setup/devcontainer.json)
+    CALL launch_mode("setup", empty_flags, empty_options)
 END FUNCTION
 ```
 
@@ -289,8 +271,8 @@ END FUNCTION
 - CWD only (no parent search)
 - Removed non-interactive mode (future feature)
 - Removed `--workspace` flag (future feature)
-- Minimal `.bitbot/` structure (metadata.json only)
-- No template wizard (requires existing .devcontainer)
+- Minimal `.bitbot/` structure (metadata.json + config.json)
+- Init always launches setup (no check for .devcontainer, setup helps create it)
 
 **Edge Cases**:
 - Symlinks: Follow to canonical path

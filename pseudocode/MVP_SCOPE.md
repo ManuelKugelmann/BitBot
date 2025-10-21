@@ -19,7 +19,7 @@
 1. **`bitbot work`** - Launch work devcontainer
 2. **`bitbot setup`** - Launch setup devcontainer (edit .devcontainer)
 3. **`bitbot vscode`** - Launch VS Code attached to work container
-4. **`bitbot init`** - Initialize workspace (default .devcontainer, no wizard)
+4. **`bitbot init`** - Initialize workspace → launches setup mode
 5. **`bitbot help`** - Basic help text
 6. **`bitbot version`** - Show version
 
@@ -87,7 +87,7 @@
 
 ### Simplified Behaviors
 - **First-run wizard**: Check prerequisites → create `~/.bitbot/` → done (no workspace wizard)
-- **Workspace init**: Create minimal `.bitbot/` + default `.devcontainer/` → done (no template selection)
+- **Workspace init**: Create `.bitbot/` → always launch setup mode to configure .devcontainer
 - **Git safety**: Warning messages only (non-blocking for both work and setup)
 - **Setup mode**: Just another devcontainer (no approval flow, flags, or audit)
 - **Error handling**: Basic error messages, no fancy recovery
