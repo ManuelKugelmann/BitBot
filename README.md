@@ -237,7 +237,7 @@ bitbot vscode
 **Benefits:**
 - No "Reopen in Container" popup
 - Container reuse (VS Code reuses same container)
-- No WSL corruption (no Docker CLI in WSL needed)
+- No WSL corruption (avoids non-.cmd wrapped devcontainer CLI)
 
 ---
 
