@@ -1,0 +1,82 @@
+name: Sync Distribution Branch
+
+on:
+  push:
+    branches:
+      - trunk
+    paths:
+      - 'bitbot.exe'
+      - 'bitbot'
+      - 'README.md'
+      - 'LICENSE'
+  workflow_dispatch:
+
+jobs:
+  sync-dist:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync to dist branch
+        run: |
+          echo "Syncing trunk to dist branch..."
+
+          # Check if dist branch exists
+          if git rev-parse --verify origin/dist >/dev/null 2>&1; then
+            echo "Checking out existing dist branch..."
+            git checkout dist
+          else
+            echo "Creating new orphan dist branch..."
+            git checkout --orphan dist
+            git rm -rf . || true
+          fi
+
+          # Remove all files except .git
+          find . -maxdepth 1 ! -name .git ! -name . -exec rm -rf {} \; || true
+
+          # Copy distribution files from trunk
+          echo "Copying distribution files..."
+          git checkout trunk -- bitbot.exe bitbot README.md LICENSE 2>/dev/null || echo "Some files may not exist yet"
+
+          # Create dist-specific .gitignore
+          cat > .gitignore << 'EOF'
+          # Distribution branch - exclude dev files
+          _SPARC/
+          tests/
+          .devcontainer/
+          src/
+          scripts/
+          .github/
+          .vscode/
+          *.log
+          CLAUDE.md
+          EOF
+
+          # Add all files
+          git add .
+
+          # Commit if there are changes
+          if git diff --cached --quiet; then
+            echo "No changes to sync"
+          else
+            TRUNK_COMMIT=$(git rev-parse --short trunk)
+            git commit -m "Sync from trunk @ $TRUNK_COMMIT"
+            git push origin dist
+            echo "Distribution branch updated successfully"
+          fi
+
+      - name: Summary
+        run: |
+          echo "✓ Sync complete"
+          echo "Users can access clean distribution:"
+          echo "  git clone -b dist ${{ github.server_url }}/${{ github.repository }}.git"
