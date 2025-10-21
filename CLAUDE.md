@@ -56,3 +56,5 @@
 - tables in .md files should have aligned columns
 - do not use pwsh to run powershel scripts
 - use mermaid for flow diagrams
+- DO NOT add 🤖 Generated with [Claude Code](https://claude.com/claude-code) Co-Authored-By: Claude <noreply@anthropic.com>") or similar to commits
+- DO always take small steps to not get overwhelmed. DO NOT attempt big refactorings or implementation steps in one go.
