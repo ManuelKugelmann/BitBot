@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Sync trunk branch to dist branch
+# Sync trunk branch to release branch
 # Copies only production files, excludes dev clutter
 #
 # Usage: ./scripts/sync-dist-branch.sh
@@ -9,16 +9,16 @@
 set -e
 
 TRUNK_BRANCH="trunk"
-DIST_BRANCH="dist"
+RELEASE_BRANCH="release"
 TEMP_DIR=$(mktemp -d)
 
 echo "========================================"
-echo "Syncing Distribution Branch"
+echo "Syncing Release Branch"
 echo "========================================"
 echo
 
-# List of files/folders to include in distribution
-DIST_FILES=(
+# List of files/folders to include in release
+RELEASE_FILES=(
     "bitbot.exe"
     "bitbot"
     "README.md"
@@ -26,9 +26,9 @@ DIST_FILES=(
 )
 
 echo "→ Source branch: $TRUNK_BRANCH"
-echo "→ Target branch: $DIST_BRANCH"
-echo "→ Distribution files:"
-for file in "${DIST_FILES[@]}"; do
+echo "→ Target branch: $RELEASE_BRANCH"
+echo "→ Release files:"
+for file in "${RELEASE_FILES[@]}"; do
     echo "  - $file"
 done
 echo
@@ -38,23 +38,23 @@ echo "→ Cloning repository to temp directory..."
 git clone . "$TEMP_DIR" --quiet
 cd "$TEMP_DIR"
 
-# Check if dist branch exists
-if git rev-parse --verify "$DIST_BRANCH" >/dev/null 2>&1; then
-    echo "→ Checking out existing dist branch..."
-    git checkout "$DIST_BRANCH" --quiet
+# Check if release branch exists
+if git rev-parse --verify "$RELEASE_BRANCH" >/dev/null 2>&1; then
+    echo "→ Checking out existing release branch..."
+    git checkout "$RELEASE_BRANCH" --quiet
 else
-    echo "→ Creating new orphan dist branch..."
-    git checkout --orphan "$DIST_BRANCH" --quiet
+    echo "→ Creating new orphan release branch..."
+    git checkout --orphan "$RELEASE_BRANCH" --quiet
     git rm -rf . --quiet 2>/dev/null || true
 fi
 
 # Remove all files except .git
-echo "→ Cleaning dist branch..."
+echo "→ Cleaning release branch..."
 find . -maxdepth 1 ! -name .git ! -name . -exec rm -rf {} \; 2>/dev/null || true
 
-# Checkout distribution files from trunk
-echo "→ Copying distribution files from $TRUNK_BRANCH..."
-for file in "${DIST_FILES[@]}"; do
+# Checkout release files from trunk
+echo "→ Copying release files from $TRUNK_BRANCH..."
+for file in "${RELEASE_FILES[@]}"; do
     if git cat-file -e "$TRUNK_BRANCH:$file" 2>/dev/null; then
         git checkout "$TRUNK_BRANCH" -- "$file" --quiet 2>/dev/null || {
             echo "  ⚠ Warning: $file not found in $TRUNK_BRANCH, skipping"
@@ -64,10 +64,10 @@ for file in "${DIST_FILES[@]}"; do
     fi
 done
 
-# Create dist-specific .gitignore
-echo "→ Creating .gitignore for dist branch..."
+# Create release-specific .gitignore
+echo "→ Creating .gitignore for release branch..."
 cat > .gitignore << 'EOF'
-# Distribution branch - exclude dev files
+# Release branch - exclude dev files
 _SPARC/
 tests/
 .devcontainer/
@@ -91,11 +91,11 @@ else
     echo "→ Committing changes..."
     git commit -m "Sync from $TRUNK_BRANCH @ $TRUNK_COMMIT" --quiet
 
-    echo "→ Pushing to origin/$DIST_BRANCH..."
-    git push origin "$DIST_BRANCH" --quiet
+    echo "→ Pushing to origin/$RELEASE_BRANCH..."
+    git push origin "$RELEASE_BRANCH" --quiet
 
     echo
-    echo "✓ Distribution branch updated successfully"
+    echo "✓ Release branch updated successfully"
     echo "  Synced from: $TRUNK_BRANCH @ $TRUNK_COMMIT"
 fi
 
@@ -108,7 +108,7 @@ echo "========================================"
 echo "✓ Sync complete"
 echo "========================================"
 echo
-echo "Users can now access clean distribution:"
-echo "  git clone -b $DIST_BRANCH <repo-url>"
-echo "  git checkout $DIST_BRANCH"
+echo "Users can now access clean release:"
+echo "  git clone -b $RELEASE_BRANCH <repo-url>"
+echo "  git checkout $RELEASE_BRANCH"
 echo

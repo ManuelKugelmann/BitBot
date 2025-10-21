@@ -1,4 +1,4 @@
-name: Sync Distribution Branch
+name: Sync Release Branch
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  sync-dist:
+  sync-release:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,30 +27,30 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Sync to dist branch
+      - name: Sync to release branch
         run: |
-          echo "Syncing trunk to dist branch..."
+          echo "Syncing trunk to release branch..."
 
-          # Check if dist branch exists
-          if git rev-parse --verify origin/dist >/dev/null 2>&1; then
-            echo "Checking out existing dist branch..."
-            git checkout dist
+          # Check if release branch exists
+          if git rev-parse --verify origin/release >/dev/null 2>&1; then
+            echo "Checking out existing release branch..."
+            git checkout release
           else
-            echo "Creating new orphan dist branch..."
-            git checkout --orphan dist
+            echo "Creating new orphan release branch..."
+            git checkout --orphan release
             git rm -rf . || true
           fi
 
           # Remove all files except .git
           find . -maxdepth 1 ! -name .git ! -name . -exec rm -rf {} \; || true
 
-          # Copy distribution files from trunk
-          echo "Copying distribution files..."
+          # Copy release files from trunk
+          echo "Copying release files..."
           git checkout trunk -- bitbot.exe bitbot README.md LICENSE 2>/dev/null || echo "Some files may not exist yet"
 
-          # Create dist-specific .gitignore
+          # Create release-specific .gitignore
           cat > .gitignore << 'EOF'
-          # Distribution branch - exclude dev files
+          # Release branch - exclude dev files
           _SPARC/
           tests/
           .devcontainer/
@@ -71,12 +71,12 @@ jobs:
           else
             TRUNK_COMMIT=$(git rev-parse --short trunk)
             git commit -m "Sync from trunk @ $TRUNK_COMMIT"
-            git push origin dist
-            echo "Distribution branch updated successfully"
+            git push origin release
+            echo "Release branch updated successfully"
           fi
 
       - name: Summary
         run: |
           echo "✓ Sync complete"
-          echo "Users can access clean distribution:"
-          echo "  git clone -b dist ${{ github.server_url }}/${{ github.repository }}.git"
+          echo "Users can access clean release:"
+          echo "  git clone -b release ${{ github.server_url }}/${{ github.repository }}.git"
