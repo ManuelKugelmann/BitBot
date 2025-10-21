@@ -20,6 +20,8 @@ set -euo pipefail
 source "${BITBOT_HOME}/lib/util/helpers.sh"
 # shellcheck source=../util/prerequisites.sh
 source "${BITBOT_HOME}/lib/util/prerequisites.sh"
+# shellcheck source=../util/logo.sh
+source "${BITBOT_HOME}/lib/util/logo.sh"
 
 # ============================================================================
 # Global Init Detection
@@ -176,16 +178,13 @@ run_global_init() {
 # ============================================================================
 
 show_welcome_banner() {
-    echo "=============================================="
-    echo "  Welcome to BitBot!"
-    echo "=============================================="
+    # Display logo with version
+    print_logo "${BITBOT_HOME}"
+
+    echo "  ${GREY}Secure Development Environment for AI-Assisted Coding${RESET}"
     echo ""
-    echo "BitBot is a secure development environment"
-    echo "manager for AI-assisted coding."
+    echo "  This is your first run. Let's set up BitBot..."
     echo ""
-    echo "This is your first run. Let's set up BitBot..."
-    echo ""
-    echo "=============================================="
 }
 
 # ============================================================================

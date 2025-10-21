@@ -3,9 +3,13 @@
 # BitBot Help Command
 #
 
+source "${BITBOT_HOME}/lib/util/logo.sh"
+
 bitbot_help() {
+    # Display logo
+    print_logo
+
     cat <<'EOF'
-BitBot - Secure AI Development Environment Manager
 
 Usage:
   bitbot <command> [options]

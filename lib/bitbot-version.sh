@@ -6,8 +6,19 @@
 source "${BITBOT_HOME}/lib/util/helpers.sh"
 source "${BITBOT_HOME}/lib/util/prerequisites.sh"
 
+# Get version from VERSION file
+get_version() {
+    local version_file="${BITBOT_HOME}/VERSION"
+    if [[ -f "$version_file" ]]; then
+        cat "$version_file"
+    else
+        echo "unknown"
+    fi
+}
+
 bitbot_version() {
-    local version="0.1.0-mvp"
+    local version
+    version=$(get_version)
 
     echo "BitBot version $version"
     echo ""
@@ -17,3 +28,4 @@ bitbot_version() {
 }
 
 export -f bitbot_version
+export -f get_version
