@@ -24,13 +24,15 @@ But **not** accidentally:
 - AI can freely modify application code
 - `.devcontainer/` files are **read-only** (protected)
 - Git safety warnings for uncommitted changes
+- Optional rootless Docker (template-dependent)
+- Optional full Docker in VM for enhanced isolation
 - Perfect for daily development
 
 ### Config Mode
 - **Read-write** access to `.devcontainer/`
-- Includes Docker CLI and DevContainer CLI tools
 - AI agent optimized for infrastructure tasks
 - Use when you need to modify container configuration
+- No Docker access (infrastructure editing only)
 
 ---
 
@@ -59,7 +61,8 @@ But **not** accidentally:
 
 📦 **Flexible Templates**
 - Basic template: Ubuntu + Node.js + Claude Code
-- Rootless Docker template for Docker-in-Docker workflows (WIP)
+- WIP: Rootless Docker template for Docker-in-Docker workflows
+- WIP: VM-based template with full Docker for maximum isolation
 - WIP: Agent steering templates for different workloads
 
 🛡️ **Git Safety**
@@ -260,18 +263,20 @@ bitbot/
 
 ## Development Status
 
-**Current Status:** ✅ **MVP Complete** (Windows tested, macOS/Linux pending)
+**Current Status:** 🚧 **Under Development** (Pre-Alpha - Not Yet Tested)
 
-### Implemented Features
+### Implemented Features (Untested)
 
-✅ Work mode with read-only `.devcontainer/`
-✅ Config mode with infrastructure tools
-✅ VS Code direct container opening
-✅ Windows PowerShell/CMD launcher
-✅ Cross-platform bash core (~2600 lines)
-✅ Git safety warnings
-✅ Workspace initialization with templates
-✅ Prerequisite validation
+⚙️ Work mode with read-only `.devcontainer/`
+⚙️ Config mode for infrastructure editing
+⚙️ VS Code direct container opening
+⚙️ Windows launcher → WSL bash
+⚙️ Cross-platform bash core (~2600 lines)
+⚙️ Git safety warnings
+⚙️ Workspace initialization with templates
+⚙️ Prerequisite validation
+
+**Note:** MVP implementation complete but requires manual testing before release.
 
 ### Roadmap
 

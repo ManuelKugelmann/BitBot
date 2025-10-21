@@ -6,19 +6,18 @@ Configuration mode environment for editing `.devcontainer/` files and infrastruc
 
 Config mode provides a separate container environment where:
 - `.devcontainer/` files are **read-write** (not read-only like work mode)
-- Docker and DevContainer CLI tools are available
-- You can test and rebuild containers
-- AI agent is tuned for infrastructure tasks
+- AI agent is tuned for infrastructure editing tasks
+- No Docker access (prevents accidental container manipulation)
+- Focus on editing configuration files safely
 
 ## What's Different from Work Mode
 
-| Feature                  | Work Mode            | Config Mode          |
-|-------------------------|---------------------|---------------------|
-| .devcontainer/ access   | Read-only           | Read-write          |
-| Docker available        | No                  | Yes                 |
-| DevContainer CLI        | No                  | Yes                 |
-| AI agent focus          | Code development    | Infrastructure      |
-| Primary use case        | Writing code        | Configuring env     |
+| Feature                  | Work Mode                    | Config Mode          |
+|-------------------------|------------------------------|---------------------|
+| .devcontainer/ access   | Read-only                    | Read-write          |
+| Docker available        | Optional (template-dependent)| No                  |
+| AI agent focus          | Code development             | Infrastructure      |
+| Primary use case        | Writing code                 | Editing config      |
 
 ## What's Included
 
@@ -28,12 +27,9 @@ Config mode provides a separate container environment where:
   - Curl
   - Node.js LTS
   - Claude Code CLI
-  - Docker CLI
-  - DevContainer CLI
 - **Extensions:**
-  - Docker extension
   - YAML extension
-  - Remote Containers extension
+  - JSON extension
 
 ## Usage
 
@@ -46,7 +42,7 @@ bitbot config
 This opens the config mode container where you can edit:
 - `.devcontainer/devcontainer.json`
 - `.devcontainer/Dockerfile`
-- Test and rebuild containers
+- Container configuration files
 - Install additional tools
 
 ## When to Use Config Mode
@@ -55,8 +51,7 @@ Use config mode when you need to:
 - Add new VS Code extensions
 - Install system packages in Dockerfile
 - Change container configuration
-- Test devcontainer changes
-- Set up Docker Compose services
+- Update devcontainer settings
 
 Use work mode (default) for:
 - Regular development work
@@ -66,7 +61,7 @@ Use work mode (default) for:
 
 ## Security Note
 
-Config mode has elevated permissions to manage containers. Use work mode for day-to-day development to maintain the security boundary between your code and container configuration.
+Config mode provides read-write access to infrastructure files. Use work mode for day-to-day development to maintain the security boundary between your code and container configuration.
 
 ## See Also
 
