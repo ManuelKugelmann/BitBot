@@ -43,7 +43,7 @@ These preliminary specifications serve as:
 - `07-Future-Features.md` - Feature roadmap
 
 ### Google Gemini (Gemini_Specification/)
-**Coverage**: Implementation-focused (7 documents)
+**Coverage**: Implementation-focused (9 documents)
 **Focus**: Technical implementation details, command structure
 
 **Strengths**:

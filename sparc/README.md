@@ -6,7 +6,8 @@ This directory contains all SPARC (Specification, Pseudocode, Architecture, Refi
 
 ```
 sparc/
-├── 1-specification/       Phase 1: System specifications
+├── 0-research/           Phase 0: Research and exploration
+├── 1-specification/      Phase 1: System specifications
 │   ├── *.md              Final specifications (condensed from preliminary)
 │   └── preliminary-specs/ Early AI-generated specifications
 │       ├── Claude_Specification/
@@ -15,12 +16,17 @@ sparc/
 ├── 2-pseudocode/         Phase 2: Implementation pseudocode
 ├── 3-architecture/       Phase 3: Architecture diagrams (future)
 ├── 4-refinement/         Phase 4: Testing, optimization (future)
-├── research/             Supporting research documents
+├── poc-tests/            Proof-of-concept tests (Windows launcher)
 ├── assets/               Logo, diagrams, and other assets
 └── archive/              Legacy code and deprecated implementations
 ```
 
 ## SPARC Phases
+
+### Phase 0: Research ✓ Complete
+Research documents exploring technical approaches, architectural patterns, and design decisions.
+
+**Status**: Complete research on Docker WSL integration, MCP architecture, DevContainer features, AI agent safety, GitHub Actions CI/CD strategy, and more (25+ research documents).
 
 ### Phase 1: Specification ✓ Complete
 Comprehensive system specifications covering all aspects of BitBot's architecture, security model, and feature set.
@@ -51,13 +57,14 @@ Testing results, optimization notes, performance analysis, and iterative improve
 
 ## Key Documents
 
-| Document                 | Location                               | Purpose                    |
-|--------------------------|----------------------------------------|----------------------------|
-| Final Specifications     | `1-specification/*.md`                 | Production specifications  |
-| Preliminary AI Specs     | `1-specification/preliminary-specs/`   | Historical AI-generated    |
-| Implementation Pseudocode| `2-pseudocode/`                        | Algorithmic design         |
-| Research Documents       | `research/`                            | Supporting research        |
-| Architecture Decisions   | `1-specification/00_DECISIONS.md`      | Key architectural decisions|
+| Document                              | Location                               | Purpose                           |
+|---------------------------------------|----------------------------------------|-----------------------------------|
+| Research Documents                    | `0-research/`                          | Technical research                |
+| Final Specifications                  | `1-specification/*.md`                 | Production specifications         |
+| Preliminary AI Specs                  | `1-specification/preliminary-specs/`   | Historical AI-generated specs     |
+| Implementation Pseudocode             | `2-pseudocode/`                        | Algorithmic design                |
+| Proof-of-Concept Tests                | `poc-tests/`                           | Windows launcher testing          |
+| Architecture Decisions                | `1-specification/00_DECISIONS.md`      | Key architectural decisions       |
 
 ## Usage
 
@@ -69,4 +76,4 @@ Testing results, optimization notes, performance analysis, and iterative improve
 
 ## Not Included in Release
 
-The entire `sparc/` directory is excluded from release distributions. Only production code in `lib/`, `templates/`, and entry scripts are distributed to end users.
+The entire `sparc/` directory is excluded from release distributions. Only production code in `core/`, `templates/`, and entry scripts are distributed to end users.
