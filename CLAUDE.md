@@ -30,6 +30,12 @@
 - Example: Use check-bash-syntax tool with files: ["script.sh"]
 - Auto-approved
 
+**run-with-timeout**
+- Runs a command with timeout to prevent hangs
+- Use for potentially long-running test commands
+- Example: `.claude/tools/run-with-timeout 30 ./test-script.sh`
+- Auto-approved
+
 **DO NOT USE**: `dos2unix file.sh` or `sed -i 's/\r$//' file.sh` directly - use tools above instead!
 
 
