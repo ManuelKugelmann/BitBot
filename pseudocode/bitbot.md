@@ -97,8 +97,9 @@ END FUNCTION
 
 ```pseudocode
 FUNCTION handle_host_commands(command, flags, options):
-    # Validate Docker prerequisites
-    CALL validate_prerequisites()
+    # Validate prerequisites (from lib/util/prerequisites.md)
+    # This checks Docker, DevContainer CLI, and platform-specific requirements
+    CALL validate_prerequisites(command)
 
     # Route to MVP commands
     SWITCH command:
@@ -213,7 +214,14 @@ FUNCTION show_help():
 END FUNCTION
 
 FUNCTION show_version():
+    # Show version and comprehensive dependency status
+    # (calls show_doctor() from lib/util/prerequisites.md)
+
     PRINT "BitBot MVP v0.1.0"
+    PRINT ""
+
+    # Show full dependency status
+    CALL show_doctor()
 END FUNCTION
 ```
 
@@ -256,37 +264,13 @@ END FUNCTION
 ## Validation Functions
 
 ```pseudocode
-FUNCTION validate_prerequisites():
-    # Check Docker
-    IF NOT command_exists("docker"):
-        ERROR "Docker not found. Install: https://docker.com"
-        EXIT 1
-    END IF
-
-    # Check Docker running
-    IF NOT docker_is_running():
-        ERROR "Docker is not running. Start Docker Desktop."
-        EXIT 1
-    END IF
-
-    # Check Docker Compose
-    IF NOT docker_compose_v2_available():
-        ERROR "Docker Compose v2 not found"
-        EXIT 1
-    END IF
-
-    RETURN true
-END FUNCTION
-
-FUNCTION docker_is_running() → boolean:
-    EXECUTE "docker ps" → output
-    RETURN exit_code == 0
-END FUNCTION
-
-FUNCTION docker_compose_v2_available() → boolean:
-    EXECUTE "docker compose version" → output
-    RETURN exit_code == 0
-END FUNCTION
+# NOTE: Prerequisite validation moved to lib/util/prerequisites.md
+# See that file for comprehensive dependency checking including:
+# - Docker (with auto-start)
+# - DevContainer CLI detection and installation
+# - VS Code extension check
+# - WSL Docker integration
+# - Doctor command for dependency status
 ```
 
 ---

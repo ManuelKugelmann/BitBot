@@ -41,9 +41,9 @@ These utilities are **not** standalone commands. They are libraries sourced by B
 
 ---
 
-### mode.md
-**Purpose**: Mode system (work/config) and devcontainer launch
-**Script**: `scripts/lib/util/mode.sh`
+### devcontainer.md
+**Purpose**: DevContainer CLI wrapper and launch functions
+**Script**: `scripts/lib/util/devcontainer.sh`
 **Used by**:
 - `lib/workspace/work.md` - Launches work mode devcontainer
 - `lib/workspace/config.md` - Launches config mode devcontainer
@@ -58,23 +58,26 @@ These utilities are **not** standalone commands. They are libraries sourced by B
 - `devcontainer_exec_tmux()` - Execute tmux in devcontainer
 - `check_git_uncommitted()` - Git safety check (warning only)
 
+**Note**: UID/GID synchronization is handled natively by DevContainer CLI using `updateRemoteUserUID` and the `common-utils` feature. No separate UID sync module needed.
+
 ---
 
-### uid-sync.md
-**Purpose**: UID/GID synchronization for file permissions
-**Script**: `scripts/lib/util/uid-sync.sh`
+### prerequisites.md
+**Purpose**: Dependency checking and validation
+**Script**: `scripts/lib/util/prerequisites.sh`
 **Used by**:
-- `lib/util/mode.md` - Gets host UID/GID during container launch
-- DevContainer configurations - Syncs container user with host user
+- `bitbot` (main router) - Validates before all commands
+- Doctor command - Shows comprehensive dependency status
 
 **Key functions**:
-- `get_uid_gid()` - Detect host UID/GID
-- `configure_container_user()` - Set container user to match host
-- `validate_workspace_permissions()` - Check file ownership
-- `fix_workspace_ownership()` - Repair ownership if needed
-- `get_wsl_uid_gid()` - WSL-specific UID detection
-
-**Why needed**: Ensures files created in container have correct ownership on host (no permission issues).
+- `validate_prerequisites()` - Main validation (Docker, DevContainer CLI, WSL integration)
+- `check_docker()` - Check Docker installed and running (offers auto-start)
+- `start_docker()` - Platform-specific Docker startup
+- `check_devcontainer_cli()` - Detect builtin/standalone/none
+- `check_vscode_extension()` - Check Dev Containers extension
+- `handle_missing_devcontainer_cli()` - Install guidance
+- `check_docker_wsl_integration()` - WSL Docker integration check
+- `show_doctor()` - Comprehensive dependency status display
 
 ---
 
@@ -85,21 +88,23 @@ bitbot (main router)
 └── lib/util/detect.sh (workspace detection)
     └── lib/util/helpers.sh (file operations)
 
+bitbot (main router)
+└── lib/util/prerequisites.sh (dependency validation)
+    └── lib/util/helpers.sh (prompts, output)
+
 lib/workspace/work.md
-└── lib/util/mode.sh (launch work mode)
-    ├── lib/util/uid-sync.sh (get UID/GID)
+└── lib/util/devcontainer.sh (launch work mode)
     ├── lib/util/helpers.sh (file/output operations)
     └── lib/util/detect.sh (validate workspace)
 
 lib/workspace/config.md
-└── lib/util/mode.sh (launch config mode)
-    ├── lib/util/uid-sync.sh (get UID/GID)
+└── lib/util/devcontainer.sh (launch config mode)
     ├── lib/util/helpers.sh (file/output operations)
     └── lib/util/detect.sh (validate workspace)
 
 lib/workspace/init.md
 ├── lib/util/helpers.sh (file/JSON operations)
-└── lib/util/mode.sh (launch config after init)
+└── lib/util/devcontainer.sh (launch config after init)
 
 lib/global/init.md
 └── lib/util/helpers.sh (file/directory operations, prompts)
@@ -112,12 +117,12 @@ lib/global/config.md
 
 ## Script Mapping
 
-| Pseudocode File     | Implementation Script         | Type     |
-|---------------------|-------------------------------|----------|
-| detect.md           | scripts/lib/util/detect.sh    | Utility  |
-| helpers.md          | scripts/lib/util/helpers.sh   | Utility  |
-| mode.md             | scripts/lib/util/mode.sh      | Utility  |
-| uid-sync.md         | scripts/lib/util/uid-sync.sh  | Utility  |
+| Pseudocode File     | Implementation Script              | Type     |
+|---------------------|------------------------------------|----------|
+| detect.md           | scripts/lib/util/detect.sh         | Utility  |
+| helpers.md          | scripts/lib/util/helpers.sh        | Utility  |
+| devcontainer.md     | scripts/lib/util/devcontainer.sh   | Utility  |
+| prerequisites.md    | scripts/lib/util/prerequisites.sh  | Utility  |
 
 ---
 

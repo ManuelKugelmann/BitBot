@@ -1,6 +1,7 @@
-# Mode System Pseudocode (MVP: Simplified)
+# DevContainer Launch Pseudocode (MVP: Simplified)
 
-**Component**: Mode Management (Work/Config)
+**Component**: DevContainer CLI Wrapper
+**Script**: `scripts/lib/util/devcontainer.sh`
 **Implements**: SPEC-02 (Security Mode System), SPEC-02A (Git Safety - warnings only)
 **Purpose**: Launch work or config devcontainers with different configurations
 
@@ -187,18 +188,15 @@ FUNCTION devcontainer_up(workspace_path):
         SET devcontainer_bin = "devcontainer"
     END IF
 
-    # Get UID/GID for file permissions
-    CALL get_uid_gid() → host_uid, host_gid
-
     # Build command
+    # Note: UID/GID sync handled natively by devcontainer CLI
+    # using updateRemoteUserUID and common-utils feature in devcontainer.json
     SET command = [
         devcontainer_bin,
         "up",
         "--workspace-folder", workspace_path,
         "--remove-existing-container",
-        "--remote-env", "BITBOT_MODE=work",
-        "--remote-env", "BITBOT_UID=" + host_uid,
-        "--remote-env", "BITBOT_GID=" + host_gid
+        "--remote-env", "BITBOT_MODE=work"
     ]
 
     PRINT "[>] Building and starting devcontainer..."
@@ -225,10 +223,8 @@ FUNCTION devcontainer_up_with_config(config_devcontainer_path, env_vars):
         SET devcontainer_bin = "devcontainer"
     END IF
 
-    # Get UID/GID
-    CALL get_uid_gid() → host_uid, host_gid
-
     # Build command with env vars
+    # Note: UID/GID sync handled natively by devcontainer CLI
     SET command = [
         devcontainer_bin,
         "up",
@@ -239,12 +235,6 @@ FUNCTION devcontainer_up_with_config(config_devcontainer_path, env_vars):
     # Add environment variables
     APPEND "--remote-env" to command
     APPEND "BITBOT_MODE=config" to command
-
-    APPEND "--remote-env" to command
-    APPEND "BITBOT_UID=" + host_uid to command
-
-    APPEND "--remote-env" to command
-    APPEND "BITBOT_GID=" + host_gid to command
 
     FOR EACH key, value IN env_vars:
         APPEND "--remote-env" to command
@@ -344,7 +334,13 @@ END FUNCTION
 - `bitbot done` workflow
 - Config mode approval prompts
 
+**UID/GID Handling**:
+- DevContainer CLI handles UID/GID synchronization natively
+- Use `updateRemoteUserUID: true` in devcontainer.json
+- Use `common-utils` feature to set UID/GID automatically
+- No manual UID sync needed in bash scripts
+
 **Dependencies**:
-- Uses `lib/uid-sync.md` for get_uid_gid()
-- Uses `lib/helpers.md` for file/directory operations
-- Uses `lib/detect.md` for validate_workspace()
+- Uses `lib/util/helpers.md` for file/directory operations
+- Uses `lib/util/detect.md` for validate_workspace()
+- Uses `lib/util/prerequisites.md` for platform detection
