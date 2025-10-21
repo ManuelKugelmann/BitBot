@@ -378,7 +378,8 @@ scripts/
 │   ├── helpers.sh               # Common utilities
 │   └── bitbot-version.sh        # Universal: Version display
 ├── global/                      # Global-only commands (from install folder)
-│   ├── bitbot-init.sh           # Global initialization (06)
+│   ├── bitbot-init.sh           # First-run setup (06)
+│   ├── bitbot-config.sh         # Global config (06B, reusable)
 │   └── bitbot-mcp.sh            # Future: Global MCP compose
 └── workspace/                   # Workspace-only commands (from projects)
     ├── bitbot-work.sh           # Work mode
@@ -392,8 +393,14 @@ scripts/
 - `01A_cli-entry-host.md` → `scripts/bitbot` (main router)
 - `02_workspace-detect.md` → `scripts/lib/detect.sh` + `scripts/workspace/bitbot-init.sh`
 - `04_mode-system.md` → `scripts/lib/mode.sh` (shared library)
-- `06_global-init.md` → `scripts/global/bitbot-init.sh`
+- `06_global-init.md` → `scripts/global/bitbot-init.sh` (first run only)
+- `06B_global-config.md` → `scripts/global/bitbot-config.sh` (reusable)
 - Each workspace command → `scripts/workspace/bitbot-<command>.sh`
+
+**Commands with Same Name, Different Context**:
+- `bitbot init`: Global (first run) vs Workspace (project setup)
+- `bitbot config`: Global (BitBot settings) vs Workspace (devcontainer edit)
+- Context determined by PWD (install folder vs project folder)
 - Basic error handling only
 
 **Key Simplifications**:

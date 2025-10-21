@@ -49,15 +49,17 @@ END FUNCTION
 
 ---
 
-## Main Global Init
+## Main Global Init (First-Run Only)
 
 ```pseudocode
 FUNCTION run_global_init():
+    # First-time setup - runs once, then delegates to config for settings
+
     CALL show_welcome_banner()
 
     # Step 1: Prerequisites check
     PRINT ""
-    PRINT "[1/3] Checking prerequisites..."
+    PRINT "[1/4] Checking prerequisites..."
     PRINT ""
 
     CALL check_prerequisites() → all_ok
@@ -67,28 +69,36 @@ FUNCTION run_global_init():
         EXIT 1
     END IF
 
-    # Step 2: Create global BitBot folder
+    # Step 2: Create global BitBot folder structure
     PRINT ""
-    PRINT "[2/3] Setting up global BitBot folder..."
+    PRINT "[2/4] Setting up global BitBot folder..."
     PRINT ""
 
-    CALL setup_global_folder()
+    CALL setup_global_folder_structure()
 
     # Step 3: Add to PATH
     PRINT ""
-    PRINT "[3/3] Adding BitBot to PATH..."
+    PRINT "[3/4] Adding BitBot to PATH..."
     PRINT ""
 
     CALL add_to_path()
+
+    # Step 4: Run global config (settings, templates, etc.)
+    PRINT ""
+    PRINT "[4/4] Configuring BitBot..."
+    PRINT ""
+
+    CALL run_global_config()  # Calls global config command
 
     # Mark init complete
     CALL write_file("~/.bitbot/first-run", current_timestamp())
 
     PRINT ""
-    PRINT "[+] Global BitBot setup complete!"
+    PRINT "[+] Global BitBot initialization complete!"
     PRINT ""
     PRINT "You can now run 'bitbot' from anywhere."
     PRINT "Use 'bitbot init' in a project folder to initialize a workspace."
+    PRINT "Use 'bitbot config' (from install folder) to adjust global settings."
     PRINT ""
 END FUNCTION
 ```
@@ -161,66 +171,36 @@ END FUNCTION
 
 ---
 
-## Global Folder Setup
+## Global Folder Structure (Minimal)
 
 ```pseudocode
-FUNCTION setup_global_folder():
+FUNCTION setup_global_folder_structure():
     SET bitbot_home = "~/.bitbot"
 
-    # Create base directory
+    # Create minimal directory structure
     PRINT "Creating ~/.bitbot/..."
     CALL create_directory(bitbot_home)
     PRINT "  ✓ Created ~/.bitbot/"
 
-    # Create global config.json
-    PRINT "Creating global config..."
-    SET config = {
-        "bitbot_install_path": get_bitbot_install_dir(),
-        "version": "0.1.0-mvp",
-        "created": current_timestamp()
-    }
-
-    CALL write_json(bitbot_home + "/config.json", config)
-    PRINT "  ✓ Created config.json"
-
-    # Create global config-devcontainer template
-    PRINT "Creating global config devcontainer template..."
-    CALL setup_config_devcontainer_template(bitbot_home)
-    PRINT "  ✓ Created config-devcontainer/"
-
-    PRINT "[+] Global folder ready"
+    PRINT "[+] Global folder structure ready"
+    PRINT "[i] Run global config next to set up settings..."
 END FUNCTION
 ```
 
 ---
 
-## Config Devcontainer Template Setup
+## Call Global Config
 
 ```pseudocode
-FUNCTION setup_config_devcontainer_template(bitbot_home):
-    SET config_dc_dir = bitbot_home + "/config-devcontainer"
+FUNCTION run_global_config():
+    # Delegate to global config script for actual configuration
+    # This is a separate command that can be run independently
 
-    CALL create_directory(config_dc_dir)
+    SET script_dir = directory_of_current_script()
 
-    # Create minimal devcontainer.json
-    SET devcontainer_json = {
-        "name": "BitBot Config Mode",
-        "image": "mcr.microsoft.com/devcontainers/base:alpine",
-        "workspaceFolder": "${localEnv:BITBOT_WORKSPACE}",
-        "customizations": {
-            "vscode": {
-                "extensions": [
-                    "ms-vscode-remote.remote-containers"
-                ]
-            }
-        },
-        "postCreateCommand": "echo 'BitBot config mode ready'",
-        "remoteUser": "vscode"
-    }
-
-    CALL write_json(config_dc_dir + "/devcontainer.json", devcontainer_json)
-
-    # Note: In future, can add Dockerfile, compose, scripts here
+    # Source and run global config script
+    SOURCE script_dir + "/bitbot-config.sh"
+    CALL bitbot_global_config()
 END FUNCTION
 ```
 
@@ -320,18 +300,35 @@ BITBOT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Detect mode: global vs workspace
 if [[ "$PWD" == "$BITBOT_ROOT" ]]; then
-    # Running from BitBot install folder
+    # Running from BitBot install folder → global context
+    COMMAND="${1:-init}"  # Default to init if no command
+
     if [[ ! -f ~/.bitbot/first-run ]]; then
-        # First run → global init
+        # First run → force global init
         source "$SCRIPT_DIR/global/bitbot-init.sh"
         bitbot_global_init "$@"
     else
-        # Subsequent runs → future: global MCP launch
-        echo "Global MCP compose launch (future feature)"
-        echo "For workspace commands, run 'bitbot' from a project folder"
+        # Subsequent runs → global commands
+        case "$COMMAND" in
+            config)
+                source "$SCRIPT_DIR/global/bitbot-config.sh"
+                bitbot_global_config "$@"
+                ;;
+            mcp)
+                # Future: Launch global MCP compose
+                echo "Global MCP compose (future feature)"
+                ;;
+            *)
+                echo "In BitBot install folder. Available global commands:"
+                echo "  bitbot config  - Configure global settings"
+                echo "  bitbot mcp     - Launch global MCP (future)"
+                echo ""
+                echo "For workspace commands, run 'bitbot' from a project folder"
+                ;;
+        esac
     fi
 else
-    # Workspace mode - route to workspace commands
+    # Workspace context - route to workspace commands
     COMMAND="${1:-work}"
     shift || true
 
@@ -362,7 +359,8 @@ scripts/
 │   ├── helpers.sh               # Common utilities
 │   └── bitbot-version.sh        # Universal command
 ├── global/                      # Global-only commands
-│   ├── bitbot-init.sh           # Global initialization (this file)
+│   ├── bitbot-init.sh           # First-run setup (this file)
+│   ├── bitbot-config.sh         # Global config (06B, reusable)
 │   └── bitbot-mcp.sh            # Future: Global MCP compose
 └── workspace/                   # Workspace-only commands
     ├── bitbot-work.sh           # Work mode
@@ -374,8 +372,9 @@ scripts/
 
 **Command Context**:
 - Universal: `version` (works everywhere)
-- Global-only: `init` (global setup), `mcp` (future)
+- Global-only: `init` (first run), `config` (settings), `mcp` (future)
 - Workspace-only: `work`, `config`, `vscode`, `init`, `help`
+- **Note**: `config` and `init` exist in both contexts but do different things!
 
 **Benefits of Modular Structure**:
 - Each pseudocode file maps to one bash script
