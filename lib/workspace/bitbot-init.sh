@@ -9,17 +9,14 @@
 set -euo pipefail
 
 # Source utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_DIR="$(dirname "$SCRIPT_DIR")"
-
 # shellcheck source=../util/helpers.sh
-source "${LIB_DIR}/util/helpers.sh"
+source "${BITBOT_HOME}/lib/util/helpers.sh"
 # shellcheck source=../util/git.sh
-source "${LIB_DIR}/util/git.sh"
+source "${BITBOT_HOME}/lib/util/git.sh"
 # shellcheck source=../util/detect.sh
-source "${LIB_DIR}/util/detect.sh"
+source "${BITBOT_HOME}/lib/util/detect.sh"
 # shellcheck source=../util/devcontainer.sh
-source "${LIB_DIR}/util/devcontainer.sh"
+source "${BITBOT_HOME}/lib/util/devcontainer.sh"
 
 # ============================================================================
 # Main Initialization Function
