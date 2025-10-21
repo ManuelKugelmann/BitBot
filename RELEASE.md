@@ -122,7 +122,35 @@ Check the GitHub Release:
 
 **Purpose:** When users clone without specifying a branch, they get the clean release version.
 
-### Via GitHub UI:
+### Recommended: Use Script
+
+```bash
+./scripts/set-default-branch.sh
+```
+
+**What it does:**
+- Checks if `gh` CLI is installed
+- Verifies authentication
+- Checks if release branch exists
+- Sets default branch to 'release'
+- Verifies the change worked
+
+**Alternative branch:**
+```bash
+./scripts/set-default-branch.sh trunk  # Set trunk as default
+```
+
+---
+
+### Alternative: GitHub CLI Manually
+
+```bash
+gh repo edit --default-branch release
+```
+
+---
+
+### Alternative: GitHub Web UI
 
 1. Go to repository on GitHub
 2. Click **Settings** (top right)
