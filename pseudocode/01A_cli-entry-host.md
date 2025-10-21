@@ -104,10 +104,11 @@ FUNCTION handle_host_commands(command, flags, options):
     SWITCH command:
         CASE "" OR "work":
             # Default: launch work mode
-            CALL launch_work_mode(flags, options)
+            CALL launch_mode("work", flags, options)
 
         CASE "setup":
-            CALL launch_setup_mode(flags, options)
+            # Setup mode: different devcontainer with RW .devcontainer
+            CALL launch_mode("setup", flags, options)
 
         CASE "vscode":
             CALL launch_vscode(flags, options)
@@ -197,28 +198,28 @@ END FUNCTION
 FUNCTION show_help():
     PRINT "BitBot - Secure Development Environment Manager (MVP)"
     PRINT ""
-    PRINT "Usage: bitbot [command] [flags]"
+    PRINT "Usage: bitbot [command]"
     PRINT ""
     PRINT "Commands:"
     PRINT "  bitbot [work]        Launch work mode (default)"
-    PRINT "  bitbot setup         Launch setup mode"
+    PRINT "  bitbot setup         Launch setup mode (edit .devcontainer)"
     PRINT "  bitbot vscode        Launch VS Code in container"
     PRINT "  bitbot init          Initialize workspace"
     PRINT "  bitbot help          Show this help"
     PRINT "  bitbot version       Show version"
     PRINT ""
-    PRINT "Setup Mode Requirements:"
-    PRINT "  --allow-socket       Grant Docker socket access"
-    PRINT "  --reason \"...\"       Reason for setup mode (audit)"
+    PRINT "Modes:"
+    PRINT "  work   - Development work (.devcontainer is read-only)"
+    PRINT "  setup  - Edit .devcontainer and infrastructure"
     PRINT ""
     PRINT "Examples:"
-    PRINT "  bitbot                                     # Launch work mode"
-    PRINT "  bitbot work                                # Launch work mode"
-    PRINT "  bitbot vscode                              # Launch VS Code"
-    PRINT "  bitbot setup --allow-socket --reason \"...\" # Setup mode"
-    PRINT "  bitbot init                                # Initialize workspace"
+    PRINT "  bitbot               # Launch work mode"
+    PRINT "  bitbot work          # Launch work mode"
+    PRINT "  bitbot setup         # Edit devcontainer configuration"
+    PRINT "  bitbot vscode        # Launch VS Code"
+    PRINT "  bitbot init          # Initialize workspace"
     PRINT ""
-    PRINT "For advanced features, see: https://docs.bitbot.dev/"
+    PRINT "For more info, see: https://docs.bitbot.dev/"
 END FUNCTION
 
 FUNCTION show_version():
@@ -333,12 +334,17 @@ EXIT_LOCK_FAILED = 5       # Could not acquire lock
 - Prompt for init if no workspace in CWD
 
 **MVP Commands**:
-1. `bitbot` or `bitbot work` - Launch work mode
-2. `bitbot setup --allow-socket --reason "..."` - Launch setup mode
+1. `bitbot` or `bitbot work` - Launch work mode (RO .devcontainer)
+2. `bitbot setup` - Launch setup mode (RW .devcontainer)
 3. `bitbot vscode` - Launch VS Code in work container
 4. `bitbot init` - Initialize workspace in CWD
 5. `bitbot help` - Show help
 6. `bitbot version` - Show version
+
+**Key Insight**: Setup is just another devcontainer with different:
+- `.devcontainer` config (uses `.devcontainer-setup/` folder)
+- Mount: `.devcontainer` is RW (not RO like work mode)
+- AI agent: Tuned for devcontainer setup tasks
 
 **Next Steps**:
 - Simplify container entry (01B_cli-entry-container.md)

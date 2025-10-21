@@ -53,13 +53,24 @@
 
 ### Phase 2c: Safety & Audit (Post-MVP)
 
+**Setup Mode Approval Flow**
+- **Cut from**: Setup mode (04)
+- **Use case**: Audit trail for infrastructure changes
+- **Features**:
+  - `--allow-socket` and `--reason` flags
+  - Approval tracking (`.bitbot/approvals.json`)
+  - Prompt for confirmation before setup mode
+  - Logged reason for each setup session
+- **Alternative for MVP**: Setup is just another devcontainer (no approval)
+- **Priority**: Medium (nice for audit, not essential)
+
 **Audit Logging**
 - **Cut from**: All commands
 - **File**: `.bitbot/audit.log`
 - **Use case**: Compliance, debugging, security review
 - **Features**:
   - Command logging with timestamps
-  - Setup mode approval tracking (`.bitbot/approvals.json`)
+  - Mode switches logged
   - Git operations logging
 - **Alternative for MVP**: Manual git commits for audit trail
 - **Priority**: High (compliance requirement)
@@ -204,8 +215,8 @@
 ### Kept in MVP:
 
 **Commands** (6 total):
-- ✓ `bitbot [work]` - Launch work mode (default)
-- ✓ `bitbot setup --allow-socket --reason "..."` - Launch setup mode
+- ✓ `bitbot [work]` - Launch work devcontainer (default)
+- ✓ `bitbot setup` - Launch setup devcontainer (edit .devcontainer)
 - ✓ `bitbot vscode` - Launch VS Code in work container
 - ✓ `bitbot init` - Initialize workspace
 - ✓ `bitbot help` - Show help
@@ -213,12 +224,13 @@
 
 **Core Features**:
 - ✓ Workspace detection (CWD only, no parent search)
-- ✓ Container launch (work/setup via devcontainer/compose)
+- ✓ Two devcontainers (work: `.devcontainer/`, setup: `.devcontainer-setup/`)
 - ✓ VS Code integration (`bitbot vscode`)
 - ✓ Single session (auto-named, auto-attach)
-- ✓ Git warnings (non-blocking)
+- ✓ Git warnings (non-blocking for both modes)
 - ✓ UID sync (host UID = container UID)
 - ✓ Basic first-run (prerequisites check)
+- ✓ Simple setup mode (no approval flow)
 
 ---
 

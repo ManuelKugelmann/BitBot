@@ -16,8 +16,8 @@
 ## ✓ MVP Core Features (Keep)
 
 ### Commands (6 total)
-1. **`bitbot work`** - Launch work container via @devcontainers/cli
-2. **`bitbot setup --allow-socket --reason "..."`** - Launch setup container
+1. **`bitbot work`** - Launch work devcontainer
+2. **`bitbot setup`** - Launch setup devcontainer (edit .devcontainer)
 3. **`bitbot vscode`** - Launch VS Code attached to work container
 4. **`bitbot init`** - Initialize workspace (default .devcontainer, no wizard)
 5. **`bitbot help`** - Basic help text
@@ -25,17 +25,18 @@
 
 ### Core Features
 - **Workspace detection**: CWD only (no parent search), prompt for init if not found
-- **Container launch**: Work (@devcontainers/cli) and Setup (docker-compose)
+- **Two devcontainers**: Work (`.devcontainer/`) and Setup (`.devcontainer-setup/`)
 - **Single session**: One tmux session per container (auto-named by timestamp)
-- **Git safety warnings**: Non-blocking warnings on uncommitted changes
+- **Git safety warnings**: Non-blocking warnings on uncommitted changes (both modes)
 - **Basic first-run**: Check Docker/Git, create `~/.bitbot/` (no template wizard)
 - **UID sync**: Host UID = container UID for file permissions
 - **VS Code integration**: `bitbot vscode` launches VS Code in work container
 
-### Security
-- Work mode: `.devcontainer` read-only, no docker socket
-- Setup mode: Requires `--allow-socket` + `--reason` flags
-- Setup mode: `.bitbot/setup/` not mounted (invisible to containers)
+### Security (Simplified)
+- **Work mode**: `.devcontainer` folder mounted read-only
+- **Setup mode**: `.devcontainer` folder mounted read-write for editing
+- **Both modes**: Git warnings prevent accidents (non-blocking)
+- **AI agent tuning**: Setup devcontainer has docs on devcontainers, features, etc.
 
 ---
 
@@ -69,7 +70,8 @@
 ### Simplified Behaviors
 - **First-run wizard**: Check prerequisites → create `~/.bitbot/` → done (no workspace wizard)
 - **Workspace init**: Create minimal `.bitbot/` + default `.devcontainer/` → done (no template selection)
-- **Git safety**: Warning messages only (not blocking, no checkpoints)
+- **Git safety**: Warning messages only (non-blocking for both work and setup)
+- **Setup mode**: Just another devcontainer (no approval flow, flags, or audit)
 - **Error handling**: Basic error messages, no fancy recovery
 - **Session management**: Create one session, attach to it, done
 
@@ -80,7 +82,7 @@
 | Command | MVP | Future | Alternative for MVP |
 |---------|-----|--------|---------------------|
 | `bitbot work` | ✓ | - | - |
-| `bitbot setup --allow-socket --reason "..."` | ✓ | - | - |
+| `bitbot setup` | ✓ | Enhanced with approval flow | - |
 | `bitbot init` | ✓ | Enhanced wizard | Manual `.devcontainer` setup |
 | `bitbot help` | ✓ | - | - |
 | `bitbot version` | ✓ | - | - |
@@ -189,6 +191,6 @@ Before moving to implementation:
 
 ---
 
-**Status**: ✅ MVP Scope Defined
-**Next**: Simplify pseudocode to match MVP scope
-**Target**: Implementation-ready pseudocode for 2-3 week MVP
+**Status**: ✅ MVP Scope Defined and Simplified
+**Next**: Implement MVP bash scripts
+**Target**: 2-3 week MVP validating two-devcontainer architecture
