@@ -1,18 +1,6 @@
 name: Sync Release Branch
 
 on:
-  push:
-    branches:
-      - trunk
-    paths:
-      - 'bitbot'
-      - 'bitbot.exe'
-      - 'bitbot.cmd'
-      - 'lib/**'
-      - 'templates/**'
-      - 'config-devcontainer/**'
-      - 'README.md'
-      - 'LICENSE'
   workflow_dispatch:
 
 jobs:
