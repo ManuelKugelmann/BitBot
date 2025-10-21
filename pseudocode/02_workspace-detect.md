@@ -57,6 +57,14 @@ FUNCTION initialize_workspace_in(path):
 
     CALL write_json(path + "/.bitbot/metadata.json", metadata)
 
+    # Create config.json (workspace configuration)
+    SET config = {
+        "default_mode": "work",
+        "workspace_name": basename(path)
+    }
+
+    CALL write_json(path + "/.bitbot/config.json", config)
+
     # Check for existing .devcontainer
     IF NOT directory_exists(path + "/.devcontainer"):
         ERROR "No .devcontainer found. Please create one manually or copy from a template."
@@ -65,7 +73,26 @@ FUNCTION initialize_workspace_in(path):
     END IF
 
     PRINT "[+] Workspace initialized"
-    PRINT "[i] Run 'bitbot work' to start"
+    PRINT ""
+
+    # Prompt to launch setup mode for devcontainer configuration
+    PRINT "Would you like to launch setup mode to configure this workspace?"
+    PRINT "(Setup mode lets you edit .devcontainer with AI assistance)"
+    PRINT ""
+    CALL prompt_yes_no("Launch setup mode?", default="no") → launch_setup
+
+    IF launch_setup:
+        PRINT ""
+        PRINT "[>] Launching setup mode..."
+        # Launch setup mode (will create .bitbot/setup/devcontainer.json)
+        CALL launch_mode("setup", empty_flags, empty_options)
+    ELSE:
+        PRINT ""
+        PRINT "Next steps:"
+        PRINT "  bitbot work      # Launch work mode"
+        PRINT "  bitbot setup     # Launch setup mode (edit .devcontainer)"
+        PRINT "  bitbot vscode    # Launch VS Code"
+    END IF
 END FUNCTION
 ```
 
