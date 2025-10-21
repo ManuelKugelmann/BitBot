@@ -48,15 +48,6 @@ FUNCTION initialize_workspace_in(path):
     CALL create_directory(path + "/.bitbot")
     CALL create_directory(path + "/.bitbot/state")
 
-    # Create metadata.json
-    SET metadata = {
-        "version": "1.0",
-        "created": current_iso8601_timestamp(),
-        "workspace_hash": generate_hash(path)
-    }
-
-    CALL write_json(path + "/.bitbot/metadata.json", metadata)
-
     # Create config.json (workspace configuration)
     SET config = {
         "default_mode": "work",
@@ -243,23 +234,6 @@ END FUNCTION
 
 ---
 
-## Workspace Hash Generation
-
-```pseudocode
-FUNCTION generate_hash(path) → hash_string:
-    # Generate short hash for container naming
-    # Format: first 8 chars of SHA256(absolute_path)
-
-    SET absolute = resolve_path(path)
-    SET sha256 = sha256_hash(absolute)
-    SET short_hash = substring(sha256, 0, 8)
-
-    RETURN short_hash
-END FUNCTION
-```
-
----
-
 ## Implementation Notes (MVP Simplified)
 
 **Key Behaviors**:
@@ -271,13 +245,13 @@ END FUNCTION
 - CWD only (no parent search)
 - Removed non-interactive mode (future feature)
 - Removed `--workspace` flag (future feature)
-- Minimal `.bitbot/` structure (metadata.json + config.json)
+- Minimal `.bitbot/` structure (config.json only)
 - Init always launches setup (no check for .devcontainer, setup helps create it)
 
 **Edge Cases**:
 - Symlinks: Follow to canonical path
 - Permission issues: Error and exit 1
-- Corrupted metadata: Warn but continue
+- Missing config.json: Warn but continue
 
 **Error Handling**:
 - No .devcontainer during init → error + exit 4

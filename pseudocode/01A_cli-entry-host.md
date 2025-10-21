@@ -138,27 +138,17 @@ END FUNCTION
 FUNCTION launch_vscode(flags, options):
     # Launch VS Code attached to work container
 
-    # Get workspace and container name
+    # Get workspace path
     SET workspace_path = WORKSPACE_PATH
-    SET workspace_hash = get_workspace_hash(workspace_path)
-    SET container_name = "bitbot-work-" + workspace_hash
 
-    # Check if work container exists and is running
-    IF NOT container_exists(container_name):
-        PRINT "[>] Work container not running, starting it first..."
-        CALL launch_work_mode(flags, options)
-        # Container created, continue below
-    ELSE IF NOT container_is_running(container_name):
-        PRINT "[>] Starting work container..."
-        CALL start_container(container_name)
-    END IF
+    # Note: devcontainer CLI handles container naming automatically
 
-    # Launch VS Code with devcontainer URI
+    # Launch VS Code with devcontainer
+    # VS Code will automatically start container if not running
     PRINT "[>] Launching VS Code..."
-    SET devcontainer_path = workspace_path + "/.devcontainer"
-    SET uri = "vscode-remote://dev-container+" + encode_path(devcontainer_path)
 
-    EXECUTE "code --folder-uri \"" + uri + "\""
+    # Use devcontainer extension to open workspace
+    EXECUTE "code " + workspace_path
 
     PRINT "[+] VS Code launched"
 END FUNCTION
