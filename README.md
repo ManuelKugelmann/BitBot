@@ -1,7 +1,7 @@
 ```
-◆━╮ ╭╲●═●╱╮ ╭⬡    BitBot v0.1.0-dev
+◆━╮╭╲●═●╱╮ ╭⬡    BitBot v0.1.0-dev
 ○┳┻▲▌╲━╱━╲▐┳┻■     Secure AI Development Environment
- ╰◇ ╰▄╱━╲▄╯╰○━□
+ ╰◇╰▄╱━╲▄╯╰○━□
 ```
 
 # BitBot
@@ -400,3 +400,4 @@ Built with:
 ---
 
 **Made with ❤️ for secure AI-assisted coding**
+
