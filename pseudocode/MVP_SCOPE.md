@@ -25,18 +25,36 @@
 
 ### Core Features
 - **Workspace detection**: CWD only (no parent search), prompt for init if not found
-- **Two devcontainers**: Work (`.devcontainer/`) and Setup (`.devcontainer-setup/`)
+- **Two devcontainers**:
+  - Work: Uses workspace's `.devcontainer/`
+  - Setup: Uses global `~/.bitbot/setup-devcontainer/`
 - **Single session**: One tmux session per container (auto-named by timestamp)
 - **Git safety warnings**: Non-blocking warnings on uncommitted changes (both modes)
-- **Basic first-run**: Check Docker/Git, create `~/.bitbot/` (no template wizard)
+- **Basic first-run**: Check Docker/Git, create `~/.bitbot/` + setup devcontainer
 - **UID sync**: Host UID = container UID for file permissions
 - **VS Code integration**: `bitbot vscode` launches VS Code in work container
 
 ### Security (Simplified)
-- **Work mode**: `.devcontainer` folder mounted read-only
-- **Setup mode**: `.devcontainer` folder mounted read-write for editing
+- **Work mode**: Workspace's `.devcontainer` + RO bind mount for .devcontainer folder
+- **Setup mode**: Global devcontainer + workspace at /workspace (RW by default)
 - **Both modes**: Git warnings prevent accidents (non-blocking)
 - **AI agent tuning**: Setup devcontainer has docs on devcontainers, features, etc.
+
+### Architecture
+```
+~/.bitbot/
+├── setup-devcontainer/          # Global setup devcontainer
+│   ├── devcontainer.json        # Mounts any workspace via env var
+│   └── Dockerfile
+└── first-run                    # Marker file
+
+<workspace>/
+├── .devcontainer/               # Work mode config
+│   ├── devcontainer.json        # Includes RO mount for .devcontainer
+│   └── Dockerfile
+└── .bitbot/
+    └── metadata.json
+```
 
 ---
 

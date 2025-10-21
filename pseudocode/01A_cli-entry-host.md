@@ -342,9 +342,10 @@ EXIT_LOCK_FAILED = 5       # Could not acquire lock
 6. `bitbot version` - Show version
 
 **Key Insight**: Setup is just another devcontainer with different:
-- `.devcontainer` config (uses `.devcontainer-setup/` folder)
-- Mount: `.devcontainer` is RW (not RO like work mode)
+- Config location: Global `~/.bitbot/setup-devcontainer/` (not workspace)
+- Workspace mount: `/workspace` (no RO .devcontainer mount = RW by default)
 - AI agent: Tuned for devcontainer setup tasks
+- Can work on any workspace (parameterized via env var)
 
 **Next Steps**:
 - Simplify container entry (01B_cli-entry-container.md)

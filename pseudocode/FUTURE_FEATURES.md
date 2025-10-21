@@ -224,7 +224,9 @@
 
 **Core Features**:
 - ✓ Workspace detection (CWD only, no parent search)
-- ✓ Two devcontainers (work: `.devcontainer/`, setup: `.devcontainer-setup/`)
+- ✓ Two devcontainers:
+  - Work: Workspace's `.devcontainer/` (RO .devcontainer mount)
+  - Setup: Global `~/.bitbot/setup-devcontainer/` (RW workspace)
 - ✓ VS Code integration (`bitbot vscode`)
 - ✓ Single session (auto-named, auto-attach)
 - ✓ Git warnings (non-blocking for both modes)

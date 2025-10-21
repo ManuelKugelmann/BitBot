@@ -15,8 +15,8 @@ Command → Select Mode → Git Warning → Launch Devcontainer
 ```
 
 **Decision**: Two modes = two devcontainer configurations
-- Work: `.devcontainer/` (RO .devcontainer mount)
-- Setup: `.devcontainer-setup/` (RW .devcontainer mount)
+- Work: Workspace's `.devcontainer/` (RO .devcontainer mount via bind mount)
+- Setup: Global `~/.bitbot/setup-devcontainer/` (no RO mount = RW by default)
 
 ---
 
@@ -70,12 +70,71 @@ FUNCTION launch_mode(mode, flags, options):
 
     # Launch appropriate devcontainer
     IF mode == "work":
-        # Uses .devcontainer/ (RO .devcontainer mount)
-        CALL launch_devcontainer(WORKSPACE_PATH, ".devcontainer", flags, options)
+        # Uses workspace's .devcontainer/
+        # - Mounts workspace at /workspace
+        # - Adds RO bind mount for /workspace/.devcontainer
+        CALL launch_work_devcontainer(WORKSPACE_PATH, flags, options)
     ELSE IF mode == "setup":
-        # Uses .devcontainer-setup/ (RW .devcontainer mount)
-        CALL launch_devcontainer(WORKSPACE_PATH, ".devcontainer-setup", flags, options)
+        # Uses global ~/.bitbot/setup-devcontainer/
+        # - Mounts workspace at /workspace
+        # - No RO bind mount = /workspace/.devcontainer is RW by default
+        CALL launch_setup_devcontainer(WORKSPACE_PATH, flags, options)
     END IF
+END FUNCTION
+```
+
+---
+
+## Launch Work Devcontainer
+
+```pseudocode
+FUNCTION launch_work_devcontainer(workspace_path, flags, options):
+    # Launch workspace's devcontainer with RO .devcontainer
+
+    SET devcontainer_path = workspace_path + "/.devcontainer"
+
+    IF NOT directory_exists(devcontainer_path):
+        ERROR "No .devcontainer found. Run 'bitbot init' first."
+        EXIT 4
+    END IF
+
+    # Use devcontainer CLI with workspace's config
+    # devcontainer.json should include RO bind mount for .devcontainer:
+    # "mounts": [
+    #   "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly"
+    # ]
+
+    CALL devcontainer_up(workspace_path)
+END FUNCTION
+```
+
+---
+
+## Launch Setup Devcontainer
+
+```pseudocode
+FUNCTION launch_setup_devcontainer(workspace_path, flags, options):
+    # Launch global setup devcontainer parameterized for this workspace
+
+    SET setup_config_path = "~/.bitbot/setup-devcontainer"
+
+    IF NOT directory_exists(setup_config_path):
+        ERROR "Setup devcontainer not found in ~/.bitbot/"
+        PRINT "This should have been created during 'bitbot' installation"
+        EXIT 1
+    END IF
+
+    # Use devcontainer CLI with global setup config
+    # Pass workspace path as environment variable for mounting
+    SET env_vars = {
+        "BITBOT_WORKSPACE": workspace_path
+    }
+
+    # Setup devcontainer.json uses:
+    # "workspaceFolder": "${localEnv:BITBOT_WORKSPACE}"
+    # No RO mount for .devcontainer = writable by default
+
+    CALL devcontainer_up_with_config(setup_config_path, env_vars)
 END FUNCTION
 ```
 
@@ -125,13 +184,18 @@ END FUNCTION
 - Unified launch function for both modes
 
 **Mode Differences**:
-- Work: `.devcontainer/` with RO mount for `.devcontainer` folder
-- Setup: `.devcontainer-setup/` with RW mount for `.devcontainer` folder
+- **Work**: Uses workspace's `.devcontainer/` + RO bind mount for .devcontainer folder
+- **Setup**: Uses global `~/.bitbot/setup-devcontainer/` + no RO mount = RW by default
 - Setup devcontainer: AI agent tuned for devcontainer/infrastructure docs
 
+**File Locations**:
+- Work config: `<workspace>/.devcontainer/devcontainer.json`
+- Setup config: `~/.bitbot/setup-devcontainer/devcontainer.json`
+- Both mount workspace at: `/workspace`
+
 **Security (Simplified)**:
-- Work mode: `.devcontainer` folder read-only via mount config
-- Setup mode: `.devcontainer` folder read-write for editing
+- Work mode: `.devcontainer` folder read-only via explicit bind mount
+- Setup mode: `.devcontainer` folder writable (no RO mount)
 - Both modes: Git warnings for uncommitted changes (non-blocking)
 - No docker socket mounting needed (devcontainer CLI handles it)
 
