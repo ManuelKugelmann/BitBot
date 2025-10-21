@@ -1,693 +1,204 @@
 #!/usr/bin/env bash
 #
-# BitBot Launcher Script
+# BitBot CLI Entry Point
 #
-# Entry point for BitBot that handles:
-# - Platform detection
-# - DevContainer building
-# - VS Code or terminal launching
-# - Session management
-#
-# Usage:
-#   bitbot [work|setup] [--vscode]
+# Main router for all BitBot commands
 #
 
 set -euo pipefail
 
-# Constants
-BITBOT_VERSION="0.1.0-test"
+# Determine script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export BITBOT_HOME="$SCRIPT_DIR"
+
+# Source utilities
+source "${SCRIPT_DIR}/lib/util/helpers.sh"
+source "${SCRIPT_DIR}/lib/util/detect.sh"
+source "${SCRIPT_DIR}/lib/util/prerequisites.sh"
+
+# Source command handlers
+source "${SCRIPT_DIR}/lib/global/bitbot-init.sh"
+source "${SCRIPT_DIR}/lib/workspace/bitbot-init.sh"
+source "${SCRIPT_DIR}/lib/workspace/bitbot-work.sh"
+source "${SCRIPT_DIR}/lib/workspace/bitbot-config.sh"
+source "${SCRIPT_DIR}/lib/workspace/bitbot-help.sh"
+source "${SCRIPT_DIR}/lib/bitbot-version.sh"
 
 # ============================================================================
-# Core Functions (from bitbot-core.sh)
-# ============================================================================
-
-detect_platform() {
-    if grep -qi microsoft /proc/version 2>/dev/null; then
-        echo "wsl"
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "macos"
-    else
-        echo "linux"
-    fi
-}
-
-path_to_hex() {
-    local path="$1"
-    if command -v xxd &> /dev/null; then
-        printf "%s" "$path" | xxd -p -c 256 | tr -d '\n'
-    else
-        # Fallback: use od (available in Alpine)
-        printf "%s" "$path" | od -A n -t x1 | tr -d ' \n'
-    fi
-}
-
-open_vscode_devcontainer() {
-    local workspace_path="$1"
-    local container_path="${2:-/workspace}"
-    local verify="${3:-false}"
-
-    echo "[>] Launching VS Code in devcontainer..."
-    echo "    Workspace: $workspace_path"
-
-    # Convert to hex
-    local hex_path=$(path_to_hex "$workspace_path")
-
-    if [[ "$verify" == "true" ]]; then
-        echo "    Hex: $hex_path"
-
-        # Verify decoding (if xxd available)
-        if command -v xxd &> /dev/null; then
-            local decoded=$(echo "$hex_path" | xxd -r -p)
-            if [[ "$decoded" != "$workspace_path" ]]; then
-                echo "    [X] Path encoding verification failed!"
-                echo "        Expected: $workspace_path"
-                echo "        Got: $decoded"
-                return 1
-            fi
-            echo "    [+] Path encoding verified"
-        fi
-    fi
-
-    # Build devcontainer URI
-    local uri="vscode-remote://dev-container+${hex_path}${container_path}"
-
-    if [[ "$verify" == "true" ]]; then
-        echo "    URI: $uri"
-    fi
-
-    # Launch VS Code (detect platform)
-    if command -v code.exe &> /dev/null; then
-        # WSL or Git Bash
-        code.exe --folder-uri="$uri"
-    elif command -v code &> /dev/null; then
-        # Native Linux/macOS
-        code --folder-uri="$uri"
-    else
-        echo "    [X] VS Code 'code' command not found"
-        return 1
-    fi
-
-    echo "    [+] VS Code launched"
-    return 0
-}
-
-calculate_workspace_hash() {
-    local workspace_path="$1"
-    local normalized=$(realpath "$workspace_path" 2>/dev/null || echo "$workspace_path")
-    echo -n "$normalized" | sha256sum | cut -c1-8
-}
-
-# ============================================================================
-# DevContainer CLI Detection and Installation
-# ============================================================================
-
-check_vscode_extension() {
-    # Check if Dev Containers extension is installed
-    # On WSL, check from Windows host using PowerShell
-    local platform=$(detect_platform)
-
-    if [[ "$platform" == "wsl" ]]; then
-        # Check from Windows host
-        if powershell.exe -Command "code --list-extensions" 2>/dev/null | grep -q "ms-vscode-remote.remote-containers"; then
-            return 0
-        fi
-    else
-        # Check directly on Linux/macOS
-        if code --list-extensions 2>/dev/null | grep -q "ms-vscode-remote.remote-containers"; then
-            return 0
-        fi
-    fi
-    return 1
-}
-
-check_devcontainer_cli() {
-    local has_vscode=false
-    local has_extension=false
-    local has_standalone=false
-    local platform=$(detect_platform)
-
-    # Check for VS Code
-    if command -v code &>/dev/null; then
-        has_vscode=true
-
-        # Check for Dev Containers extension using helper function
-        if check_vscode_extension; then
-            has_extension=true
-        fi
-    fi
-
-    # Check for standalone CLI
-    if [[ "$platform" == "wsl" ]]; then
-        # Windows: Check for devcontainer.cmd
-        if command -v devcontainer.cmd &>/dev/null; then
-            has_standalone=true
-        fi
-    else
-        # macOS/Linux: Check for devcontainer
-        if command -v devcontainer &>/dev/null; then
-            has_standalone=true
-        fi
-    fi
-
-    # Return status with detailed info
-    if [[ "$has_extension" == "true" ]]; then
-        echo "builtin"  # VS Code with Dev Containers extension
-        return 0
-    elif [[ "$has_standalone" == "true" ]]; then
-        echo "standalone"  # Standalone devcontainer CLI
-        return 0
-    elif [[ "$has_vscode" == "true" ]]; then
-        echo "vscode-only"  # VS Code without extension
-        return 2
-    else
-        echo "none"  # Nothing found
-        return 1
-    fi
-}
-
-install_devcontainer_cli() {
-    echo ""
-    echo "DevContainer CLI not found."
-    echo ""
-    echo "Options:"
-    echo "  1. Install VS Code with Dev Containers extension (recommended)"
-    echo "     https://code.visualstudio.com/"
-    echo "     Extension: ms-vscode-remote.remote-containers"
-    echo ""
-    echo "  2. Install standalone CLI:"
-    echo "     npm install -g @devcontainers/cli"
-    echo ""
-    read -p "Install standalone CLI now? (requires Node.js) [y/N]: " choice
-
-    if [[ "$choice" =~ ^[Yy]$ ]]; then
-        if ! command -v npm &>/dev/null; then
-            echo "Error: npm not found. Install Node.js first."
-            exit 1
-        fi
-
-        echo "Installing @devcontainers/cli..."
-        npm install -g @devcontainers/cli
-
-        if [[ $? -eq 0 ]]; then
-            echo "✓ DevContainer CLI installed successfully"
-        else
-            echo "Error: Failed to install DevContainer CLI"
-            exit 1
-        fi
-    else
-        echo "Installation cancelled."
-        exit 1
-    fi
-}
-
-# ============================================================================
-# DevContainer Build and Launch
-# ============================================================================
-
-start_docker() {
-    local platform=$(detect_platform)
-
-    echo "Starting Docker..."
-
-    case "$platform" in
-        wsl)
-            # Windows: Start Docker Desktop via Windows
-            if ! powershell.exe -Command "Start-Process 'C:\Program Files\Docker\Docker\Docker Desktop.exe'" 2>/dev/null; then
-                echo "  Could not auto-start Docker Desktop"
-                echo "  Please start Docker Desktop manually and try again"
-                return 1
-            fi
-            ;;
-        macos)
-            # macOS: Start Docker Desktop
-            if ! open -a Docker 2>/dev/null; then
-                echo "  Could not auto-start Docker Desktop"
-                echo "  Please start Docker Desktop manually and try again"
-                return 1
-            fi
-            ;;
-        linux)
-            # Linux: Try systemd, then service, then error
-            if command -v systemctl &>/dev/null; then
-                sudo systemctl start docker 2>/dev/null || return 1
-            elif command -v service &>/dev/null; then
-                sudo service docker start 2>/dev/null || return 1
-            else
-                echo "  Could not auto-start Docker daemon"
-                echo "  Please start Docker manually and try again"
-                return 1
-            fi
-            ;;
-    esac
-
-    # Wait for Docker to be ready (max 60 seconds for WSL integration)
-    echo "  Waiting for Docker to start..."
-    local timeout=60
-    local elapsed=0
-
-    while ! docker ps &>/dev/null 2>&1; do
-        if [[ $elapsed -ge $timeout ]]; then
-            echo ""
-            echo "  Timeout waiting for Docker to start (waited ${timeout}s)"
-            echo "  Docker Desktop may need more time to initialize WSL integration"
-            echo "  Check Docker Desktop status and try again"
-            return 1
-        fi
-        sleep 2
-        elapsed=$((elapsed + 2))
-        echo -n "."
-
-        # Show progress every 10 seconds
-        if [[ $((elapsed % 10)) -eq 0 ]]; then
-            echo -n " ${elapsed}s"
-        fi
-    done
-
-    echo ""
-    echo "  ✓ Docker is ready (took ${elapsed}s)"
-    return 0
-}
-
-check_docker_wsl_integration() {
-    local platform=$(detect_platform)
-
-    # Only check on WSL with BitBot-Alpine
-    if [[ "$platform" != "wsl" ]] || [[ "$WSL_DISTRO_NAME" != "BitBot-Alpine" ]]; then
-        return 0
-    fi
-
-    # Try docker command
-    if docker ps &>/dev/null 2>&1; then
-        return 0  # Docker works, all good
-    fi
-
-    local error=$(docker ps 2>&1)
-
-    # Check if it's a WSL integration issue
-    if echo "$error" | grep -q "Cannot connect to the Docker daemon"; then
-        echo ""
-        echo "========================================================"
-        echo "  Docker WSL Integration Setup Required"
-        echo "========================================================"
-        echo ""
-        echo "BitBot-Alpine cannot access Docker."
-        echo ""
-        echo "This is a one-time setup that will:"
-        echo "  - Stop Docker Desktop"
-        echo "  - Enable BitBot-Alpine in Docker settings"
-        echo "  - Restart Docker Desktop (~30 seconds)"
-        echo ""
-        read -p "Enable Docker integration for BitBot-Alpine? [Y/n] " response
-        echo ""
-
-        if [[ "$response" =~ ^[Yy]?$ ]]; then
-            # Get script directory
-            local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-            local setup_script="$script_dir/../tests/enable-docker-wsl-integration-simple.ps1"
-
-            if [[ ! -f "$setup_script" ]]; then
-                echo "Error: Setup script not found at: $setup_script"
-                echo ""
-                echo "Manual setup:"
-                echo "  1. Open Docker Desktop"
-                echo "  2. Settings → Resources → WSL Integration"
-                echo "  3. Enable 'BitBot-Alpine'"
-                echo "  4. Apply & Restart"
-                echo ""
-                exit 1
-            fi
-
-            # Run setup script from Windows
-            local windows_path=$(wslpath -w "$setup_script")
-            if powershell.exe -ExecutionPolicy Bypass -File "$windows_path"; then
-                echo ""
-                echo "✓ Docker integration setup complete!"
-                echo ""
-                return 0
-            else
-                echo ""
-                echo "✗ Setup failed. Try manual setup."
-                echo ""
-                echo "Manual setup:"
-                echo "  1. Open Docker Desktop"
-                echo "  2. Settings → Resources → WSL Integration"
-                echo "  3. Enable 'BitBot-Alpine'"
-                echo "  4. Apply & Restart"
-                echo ""
-                exit 1
-            fi
-        else
-            echo "Setup cancelled."
-            echo ""
-            echo "Manual setup:"
-            echo "  1. Open Docker Desktop"
-            echo "  2. Settings → Resources → WSL Integration"
-            echo "  3. Enable 'BitBot-Alpine'"
-            echo "  4. Apply & Restart"
-            echo ""
-            echo "Then run: bitbot work"
-            echo ""
-            exit 1
-        fi
-    fi
-
-    # Other Docker error
-    return 1
-}
-
-build_devcontainer() {
-    local workspace_path="$1"
-    local platform=$(detect_platform)
-
-    # Check if Docker is running, start if needed
-    if ! docker ps &>/dev/null 2>&1; then
-        if ! start_docker; then
-            echo "Error: Docker could not be started"
-            exit 1
-        fi
-    fi
-
-    # Check Docker WSL integration (for BitBot-Alpine on WSL)
-    if ! check_docker_wsl_integration; then
-        echo "Error: Docker WSL integration check failed"
-        exit 1
-    fi
-
-    # Choose devcontainer command based on platform
-    local devcontainer_cmd
-    if [[ "$platform" == "wsl" ]]; then
-        devcontainer_cmd="devcontainer.cmd"
-    else
-        devcontainer_cmd="devcontainer"
-    fi
-
-    # Check if CLI is available
-    local cli_status=$(check_devcontainer_cli)
-    if [[ "$cli_status" == "none" ]]; then
-        install_devcontainer_cli
-        # Re-check after installation
-        cli_status=$(check_devcontainer_cli)
-        if [[ "$cli_status" == "none" ]]; then
-            echo "Error: DevContainer CLI still not available"
-            exit 1
-        fi
-    fi
-
-    echo "Building devcontainer..."
-    echo "  Workspace: $workspace_path"
-    echo "  Platform:  $platform"
-    echo "  CLI:       $cli_status ($devcontainer_cmd)"
-    echo ""
-
-    # Build the container
-    # On WSL, devcontainer.cmd must be called through cmd.exe
-    if [[ "$platform" == "wsl" ]]; then
-        # Convert WSL path to Windows path, then cd and use . to avoid quote escaping
-        local windows_path=$(wslpath -w "$workspace_path")
-        if ! cmd.exe /c "cd /d $windows_path && $devcontainer_cmd up --workspace-folder ."; then
-            echo "Error: Failed to build devcontainer"
-            exit 1
-        fi
-    else
-        if ! $devcontainer_cmd up --workspace-folder "$workspace_path"; then
-            echo "Error: Failed to build devcontainer"
-            exit 1
-        fi
-    fi
-
-    echo "✓ DevContainer built successfully"
-}
-
-launch_vscode() {
-    local workspace_path="$1"
-    local platform=$(detect_platform)
-
-    # Check if VS Code is installed
-    if ! command -v code &>/dev/null; then
-        echo "Error: VS Code not found"
-        echo "Install from: https://code.visualstudio.com/"
-        exit 1
-    fi
-
-    echo "Launching VS Code..."
-    echo "  Using: Direct DevContainer Opening"
-    echo ""
-
-    # Use hex-encoded URI to open directly in devcontainer
-    if [[ "$platform" == "wsl" ]]; then
-        # Convert WSL path to Windows path
-        local windows_path=$(wslpath -w "$workspace_path")
-        local hex_path=$(path_to_hex "$windows_path")
-        local container_path="/workspace"
-        local uri="vscode-remote://dev-container+${hex_path}${container_path}"
-
-        echo "  Windows path: $windows_path"
-        echo "  Hex encoded:  ${hex_path:0:40}..."
-        echo ""
-
-        # Launch VS Code on Windows
-        code.exe --folder-uri="$uri"
-    else
-        # macOS/Linux: Use native path
-        local hex_path=$(path_to_hex "$workspace_path")
-        local container_path="/workspace"
-        local uri="vscode-remote://dev-container+${hex_path}${container_path}"
-
-        echo "  Native path:  $workspace_path"
-        echo "  Hex encoded:  ${hex_path:0:40}..."
-        echo ""
-
-        code --folder-uri="$uri"
-    fi
-
-    echo "✓ VS Code launched"
-    echo ""
-    echo "VS Code should open directly in the devcontainer."
-    echo "If prompted, click 'Install' to add required extensions."
-}
-
-launch_terminal() {
-    local workspace_path="$1"
-    local platform=$(detect_platform)
-
-    echo "Launching terminal..."
-
-    # Find container by devcontainer label
-    # DevContainer CLI uses Windows paths for labels on WSL
-    local label_path
-    if [[ "$platform" == "wsl" ]]; then
-        # Use Windows path for label (with escaped backslashes)
-        label_path=$(wslpath -w "$workspace_path" | sed 's/\\/\\\\/g')
-    else
-        label_path="$workspace_path"
-    fi
-
-    # Try to find container by label
-    local container_name=$(docker ps --filter "label=devcontainer.local_folder=$label_path" --format '{{.Names}}' | head -1)
-
-    # If not found with that label, try WSL path
-    if [[ -z "$container_name" && "$platform" == "wsl" ]]; then
-        container_name=$(docker ps --filter "label=devcontainer.local_folder=$workspace_path" --format '{{.Names}}' | head -1)
-    fi
-
-    # If still not found, get the most recent container
-    if [[ -z "$container_name" ]]; then
-        container_name=$(docker ps --format '{{.Names}}' | head -1)
-    fi
-
-    if [[ -z "$container_name" ]]; then
-        echo "Error: No running container found"
-        echo "The devcontainer should have been started by 'devcontainer up'"
-        exit 1
-    fi
-
-    echo "  Container: $container_name"
-    echo ""
-
-    # Enter container terminal
-    # TODO: Run bitbot-session-menu.sh when it exists
-    echo "Entering devcontainer terminal..."
-    echo ""
-    docker exec -it "$container_name" /bin/bash -c "cd /workspace && exec bash"
-}
-
-# ============================================================================
-# Command Handlers
-# ============================================================================
-
-cmd_work() {
-    local workspace_path="$(pwd)"
-    local mode="${1:-terminal}"
-
-    # Check for valid mode
-    case "$mode" in
-        terminal|vscode)
-            # Valid modes
-            ;;
-        *)
-            echo "Unknown work mode: $mode"
-            echo "Valid modes: terminal, vscode"
-            exit 1
-            ;;
-    esac
-
-    echo "BitBot Work Mode"
-    echo "================"
-    echo ""
-
-    # Build devcontainer (always build for terminal mode)
-    # For VS Code mode, we skip building - VS Code will build directly
-    if [[ "$mode" == "terminal" ]]; then
-        build_devcontainer "$workspace_path"
-        echo ""
-        launch_terminal "$workspace_path"
-    else
-        # VS Code mode: Just launch VS Code, let it build
-        launch_vscode "$workspace_path"
-    fi
-}
-
-cmd_setup() {
-    echo "BitBot Setup Mode"
-    echo "================="
-    echo ""
-    echo "Setup mode not yet implemented in this test version."
-    echo ""
-    echo "Would do:"
-    echo "  - Build setup container from .devcontainer/devcontainer.setup.json"
-    echo "  - Launch with elevated permissions"
-    echo "  - Allow infrastructure modifications"
-    exit 1
-}
-
-show_help() {
-    cat <<EOF
-BitBot - AI-Assisted Development Environment (Test Version)
-
-Usage:
-  bitbot [command] [mode]
-
-Commands:
-  work [mode]       Launch work mode (default)
-  vscode            Launch VS Code (shortcut for 'work vscode')
-  terminal          Launch terminal (shortcut for 'work terminal')
-  setup             Launch setup mode (not implemented)
-  version           Show version
-  help              Show this help
-
-Work Modes:
-  terminal          Launch in terminal (default)
-  vscode            Launch VS Code into devcontainer
-
-Examples:
-  bitbot                    # Start work mode in terminal
-  bitbot work               # Same as above
-  bitbot vscode             # Start VS Code mode (shortcut)
-  bitbot work vscode        # Start work mode in VS Code (explicit)
-  bitbot terminal           # Start terminal mode (explicit)
-  bitbot setup              # Start setup mode (not implemented)
-
-Entry Points:
-  Windows:  bitbot.bat or bitbot.ps1 (forwards to WSL)
-  WSL:      Direct bash execution
-
-Platform Detection:
-  - WSL: Uses devcontainer.cmd
-  - macOS/Linux: Uses devcontainer
-
-VS Code Detection:
-  - With Dev Containers extension: Uses builtin CLI
-  - Without extension: Installs standalone CLI
-
-Version: $BITBOT_VERSION
-EOF
-}
-
-show_version() {
-    # Colors for output
-    local GREEN='\033[0;32m'
-    local YELLOW='\033[1;33m'
-    local RED='\033[0;31m'
-    local NC='\033[0m' # No Color
-
-    echo -e "BitBot version $BITBOT_VERSION"
-    echo -e "Platform: $(detect_platform)"
-    echo -e "${YELLOW}Check dependencies:${NC}"
-
-    # VS Code
-    if command -v code &>/dev/null; then
-        echo -e "  ${GREEN}✓${NC} VS Code installed"
-
-        # Check for Dev Containers extension using helper function
-        if check_vscode_extension; then
-            echo -e "  ${GREEN}✓${NC} Dev Containers extension installed"
-        else
-            echo -e "  ${YELLOW}⚠${NC} Dev Containers extension not found"
-        fi
-    else
-        echo -e "  ${RED}✗${NC} VS Code not found"
-    fi
-
-    # DevContainer CLI
-    local cli_status=$(check_devcontainer_cli)
-    case "$cli_status" in
-        builtin)
-            echo -e "  ${GREEN}✓${NC} DevContainer CLI (VS Code builtin)"
-            ;;
-        standalone)
-            echo -e "  ${GREEN}✓${NC} DevContainer CLI (standalone)"
-            ;;
-        vscode-only)
-            echo -e "  ${YELLOW}⚠${NC} DevContainer CLI missing"
-            echo "    Install: code --install-extension ms-vscode-remote.remote-containers"
-            ;;
-        none)
-            echo -e "  ${RED}✗${NC} DevContainer CLI not found"
-            echo "    Install VS Code + extension OR: npm install -g @devcontainers/cli"
-            ;;
-    esac
-
-    # Docker (just check if installed - running check happens when actually needed)
-    if command -v docker &>/dev/null; then
-        echo -e "  ${GREEN}✓${NC} Docker installed"
-    else
-        echo -e "  ${RED}✗${NC} Docker not found"
-    fi
-}
-
-# ============================================================================
-# Main Execution
+# Main Entry Point
 # ============================================================================
 
 main() {
-    local command="${1:-work}"
+    local command="${1:-}"
     shift || true
 
+    # Get current directory
+    local cwd
+    cwd=$(get_current_directory)
+
+    # Detect context: global (install folder) vs workspace (project folder)
+    if [[ "$cwd" == "$BITBOT_HOME" ]]; then
+        # GLOBAL CONTEXT: Running from BitBot install folder
+        handle_global_context
+        return $?
+    fi
+
+    # WORKSPACE CONTEXT: Running from project folder
+    handle_workspace_context "$command" "$@"
+}
+
+# ============================================================================
+# Global Context Handler
+# ============================================================================
+
+handle_global_context() {
+    # Running from BitBot install folder
+
+    if ! is_global_init_needed; then
+        # Already initialized - validate environment
+        validate_global_environment
+    else
+        # First run - run global init
+        run_global_init
+    fi
+}
+
+# ============================================================================
+# Workspace Context Handler
+# ============================================================================
+
+handle_workspace_context() {
+    local command="$1"
+    shift || true
+
+    local workspace_path
+    workspace_path=$(get_current_directory)
+
+    # Check for help/version commands (work anywhere)
     case "$command" in
-        work)
-            cmd_work "$@"
-            ;;
-        vscode|terminal)
-            # Direct mode shortcuts
-            cmd_work "$command"
-            ;;
-        setup)
-            cmd_setup "$@"
+        help|--help|-h)
+            bitbot_help
+            return 0
             ;;
         version|--version|-v)
-            show_version
+            bitbot_version
+            return 0
             ;;
-        help|--help|-h)
-            show_help
+    esac
+
+    # Check if workspace is initialized
+    if ! is_workspace_initialized "$workspace_path"; then
+        # Workspace not initialized
+        handle_uninitialized_workspace "$command" "$workspace_path"
+        return $?
+    fi
+
+    # Workspace initialized - validate prerequisites for container commands
+    case "$command" in
+        work|config|vscode|init)
+            if ! validate_prerequisites "$command"; then
+                return 1
+            fi
+            ;;
+    esac
+
+    # Route to command handler
+    route_command "$command" "$workspace_path" "$@"
+}
+
+# ============================================================================
+# Uninitialized Workspace Handler
+# ============================================================================
+
+handle_uninitialized_workspace() {
+    local command="$1"
+    local workspace_path="$2"
+
+    case "$command" in
+        init)
+            # Explicit init command
+            bitbot_init
+            return $?
+            ;;
+        ""|work)
+            # Running bare "bitbot" or "bitbot work" - offer to initialize
+            print_warning "Workspace not initialized in: $workspace_path"
+            echo ""
+
+            local should_init
+            should_init=$(prompt_yes_no "Initialize workspace now?" "yes")
+
+            if [[ "$should_init" == "yes" ]]; then
+                bitbot_init
+                echo ""
+                echo "Workspace initialized! Run 'bitbot work' to start."
+                return 0
+            else
+                echo ""
+                echo "To initialize later, run: bitbot init"
+                return 4
+            fi
             ;;
         *)
-            echo "Unknown command: $command"
-            echo "Run 'bitbot help' for usage information"
-            exit 1
+            # Other commands require initialized workspace
+            print_error "Workspace not initialized. Run 'bitbot init' first."
+            return 4
             ;;
     esac
 }
 
-# Run main with all arguments
+# ============================================================================
+# Command Router
+# ============================================================================
+
+route_command() {
+    local command="$1"
+    local workspace_path="$2"
+    shift 2 || true
+
+    local use_vscode=false
+
+    # Check for vscode modifier
+    if [[ "${1:-}" == "vscode" ]]; then
+        use_vscode=true
+        shift || true
+    fi
+
+    case "$command" in
+        work)
+            bitbot_work "$workspace_path" "$use_vscode"
+            ;;
+        config)
+            bitbot_config "$workspace_path" "$use_vscode"
+            ;;
+        vscode)
+            # vscode command = work mode in VS Code
+            bitbot_work "$workspace_path" true
+            ;;
+        init)
+            bitbot_init
+            ;;
+        help)
+            bitbot_help
+            ;;
+        version)
+            bitbot_version
+            ;;
+        "")
+            # No command - default to work mode
+            bitbot_work "$workspace_path" "$use_vscode"
+            ;;
+        *)
+            print_error "Unknown command: $command"
+            echo ""
+            bitbot_help
+            return 1
+            ;;
+    esac
+}
+
+# ============================================================================
+# Execute Main
+# ============================================================================
+
 main "$@"
