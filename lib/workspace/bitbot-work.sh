@@ -5,13 +5,10 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_DIR="$(dirname "$SCRIPT_DIR")"
-
-source "${LIB_DIR}/util/helpers.sh"
-source "${LIB_DIR}/util/detect.sh"
-source "${LIB_DIR}/util/devcontainer.sh"
-source "${LIB_DIR}/util/prerequisites.sh"
+source "${BITBOT_HOME}/lib/util/helpers.sh"
+source "${BITBOT_HOME}/lib/util/detect.sh"
+source "${BITBOT_HOME}/lib/util/devcontainer.sh"
+source "${BITBOT_HOME}/lib/util/prerequisites.sh"
 
 bitbot_work() {
     local workspace_path="$1"
