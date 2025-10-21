@@ -1,6 +1,6 @@
 @echo off
-REM BitBot Windows Batch Entry Point
-REM Entry Platform: Windows cmd.exe
+REM BitBot Windows Entry Point
+REM Entry Platform: Windows cmd.exe / PowerShell
 REM Forwards all commands to BitBot in WSL Alpine
 
 set "DISTRO_NAME=BitBot-Alpine"
