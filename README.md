@@ -104,31 +104,9 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 
 ## ⚠️ Security Considerations
 
-### Isolation Levels
+BitBot provides Docker containerization by default (reasonable isolation). For projects requiring Docker-in-Docker, optional rootless Docker is available with limited isolation.
 
-BitBot provides multiple isolation levels depending on your security requirements:
-
-| Mode | Default Security | Optional Docker | Isolation Level |
-|------|------------------|-----------------|-----------------|
-| **No Docker** (default) | ✅ High | N/A | Container only |
-| **Rootless Docker-in-Docker** | ⚠️ Medium | Available | Container + user namespace |
-| **VM-based** (planned) | ✅ Very High | Planned Phase 3 | Full VM isolation |
-
-### Current Approach
-
-- **Default**: No Docker in work containers (safest, recommended)
-- **Optional**: Rootless Docker-in-Docker for Docker/Docker Compose workflows
-  - ⚠️ Limited isolation (shares host kernel)
-  - ⚠️ Container escape possible by design
-
-### Future Architecture
-
-- **Phase 3**: DevPod integration with VM/cloud providers
-  - Local VMs (Multipass), cloud (AWS/GCP/Azure), Kubernetes clusters
-  - Full VM isolation for untrusted code
-  - Multiple provider options for flexibility
-
-**📖 For detailed security analysis, attack vectors, and DevPod setup:**
+**📖 For detailed security analysis, isolation levels, attack vectors, and future VM architecture:**
 **See [Extended Documentation](README_EXTENDED.md#docker-in-docker-security-deep-dive)**
 
 ---
@@ -147,18 +125,21 @@ BitBot provides multiple isolation levels depending on your security requirement
 
 ### Installation
 
+**💡 BitBot is Portable**: Install anywhere! No system-wide installation needed. Just clone/extract and add to PATH.
+
 **Recommended: Clone Release Branch (Easy Updates)**
 ```bash
 # Clone release branch for easy updates via git pull
-git clone -b release https://github.com/ManuelKugelmann/BitBot.git ~/bitbot
-cd ~/bitbot
+# Replace [INSTALLFOLDER] with your preferred location (e.g., ~/tools/bitbot, /opt/bitbot, etc.)
+git clone -b release https://github.com/ManuelKugelmann/BitBot.git [INSTALLFOLDER]/bitbot
+cd [INSTALLFOLDER]/bitbot
 
-# Add to PATH (bash)
-echo 'export PATH="$HOME/bitbot:$PATH"' >> ~/.bashrc
+# Add to PATH (bash) - adjust path to match your chosen location
+echo 'export PATH="[INSTALLFOLDER]/bitbot:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 
 # Update later with:
-# cd ~/bitbot && git pull
+# cd [INSTALLFOLDER]/bitbot && git pull
 ```
 
 **Alternative: Download Release Archive**
@@ -166,19 +147,25 @@ source ~/.bashrc
 # Download specific version
 wget https://github.com/ManuelKugelmann/BitBot/releases/latest/download/bitbot-v1.0.0.zip
 
-# Extract
-unzip bitbot-v1.0.0.zip -d ~/bitbot
+# Extract to your chosen location
+unzip bitbot-v1.0.0.zip -d [INSTALLFOLDER]/bitbot
 
 # Add to PATH
-echo 'export PATH="$HOME/bitbot:$PATH"' >> ~/.bashrc
+echo 'export PATH="[INSTALLFOLDER]/bitbot:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 ```
+
+**Example Locations**:
+- `~/bitbot` - User home directory
+- `~/tools/bitbot` - Personal tools folder
+- `/opt/bitbot` - System-wide (requires permissions)
+- `/mnt/c/tools/bitbot` - WSL accessing Windows drive
 
 ### First Use
 
 1. **Initialize BitBot (one-time):**
    ```bash
-   cd ~/bitbot
+   cd [INSTALLFOLDER]/bitbot
    bitbot
    ```
    This runs the first-time setup wizard to configure BitBot preferences.
@@ -417,29 +404,15 @@ See [CLAUDE.md](CLAUDE.md) for development guidelines.
 
 ---
 
-## Release Process
-
-BitBot uses a dual-branch strategy:
-
-- **`trunk`** - Development (includes tests, research, dev tools)
-- **`release`** - Clean distribution (production files only)
-
-See [RELEASE.md](RELEASE.md) for complete release instructions.
-
----
-
 ## Documentation
 
-- [RELEASE.md](RELEASE.md) - Release process and branch strategy
-- [scripts/README.md](scripts/README.md) - Release management scripts
-- [.devcontainer/README.md](.devcontainer/README.md) - Development container setup
+**User Documentation:**
+- [README_EXTENDED.md](README_EXTENDED.md) - Detailed security analysis, performance tuning, DevPod integration
 - [templates/base/README.md](templates/base/README.md) - Base template documentation
 - [config-devcontainer/README.md](config-devcontainer/README.md) - Config mode details
 
-**Architecture & Research:**
-- [_SPARC/Claude_Specification/](_SPARC/Claude_Specification/) - Complete specifications
-- [_SPARC/pseudocode/](_SPARC/pseudocode/) - Implementation pseudocode
-- [_SPARC/Research/](_SPARC/Research/) - Architecture research and decisions
+**Developer Documentation:**
+- See [DEVELOPER.md](https://github.com/ManuelKugelmann/BitBot/blob/trunk/DEVELOPER.md) on trunk branch for architecture, specs, and contribution guidelines
 
 ---
 
@@ -461,13 +434,9 @@ LinkedIn: [linkedin.com/in/mkugelmann](https://www.linkedin.com/in/mkugelmann/)
 
 ## Acknowledgments
 
-Built with:
-- [DevContainers](https://containers.dev/) - Container development specification
-- [Docker](https://www.docker.com/) - Container runtime
-- [Claude Code](https://claude.com/claude-code) - AI coding assistant
-- [VS Code](https://code.visualstudio.com/) - IDE integration
+Built with the assistance of AI coding tools: Claude, Gemini, GitHub Copilot, and Perplexity.
 
-**Inspired by** the need for safe AI-assisted development with infrastructure protection.
+Inspired by the need for safe AI-assisted development with infrastructure protection.
 
 ---
 
