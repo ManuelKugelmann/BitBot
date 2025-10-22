@@ -1,6 +1,6 @@
 # tmux Configuration for BitBot
 
-BitBot containers include a frameless tmux configuration for a clean, minimal terminal experience.
+BitBot containers include tmux configured with mouse mode and frameless display for a clean, interactive terminal experience.
 
 ## Configuration
 
@@ -10,28 +10,28 @@ All BitBot containers (work and config modes) come with tmux pre-configured:
 
 **Settings**:
 ```bash
-set -g status off                       # No status bar
-set -g pane-border-status off           # No border status
-set -g mouse off                        # Let terminal scrollbar work
+set -g mouse on                         # Enable mouse scrolling
 set -g history-limit 10000              # Increase history buffer
+set -g status off                       # Hide status bar
 set -g default-terminal "screen-256color"
 ```
 
 ## Features
 
+### ✅ Mouse Mode Scrolling
+- **Scroll with mouse wheel** - Works directly in tmux, no setup needed
+- Scroll history preserved (10,000 lines)
+- Click to position cursor
+- Drag to select text for copying
+
 ### ✅ Frameless Display
 - No status bar at bottom
-- No visible pane borders
 - Clean, minimal appearance
+- Maximum screen space for output
 - Terminal looks like a standard shell
 
-### ✅ Native Scrolling
-- **Use your terminal's scrollbar** (mouse wheel, trackpad, scrollbar)
-- tmux mouse mode is **disabled** to allow terminal's native scrolling
-- Scroll history preserved (10,000 lines)
-
-### ✅ tmux Scroll Mode (Alternative)
-If your terminal scrollbar doesn't work:
+### ✅ Copy Mode (Alternative)
+For keyboard-only scrolling:
 1. `Ctrl+b` then `[` - Enter copy mode
 2. Use arrow keys, `PgUp`/`PgDn` to navigate
 3. `q` or `Esc` - Exit copy mode
@@ -63,9 +63,9 @@ Ctrl+b :set status off
 Users can override global settings with `~/.tmux.conf`:
 
 ```bash
-# Example: Enable mouse mode for this user
+# Example: Show status bar for this user
 cat > ~/.tmux.conf << EOF
-set -g mouse on
+set -g status on
 EOF
 
 # Reload
@@ -74,11 +74,9 @@ tmux source-file ~/.tmux.conf
 
 ## Why These Settings?
 
-**Status bar off**: Claude Code and other AI assistants provide their own UI; tmux status adds visual clutter
+**Mouse on**: Enables intuitive scroll wheel scrolling directly in tmux without relying on terminal emulator behavior
 
-**Mouse off**: Allows terminal's native scrolling which is more familiar and works consistently across all terminals
-
-**No borders**: Single-pane workflows don't need visible borders; multi-pane users can see boundaries from content
+**Status bar off**: Claude Code and other AI assistants provide their own UI; tmux status adds visual clutter and takes up screen space
 
 **Large history**: AI coding sessions generate lots of output; 10K lines ensures context isn't lost
 
