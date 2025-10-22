@@ -83,7 +83,10 @@ Warning/Error:   #ef5350  (red)      - Errors, security boundaries
 Notice/Prompt:   #ffa726  (orange)   - Prompts, decisions
 ```
 
-**Note**: Colors chosen for good contrast with dark text (stroke:#333)
+**Text Color Rules**:
+- Bright backgrounds (green, pink, gold, red, orange): Use `color:#333` (dark text)
+- Dark backgrounds (blue): Can omit color or use white text
+- Always include: `fill:#COLOR,stroke:#333,stroke-width:2px,color:#333`
 
 **Width**: Keep diagrams narrow (~60 chars per line) for terminal viewing
 
@@ -93,6 +96,8 @@ graph LR
     A[User Input] --> B[Router]
     B --> C[Work Mode]
     style A fill:#4a9eff,stroke:#333,stroke-width:2px
-    style B fill:#ffd700,stroke:#333,stroke-width:2px
-    style C fill:#66bb6a,stroke:#333,stroke-width:2px
+    style B fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
+    style C fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
+- DO step by step, small steps, create TODO list for steps. test after steps. fix. commit if working.\
+DON'T: large changes, multiple changes, large combined commits
