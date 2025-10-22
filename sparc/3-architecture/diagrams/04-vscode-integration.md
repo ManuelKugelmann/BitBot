@@ -32,9 +32,9 @@ sequenceDiagram
     VSCode->>Container: Attach
     Container-->>User: Opens ✓
 
-    style BitBot fill:#ffd700,stroke:#333,stroke-width:2px
+    style BitBot fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
     style VSCode fill:#4a9eff,stroke:#333,stroke-width:2px
-    style Container fill:#66bb6a,stroke:#333,stroke-width:2px
+    style Container fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
 
 ## The Innovation
@@ -57,9 +57,9 @@ flowchart TD
     RELOAD --> CONTAINER
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:2px
-    style POPUP fill:#ffa726,stroke:#333,stroke-width:2px
-    style CLICK fill:#ffa726,stroke:#333,stroke-width:2px
-    style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:2px
+    style POPUP fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
+    style CLICK fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
+    style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
 
 **Problems**:
@@ -85,7 +85,7 @@ flowchart TD
     OPEN --> CONTAINER
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:2px
-    style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:3px
+    style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:3px,color:#333
 ```
 
 **Benefits**:
@@ -188,7 +188,7 @@ graph TB
     LINUX_PATH --> LINUX_HEX
     LINUX_HEX --> LINUX_CODE
 
-    style DETECT fill:#ffd700,stroke:#333,stroke-width:2px
+    style DETECT fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
     style WIN_CODE fill:#4a9eff,stroke:#333,stroke-width:2px
     style MAC_CODE fill:#4a9eff,stroke:#333,stroke-width:2px
     style LINUX_CODE fill:#4a9eff,stroke:#333,stroke-width:2px
@@ -244,8 +244,8 @@ flowchart TD
     BUILD --> ATTACH
 
     style OPEN fill:#4a9eff,stroke:#333,stroke-width:2px
-    style REUSE fill:#66bb6a,stroke:#333,stroke-width:2px
-    style ATTACH fill:#66bb6a,stroke:#333,stroke-width:2px
+    style REUSE fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
+    style ATTACH fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
 
 **Benefits**:
@@ -413,10 +413,10 @@ flowchart TD
     CHECK_CODE -->|Yes| SUCCESS
 
     style START fill:#4a9eff,stroke:#333,stroke-width:2px
-    style ERROR1 fill:#ef5350,stroke:#333,stroke-width:2px
-    style ERROR2 fill:#ef5350,stroke:#333,stroke-width:2px
-    style ERROR3 fill:#ef5350,stroke:#333,stroke-width:2px
-    style SUCCESS fill:#66bb6a,stroke:#333,stroke-width:2px
+    style ERROR1 fill:#ef5350,stroke:#333,stroke-width:2px,color:#333
+    style ERROR2 fill:#ef5350,stroke:#333,stroke-width:2px,color:#333
+    style ERROR3 fill:#ef5350,stroke:#333,stroke-width:2px,color:#333
+    style SUCCESS fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
 
 ---
