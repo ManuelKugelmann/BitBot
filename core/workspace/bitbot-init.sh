@@ -175,7 +175,7 @@ setup_devcontainer() {
 
         local bitbot_install
         bitbot_install=$(get_bitbot_install_dir)
-        local template_path="${bitbot_install}/devcontainer-template"
+        local template_path="${bitbot_install}/templates/workspace"
 
         if [[ -d "$template_path" ]]; then
             cp -r "$template_path" "$devcontainer_path"
@@ -205,6 +205,7 @@ create_minimal_devcontainer() {
   "name": "$(get_basename "$workspace_path")-work",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "mounts": [
+    "source=\${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
     "source=\${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly"
   ],
   "remoteEnv": {
