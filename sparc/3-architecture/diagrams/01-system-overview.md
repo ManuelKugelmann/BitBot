@@ -61,10 +61,10 @@ graph TB
 
     style CLI fill:#4a9eff,stroke:#333,stroke-width:3px
     style VS fill:#4a9eff,stroke:#333,stroke-width:2px
-    style WMODE fill:#66bb6a,stroke:#333,stroke-width:2px
-    style CMODE fill:#ffb6c1,stroke:#333,stroke-width:2px
-    style ROUTER fill:#ffd700,stroke:#333,stroke-width:3px
-    style WORK fill:#ffd700,stroke:#333,stroke-width:2px
+    style WMODE fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
+    style CMODE fill:#ffb6c1,stroke:#333,stroke-width:2px,color:#333
+    style ROUTER fill:#ffd700,stroke:#333,stroke-width:3px,color:#333
+    style WORK fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
 ```
 
 ## Key Components
