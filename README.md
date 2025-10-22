@@ -98,6 +98,8 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 
 🛡️ **Git Safety**
 - Warnings for uncommitted changes
+- Prompts to review commits before pushing
+- Reminds to check for secrets in staged files
 - Non-blocking (won't stop your workflow)
 - Helps prevent AI from making risky changes to dirty repos
 
