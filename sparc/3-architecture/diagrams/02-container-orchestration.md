@@ -57,11 +57,11 @@ graph TB
     CFG --> GIT
     WDC --> RO
 
-    style WC fill:#66bb6a,stroke:#333,stroke-width:3px
-    style CC fill:#ffb6c1,stroke:#333,stroke-width:3px
-    style WDC fill:#a5d6a7,stroke:#333,stroke-width:2px
-    style CDC fill:#ffc0cb,stroke:#333,stroke-width:2px
-    style RO fill:#ef5350,stroke:#333,stroke-width:2px
+    style WC fill:#66bb6a,stroke:#333,stroke-width:3px,color:#333
+    style CC fill:#ffb6c1,stroke:#333,stroke-width:3px,color:#333
+    style WDC fill:#a5d6a7,stroke:#333,stroke-width:2px,color:#333
+    style CDC fill:#ffc0cb,stroke:#333,stroke-width:2px,color:#333
+    style RO fill:#ef5350,stroke:#333,stroke-width:2px,color:#333
     style GIT fill:#4a9eff,stroke:#333,stroke-width:2px
     style WORK fill:#4a9eff,stroke:#333,stroke-width:2px
     style CFG fill:#4a9eff,stroke:#333,stroke-width:2px
@@ -186,8 +186,8 @@ graph LR
     WORKRO --> AI
     CONFIGRW --> HUMAN
 
-    style WORKRO fill:#66bb6a,stroke:#333,stroke-width:2px
-    style CONFIGRW fill:#ffb6c1,stroke:#333,stroke-width:2px
+    style WORKRO fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
+    style CONFIGRW fill:#ffb6c1,stroke:#333,stroke-width:2px,color:#333
 ```
 
 ### Permission Matrix
@@ -275,7 +275,7 @@ flowchart TD
     SKIP -->|--skip-git-check| LAUNCH
     SKIP -->|No flag| LAUNCH
 
-    style WARN fill:#ffa726,stroke:#333,stroke-width:2px
+    style WARN fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
 ```
 
 **Protection**: Non-blocking warnings prevent accidental loss of uncommitted work
