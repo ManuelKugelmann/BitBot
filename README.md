@@ -93,7 +93,7 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 - Hex-encoded URI protocol for seamless workflow
 
 📦 **Flexible Templates**
-- Basic template: Ubuntu + Node.js + Claude Code
+- Base template: Ubuntu + Node.js + Claude Code + inner BitBot helpers
 - WIP: Rootless Docker template for Docker-in-Docker workflows
 - WIP: VM-based template with full Docker for maximum isolation
 - WIP: Agent steering templates for different workloads

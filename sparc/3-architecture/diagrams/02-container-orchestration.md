@@ -107,14 +107,18 @@ Mounts:
 ## Config Mode (Infrastructure Management)
 
 ### Purpose
-Lightweight environment for editing infrastructure configuration files (NO Docker).
+Lightweight environment for editing infrastructure configuration files.
+
+### Prerequisites
+- Requires Docker on host (to run the config container)
+- Requires DevContainer CLI (to build/launch the config container)
 
 ### Characteristics
 - **Container**: Lightweight config template for editing files
 - **.devcontainer**: Read-write bind mount (can modify infrastructure)
 - **Workspace**: Read-write bind mount (can edit everything)
-- **Tools**: git, vim, jq, curl (NO Docker - only for editing files)
-- **Access**: No Docker socket - config mode only edits files, doesn't run containers
+- **Tools**: git, vim, jq, curl (no Docker CLI inside - lightweight editing only)
+- **Access**: No Docker socket mount - config container doesn't run other containers
 
 ### Use Cases
 - Editing `.devcontainer/devcontainer.json`
@@ -132,7 +136,7 @@ Mounts:
     consistency: cached
     readonly: false             # ← READ-WRITE (includes .devcontainer)
 
-# NO Docker socket mount - config mode only edits files
+# No Docker socket mount - config container doesn't run other containers
 ```
 
 ---
@@ -223,7 +227,7 @@ sequenceDiagram
     else Container doesn't exist
         Docker->>ConfigContainer: Build new (lightweight, no Docker inside)
     end
-    ConfigContainer->>User: tmux session (read-write .devcontainer, no Docker)
+    ConfigContainer->>User: tmux session (read-write .devcontainer, no Docker inside)
 
     Note over WorkContainer,ConfigContainer: Both can run simultaneously!
 ```
