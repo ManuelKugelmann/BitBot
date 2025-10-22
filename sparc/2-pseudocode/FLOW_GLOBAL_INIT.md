@@ -70,8 +70,8 @@ flowchart TD
     style AutoStart fill:#f9cb9c,stroke:#333,color:#000
     style CheckCLI fill:#f9cb9c,stroke:#333,color:#000
     style InstallCLI fill:#f9cb9c,stroke:#333,color:#000
-    style Done fill:#6aa84f,stroke:#333
-    style ExitDocker fill:#cc4125,stroke:#333
+    style Done fill:#66bb6a,stroke:#333,color:#333
+    style ExitDocker fill:#ef5350,stroke:#333,color:#333
 ```
 
 ---
