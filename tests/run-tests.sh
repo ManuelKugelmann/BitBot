@@ -151,7 +151,19 @@ else
         "${SCRIPT_DIR}/test-filesystem-performance.sh"
 fi
 
-# Test 6: Integration tests (skipped in quick mode)
+# Test 6: DevContainer Locations (WSL only, skipped in quick mode)
+if [[ "$QUICK" == "true" ]]; then
+    run_test "DevContainer Functionality (WSL home and /mnt/c/)" \
+        "${SCRIPT_DIR}/test-devcontainer-locations.sh --quick" \
+        false  # Run quick mode even in quick test
+else
+    if [[ -f "${SCRIPT_DIR}/test-devcontainer-locations.sh" ]]; then
+        run_test "DevContainer Functionality (WSL home and /mnt/c/)" \
+            "${SCRIPT_DIR}/test-devcontainer-locations.sh"
+    fi
+fi
+
+# Test 7: Integration tests (skipped in quick mode)
 if [[ "$QUICK" == "true" ]]; then
     run_test "Full Integration Test" \
         "${SCRIPT_DIR}/test-integration.sh" \
