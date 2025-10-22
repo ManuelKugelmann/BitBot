@@ -1,0 +1,355 @@
+#!/usr/bin/env bash
+#
+# Container BitBot Test Suite
+# Tests container-side BitBot scripts
+#
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+CONTAINER_BITBOT="${PROJECT_ROOT}/container-bitbot"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# Test tracking
+total_tests=0
+passed_tests=0
+failed_tests=0
+
+echo ""
+echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║   Container BitBot Test Suite          ║${NC}"
+echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
+echo ""
+
+# ============================================================================
+# Test Framework
+# ============================================================================
+
+test_passed() {
+    local test_name="$1"
+    echo -e "${GREEN}✓${NC} ${test_name}"
+    passed_tests=$((passed_tests + 1))
+}
+
+test_failed() {
+    local test_name="$1"
+    local reason="${2:-}"
+    echo -e "${RED}✗${NC} ${test_name}"
+    if [[ -n "$reason" ]]; then
+        echo -e "  ${RED}Reason: ${reason}${NC}"
+    fi
+    failed_tests=$((failed_tests + 1))
+}
+
+run_test() {
+    local test_name="$1"
+    total_tests=$((total_tests + 1))
+}
+
+# ============================================================================
+# Test 1: Bash Syntax Check
+# ============================================================================
+
+echo -e "${BLUE}═══ Test 1: Bash Syntax Check ═══${NC}"
+echo ""
+
+test_bash_syntax() {
+    local file="$1"
+    local basename=$(basename "$file")
+
+    run_test "Syntax check: $basename"
+
+    if bash -n "$file" 2>/dev/null; then
+        test_passed "Syntax check: $basename"
+        return 0
+    else
+        local error
+        error=$(bash -n "$file" 2>&1 || true)
+        test_failed "Syntax check: $basename" "$error"
+        return 1
+    fi
+}
+
+# Check all bash scripts
+for script in "${CONTAINER_BITBOT}/bitbot" \
+              "${CONTAINER_BITBOT}/core/commands/"*.sh \
+              "${CONTAINER_BITBOT}/core/util/"*.sh; do
+    if [[ -f "$script" ]]; then
+        test_bash_syntax "$script"
+    fi
+done
+
+echo ""
+
+# ============================================================================
+# Test 2: Main Entry Point
+# ============================================================================
+
+echo -e "${BLUE}═══ Test 2: Main Entry Point ═══${NC}"
+echo ""
+
+# Test help command
+run_test "bitbot help"
+if output=$("${CONTAINER_BITBOT}/bitbot" help 2>&1); then
+    if echo "$output" | grep -q "BitBot (Container)"; then
+        test_passed "bitbot help - shows help"
+    else
+        test_failed "bitbot help - no help output"
+    fi
+else
+    test_failed "bitbot help - command failed"
+fi
+
+# Test invalid command
+run_test "bitbot invalid - error handling"
+output=$("${CONTAINER_BITBOT}/bitbot" invalid 2>&1 || true)
+if echo "$output" | grep -q "Unknown command"; then
+    test_passed "bitbot invalid - shows error"
+else
+    test_failed "bitbot invalid - no error message"
+fi
+
+echo ""
+
+# ============================================================================
+# Test 3: Analyze Command
+# ============================================================================
+
+echo -e "${BLUE}═══ Test 3: Analyze Command ═══${NC}"
+echo ""
+
+# Create temporary workspace
+TEST_WORKSPACE="/tmp/bitbot-test-workspace-$$"
+mkdir -p "$TEST_WORKSPACE"
+
+cleanup_workspace() {
+    rm -rf "$TEST_WORKSPACE"
+}
+trap cleanup_workspace EXIT
+
+# Test analyze with empty workspace
+run_test "analyze - empty workspace"
+export WORKSPACE="$TEST_WORKSPACE"
+if output=$("${CONTAINER_BITBOT}/core/commands/analyze.sh" 2>&1); then
+    if echo "$output" | grep -q "Analyzing workspace"; then
+        test_passed "analyze - runs on empty workspace"
+    else
+        test_failed "analyze - unexpected output"
+    fi
+else
+    test_failed "analyze - command failed"
+fi
+
+# Test analyze with Node.js project
+run_test "analyze - Node.js detection"
+echo '{"name":"test"}' > "$TEST_WORKSPACE/package.json"
+if output=$("${CONTAINER_BITBOT}/core/commands/analyze.sh" 2>&1); then
+    if echo "$output" | grep -q "Node.js project"; then
+        test_passed "analyze - detects Node.js project"
+    else
+        test_failed "analyze - doesn't detect Node.js"
+    fi
+else
+    test_failed "analyze - command failed"
+fi
+rm "$TEST_WORKSPACE/package.json"
+
+# Test analyze with Python project
+run_test "analyze - Python detection"
+echo "requests==2.28.0" > "$TEST_WORKSPACE/requirements.txt"
+if output=$("${CONTAINER_BITBOT}/core/commands/analyze.sh" 2>&1); then
+    if echo "$output" | grep -q "Python project"; then
+        test_passed "analyze - detects Python project"
+    else
+        test_failed "analyze - doesn't detect Python"
+    fi
+else
+    test_failed "analyze - command failed"
+fi
+rm "$TEST_WORKSPACE/requirements.txt"
+
+# Test analyze with git repository
+run_test "analyze - Git repository"
+cd "$TEST_WORKSPACE"
+git init -q
+git config user.email "test@bitbot.test"
+git config user.name "Test User"
+if output=$("${CONTAINER_BITBOT}/core/commands/analyze.sh" 2>&1); then
+    if echo "$output" | grep -q "Git Status"; then
+        test_passed "analyze - detects git repository"
+    else
+        test_failed "analyze - doesn't detect git"
+    fi
+else
+    test_failed "analyze - command failed"
+fi
+
+echo ""
+
+# ============================================================================
+# Test 4: Status Command
+# ============================================================================
+
+echo -e "${BLUE}═══ Test 4: Status Command ═══${NC}"
+echo ""
+
+run_test "status - basic execution"
+if output=$("${CONTAINER_BITBOT}/core/commands/status.sh" 2>&1); then
+    if echo "$output" | grep -q "Container Status"; then
+        test_passed "status - shows container status"
+    else
+        test_failed "status - unexpected output"
+    fi
+else
+    test_failed "status - command failed"
+fi
+
+echo ""
+
+# ============================================================================
+# Test 5: Configure Command
+# ============================================================================
+
+echo -e "${BLUE}═══ Test 5: Configure Command ═══${NC}"
+echo ""
+
+run_test "configure - basic execution"
+export BITBOT_MODE="config"
+if output=$("${CONTAINER_BITBOT}/core/commands/configure.sh" 2>&1); then
+    if echo "$output" | grep -q "DevContainer Configuration"; then
+        test_passed "configure - shows help"
+    else
+        test_failed "configure - unexpected output"
+    fi
+else
+    test_failed "configure - command failed"
+fi
+unset BITBOT_MODE
+
+echo ""
+
+# ============================================================================
+# Test 6: Helper Utilities
+# ============================================================================
+
+echo -e "${BLUE}═══ Test 6: Helper Utilities ═══${NC}"
+echo ""
+
+# Source helpers
+run_test "helpers.sh - source"
+if source "${CONTAINER_BITBOT}/core/util/helpers.sh" 2>/dev/null; then
+    test_passed "helpers.sh - can be sourced"
+else
+    test_failed "helpers.sh - cannot be sourced"
+fi
+
+# Test helper functions
+run_test "helpers - command_exists"
+if command_exists bash; then
+    test_passed "helpers - command_exists works"
+else
+    test_failed "helpers - command_exists broken"
+fi
+
+run_test "helpers - get_workspace"
+WORKSPACE="/test/path"
+if [[ "$(get_workspace)" == "/test/path" ]]; then
+    test_passed "helpers - get_workspace works"
+else
+    test_failed "helpers - get_workspace broken"
+fi
+
+run_test "helpers - get_bitbot_mode"
+BITBOT_MODE="work"
+if [[ "$(get_bitbot_mode)" == "work" ]]; then
+    test_passed "helpers - get_bitbot_mode works"
+else
+    test_failed "helpers - get_bitbot_mode broken"
+fi
+
+run_test "helpers - is_work_mode"
+BITBOT_MODE="work"
+if is_work_mode; then
+    test_passed "helpers - is_work_mode works"
+else
+    test_failed "helpers - is_work_mode broken"
+fi
+
+run_test "helpers - is_config_mode"
+BITBOT_MODE="config"
+if is_config_mode; then
+    test_passed "helpers - is_config_mode works"
+else
+    test_failed "helpers - is_config_mode broken"
+fi
+
+echo ""
+
+# ============================================================================
+# Test 7: File Permissions
+# ============================================================================
+
+echo -e "${BLUE}═══ Test 7: File Permissions ═══${NC}"
+echo ""
+
+run_test "bitbot - executable"
+if [[ -x "${CONTAINER_BITBOT}/bitbot" ]]; then
+    test_passed "bitbot - is executable"
+else
+    test_failed "bitbot - not executable"
+fi
+
+for cmd in analyze configure resume start status; do
+    run_test "$cmd.sh - executable"
+    if [[ -x "${CONTAINER_BITBOT}/core/commands/${cmd}.sh" ]]; then
+        test_passed "$cmd.sh - is executable"
+    else
+        test_failed "$cmd.sh - not executable"
+    fi
+done
+
+echo ""
+
+# ============================================================================
+# Summary
+# ============================================================================
+
+echo ""
+echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║          Test Suite Summary            ║${NC}"
+echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
+echo ""
+echo -e "  Total:   ${BLUE}${total_tests}${NC}"
+echo -e "  Passed:  ${GREEN}${passed_tests}${NC}"
+echo -e "  Failed:  ${RED}${failed_tests}${NC}"
+echo ""
+
+# Calculate success rate
+if [[ $total_tests -gt 0 ]]; then
+    success_rate=$((passed_tests * 100 / total_tests))
+    echo -e "  Success Rate: ${success_rate}%"
+    echo ""
+fi
+
+# Final result
+if [[ $failed_tests -eq 0 ]]; then
+    echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║     ALL TESTS PASSED! ✓                ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
+    echo ""
+    exit 0
+else
+    echo -e "${RED}╔════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║     SOME TESTS FAILED ✗                ║${NC}"
+    echo -e "${RED}╚════════════════════════════════════════╝${NC}"
+    echo ""
+    exit 1
+fi
