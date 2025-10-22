@@ -65,11 +65,11 @@ flowchart TD
     Step3[Step 3: Create config.json in install folder<br/>Add to PATH, set BITBOT_HOME]
     Step3 --> Done[DONE - bitbot available globally<br/>Run from install folder validates env]
 
-    style FirstRun fill:#f9cb9c,stroke:#333,color:#000
-    style DockerRunning fill:#f9cb9c,stroke:#333,color:#000
-    style AutoStart fill:#f9cb9c,stroke:#333,color:#000
-    style CheckCLI fill:#f9cb9c,stroke:#333,color:#000
-    style InstallCLI fill:#f9cb9c,stroke:#333,color:#000
+    style FirstRun fill:#ffa726,stroke:#333,color:#333
+    style DockerRunning fill:#ffa726,stroke:#333,color:#333
+    style AutoStart fill:#ffa726,stroke:#333,color:#333
+    style CheckCLI fill:#ffa726,stroke:#333,color:#333
+    style InstallCLI fill:#ffa726,stroke:#333,color:#333
     style Done fill:#66bb6a,stroke:#333,color:#333
     style ExitDocker fill:#ef5350,stroke:#333,color:#333
 ```
