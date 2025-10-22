@@ -513,6 +513,91 @@ BitBot uses a minimal isolated Alpine WSL distro (~8MB) for cross-platform consi
 
 Installation creates `BitBot-Alpine` WSL distro automatically.
 
+#### Project Location and Filesystem Performance
+
+**Critical Performance Impact**: Where you store your projects on Windows/WSL significantly affects development experience.
+
+| Location                      | I/O Performance | Recommendation | Use Case                    |
+|-------------------------------|-----------------|----------------|-----------------------------|
+| WSL filesystem (`~/projects`) | ⭐⭐⭐⭐⭐ Fast    | ✅ **Use this** | Development, containers     |
+| Windows (`/mnt/c/Projects`)   | ⭐⭐ Slow (10x)  | ⚠️  **Avoid**   | Windows-only tools, sharing |
+
+**Performance Tests**:
+
+```bash
+# Test 1: File creation speed
+# WSL filesystem
+time (for i in {1..1000}; do touch ~/test-wsl/file$i.txt; done)
+# Result: ~0.5 seconds
+
+# Windows filesystem
+time (for i in {1..1000}; do touch /mnt/c/test-win/file$i.txt; done)
+# Result: ~5-8 seconds (10-16x slower)
+
+# Test 2: Node.js npm install (typical workload)
+# WSL filesystem: ~30 seconds
+# Windows filesystem: ~300 seconds (10x slower)
+
+# Test 3: Git operations
+# WSL: git status ~0.1s, git diff ~0.2s
+# Windows: git status ~1-2s, git diff ~2-5s
+```
+
+**Profiling Tools**:
+
+```bash
+# Profile filesystem I/O
+sudo apt install sysstat
+iostat -x 1 10  # Monitor during operations
+
+# Compare dd performance
+# WSL filesystem
+dd if=/dev/zero of=~/test-wsl.dat bs=1M count=1000 conv=fdatasync
+# ~500-800 MB/s
+
+# Windows filesystem
+dd if=/dev/zero of=/mnt/c/test-win.dat bs=1M count=1000 conv=fdatasync
+# ~50-100 MB/s (5-10x slower)
+```
+
+**Why the Difference?**
+
+- **WSL filesystem**: Native ext4, direct kernel access
+- **Windows filesystem**: 9P protocol translation layer (Plan 9 Filesystem Protocol)
+- **Impact**: Every file operation crosses the WSL↔Windows boundary
+
+**Best Practices**:
+
+✅ **DO**:
+- Store BitBot projects in WSL filesystem (`~/projects/`)
+- Use WSL-native paths for devcontainers
+- Keep git repositories in WSL
+- Run `bitbot init` from WSL paths
+
+⚠️ **DON'T**:
+- Store projects in `/mnt/c/` for development
+- Use Windows paths with containers
+- Mix WSL and Windows file access
+
+**Exception**: Use Windows filesystem only when:
+- Need Windows-native tools (Visual Studio, Office)
+- Sharing files with Windows applications
+- Working with large binary files accessed from Windows
+
+**Verification**:
+
+```bash
+# Check where you are
+pwd
+# Good: /home/username/projects/myapp
+# Bad:  /mnt/c/Users/username/projects/myapp
+
+# Check filesystem type
+df -T .
+# Good: Filesystem Type = ext4
+# Bad:  Filesystem Type = 9p
+```
+
 ### macOS / Linux
 
 Native bash execution, no virtualization layer needed.
