@@ -167,7 +167,7 @@ source ~/.bashrc
    cd ~/Projects/MyApp
    bitbot init
    ```
-   This creates a `.devcontainer/` folder with a basic Ubuntu template.
+   This creates a `.devcontainer/` folder with the base Ubuntu template.
 
 3. **Start working:**
    ```bash
@@ -382,7 +382,7 @@ See [RELEASE.md](RELEASE.md) for complete release instructions.
 - [RELEASE.md](RELEASE.md) - Release process and branch strategy
 - [scripts/README.md](scripts/README.md) - Release management scripts
 - [.devcontainer/README.md](.devcontainer/README.md) - Development container setup
-- [templates/basic/README.md](templates/basic/README.md) - Basic template documentation
+- [templates/base/README.md](templates/base/README.md) - Base template documentation
 - [config-devcontainer/README.md](config-devcontainer/README.md) - Config mode details
 
 **Architecture & Research:**
