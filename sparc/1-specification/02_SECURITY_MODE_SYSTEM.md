@@ -33,8 +33,8 @@ Two-mode security system (work/setup) implemented via separate containers with d
 - **Container**: Uses global setup devcontainer template (~/.bitbot/setup-devcontainer/)
 - **AI Access**: Can modify `.devcontainer` (workspace mounted with RW access)
 - **Protection**: Git warnings on uncommitted changes (non-blocking)
-- **Docker Requirement**: **NOT NEEDED** - Config mode only edits .devcontainer files, doesn't run them
-- **Prerequisites**: Only DevContainer CLI required (Docker not needed for config mode)
+- **Prerequisites**: Docker + DevContainer CLI (to run the config container)
+- **Container Contents**: Lightweight editing tools only (NO Docker inside container)
 
 ### 1.2 Security Model
 

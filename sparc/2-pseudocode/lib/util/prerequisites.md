@@ -28,13 +28,15 @@ FUNCTION validate_prerequisites(command):
         RETURN true  # No prerequisites needed
     END IF
 
-    # Check Docker
+    # All container commands need Docker on host (to run containers)
+    # Note: Config mode runs a lightweight container (no Docker inside)
+    #       but still needs Docker engine on host to run the container
     IF NOT check_docker():
         EXIT 1
     END IF
 
-    # Check DevContainer CLI (if needed for this command)
-    IF command IN ["work", "config", "vscode"]:
+    # Check DevContainer CLI (for commands that launch containers)
+    IF command IN ["work", "config", "vscode", "init"]:
         IF NOT check_devcontainer_cli_available():
             # Offer installation or show instructions
             handle_missing_devcontainer_cli()
@@ -610,6 +612,12 @@ END FUNCTION
 - Offer to install devcontainer CLI if missing
 - WSL-specific Docker integration setup assistance
 - Clear, actionable error messages with install links
+
+**Config Mode Docker Requirement**:
+- Config mode DOES require Docker on host (to run the config container)
+- Config mode DOES require DevContainer CLI (to build/launch the container)
+- Config container itself doesn't have Docker INSIDE it (no docker.sock, no Docker CLI tools)
+- Config container is lightweight (git, vim, jq - for editing files only)
 
 **Based on Test Implementation**:
 - test-windows-launch/scripts/bitbot lines 105-167 (check_devcontainer_cli)
