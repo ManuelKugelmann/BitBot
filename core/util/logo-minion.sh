@@ -15,18 +15,18 @@ get_bitbot_version() {
     fi
 }
 
-# Color codes - Blue Minion theme
+# Color codes - BitBot original color scheme (blues, teal, yellow accents)
 # Foreground colors
-BLUE_FG='\033[38;5;33m'       # Bright blue
-YELLOW_FG='\033[38;5;226m'    # Yellow
-BLACK_FG='\033[38;5;16m'      # Black
-GREY='\033[38;5;246m'         # Grey for text
-WHITE='\033[38;5;255m'        # White for text
+TEAL='\033[38;5;51m'       # Bright teal
+NAVY='\033[38;5;24m'       # Navy blue
+YELLOW='\033[38;5;226m'    # Bright yellow
+GREY='\033[38;5;246m'      # Grey for text
+WHITE='\033[38;5;255m'     # White for text
+RED='\033[38;5;196m'       # Red accent
 # Background colors
-YELLOW_BG='\033[48;5;226m'    # Yellow background (minion body)
-BLUE_BG='\033[48;5;33m'       # Blue background (overalls)
-GREY_BG='\033[48;5;240m'      # Grey background (goggle band)
-BLACK_BG='\033[48;5;16m'      # Black background
+TEAL_BG='\033[48;5;51m'    # Teal background
+NAVY_BG='\033[48;5;24m'    # Navy background
+YELLOW_BG='\033[48;5;226m' # Yellow background
 DIM='\033[2m'
 RESET='\033[0m'
 
@@ -37,10 +37,10 @@ print_logo() {
     local current_dir="${1:-$(pwd)}"
 
     echo ""
-    echo -e "  ${YELLOW_FG}◆${BLUE_FG}━╮${RESET} ${GREY_BG}${BLACK_FG}╭━${YELLOW_FG}●═●${BLACK_FG}━╮${RESET} ${BLUE_FG}╭${YELLOW_FG}⬡${RESET}    ${WHITE}BitBot${RESET} ${GREY}v${version}${RESET}"
-    echo -e " ${YELLOW_BG}${BLACK_FG}╱━━━━━╲${RESET}${BLUE_BG}${YELLOW_FG}▌━━━▐${RESET}${YELLOW_FG}■${RESET}     ${DIM}${GREY}Secure AI Development${RESET}"
-    echo -e " ${YELLOW_BG}${BLACK_FG}│${RESET} ${BLUE_BG}${BLACK_FG}◇${RESET} ${BLACK_BG}${BLUE_FG}┳━┳${RESET} ${BLUE_BG}${BLACK_FG}◇${RESET} ${YELLOW_BG}${BLACK_FG}│${RESET}  ${DIM}${GREY}${current_dir}${RESET}"
-    echo -e "  ${YELLOW_BG}${BLACK_FG}╰━━━━━╯${RESET}"
+    echo -e "  ${YELLOW}◆${NAVY}━╮${RESET} ${NAVY_BG}${TEAL}╭${YELLOW}●═●${TEAL}╮${RESET} ${NAVY}╭${YELLOW}⬡${RESET}    ${WHITE}BitBot${RESET} ${GREY}v${version}${RESET}"
+    echo -e " ${TEAL_BG}${NAVY}╭${TEAL}█████${NAVY}╮${RESET}${NAVY_BG}${TEAL}▌███▐${RESET}${YELLOW}■${RESET}     ${DIM}${GREY}Secure AI Development${RESET}"
+    echo -e " ${TEAL_BG}${NAVY}│${RESET}${NAVY_BG}${YELLOW}█${RESET}${NAVY_BG}${TEAL}███${RESET}${NAVY_BG}${YELLOW}█${RESET}${TEAL_BG}${NAVY}│${RESET}  ${DIM}${GREY}${current_dir}${RESET}"
+    echo -e "  ${TEAL_BG}${NAVY}╰${TEAL}███${NAVY}╯${RESET}"
     echo ""
 }
 
