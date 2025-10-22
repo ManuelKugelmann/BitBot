@@ -44,8 +44,8 @@ flowchart TD
     InConfig --> Exit[Exit config mode when done<br/>exit or Ctrl+D]
     Exit --> Done[DONE - Workspace ready<br/>User can run: bitbot work]
 
-    style CheckInit fill:#f9cb9c,stroke:#333,color:#000
-    style DevContainerExists fill:#f9cb9c,stroke:#333,color:#000
+    style CheckInit fill:#ffa726,stroke:#333,color:#333
+    style DevContainerExists fill:#ffa726,stroke:#333,color:#333
     style Error fill:#ef5350,stroke:#333,color:#333
     style Done fill:#66bb6a,stroke:#333,color:#333
 ```
