@@ -1,82 +1,24 @@
 {
-  "name": "BitBot Workspace",
-  "dockerFile": "Dockerfile",
-
   "workspaceFolder": "/workspace",
-
-  // Features - hybrid approach: official features + custom scripts
   "features": {
-    // Claude Code - Official Anthropic feature
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {
-      "version": "latest"
-    },
-
-    // Claude Flow - Experimental Anthropic feature (requires docker-outside-of-docker)
-    // Uncomment when needed for workflow orchestration
-    // "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
-    // "ghcr.io/anthropics/devcontainer-features/claude-flow:0.3": {
-    //   "version": "latest"
-    // },
-
-    // Open Code - Prototype community feature
-    // Uncomment when needed for open-weights AI coding
-    // "ghcr.io/opencode-dev/features/open-code:0.1": {
-    //   "version": "latest"
-    // },
-
-    // Common features for development
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts"
     },
-    "ghcr.io/devcontainers/features/git:1": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {
       "version": "latest"
     }
   },
-
-  "mounts": [
-    // Workspace mount - main project files
-    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-
-    // SECURITY: Infrastructure protection - read-only .devcontainer mount
-    // This prevents AI agents from accidentally modifying infrastructure files
-    // Must come AFTER workspace mount to overlay with read-only access
-    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
-
-    // Shared home folders - BitBot-specific globally shared configurations
-    // These folders are stored in .devcontainer/home/ and mounted into container
-
-    // Claude Code shared config - global instructions, tools, templates
-    "source=${localWorkspaceFolder}/.devcontainer/home/claude,target=/home/bitbot/.claude,type=bind,consistency=cached",
-
-    // Claude Flow shared config - workflows, automation, flow templates
-    "source=${localWorkspaceFolder}/.devcontainer/home/claude-flow,target=/home/bitbot/.claude-flow,type=bind,consistency=cached",
-
-    // OpenCode shared config - code templates, snippets, configuration
-    "source=${localWorkspaceFolder}/.devcontainer/home/opencode,target=/home/bitbot/.opencode,type=bind,consistency=cached"
-
-    // Optional: Mount host's SSH keys (uncomment to use host SSH credentials)
-    // "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/root/.ssh,type=bind,readonly",
-
-    // Optional: Mount host's Git config (uncomment to use host Git settings)
-    // "source=${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig,target=/root/.gitconfig,type=bind,readonly",
-
-    // Optional: Mount Docker socket for Docker-in-Docker (uncomment if needed)
-    // "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-  ],
-
   "remoteUser": "root",
-
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-vscode-remote.remote-containers"
-      ],
-      "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash"
-      }
-    }
-  },
-
-  // Run setup script after container creation (fallback installations)
-  "postCreateCommand": ".devcontainer/scripts/post-create.sh"
+  "$comment": "Workspace template details - merged with templates/shared/base.devcontainer.json",
+  "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
+  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/workspace",
+  "name": "BitBot Workspace",
+  "dockerFile": "Dockerfile",
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.devcontainer/home/claude,target=/home/bitbot/.claude,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer/home/claude-flow,target=/home/bitbot/.claude-flow,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer/home/opencode,target=/home/bitbot/.opencode,type=bind,consistency=cached"
+  ]
 }

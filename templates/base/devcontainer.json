@@ -1,23 +1,17 @@
 {
-  "name": "BitBot Basic Environment",
-  "dockerFile": "Dockerfile",
-
   "workspaceFolder": "/workspace",
-
-  "mounts": [
-    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
-  ],
-
-  "remoteUser": "root",
-
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-vscode-remote.remote-containers"
-      ],
-      "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash"
-      }
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {
+      "version": "latest"
     }
-  }
+  },
+  "remoteUser": "root",
+  "$comment": "Base template details - merged with templates/shared/base.devcontainer.json",
+  "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
+  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/base",
+  "name": "BitBot Basic Environment",
+  "dockerFile": "Dockerfile"
 }
