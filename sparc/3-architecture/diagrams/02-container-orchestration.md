@@ -58,9 +58,9 @@ graph TB
     WDC --> RO
 
     style WC fill:#66bb6a,stroke:#333,stroke-width:3px,color:#333
-    style CC fill:#ffb6c1,stroke:#333,stroke-width:3px,color:#333
+    style CC fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
     style WDC fill:#a5d6a7,stroke:#333,stroke-width:2px,color:#333
-    style CDC fill:#ffc0cb,stroke:#333,stroke-width:2px,color:#333
+    style CDC fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
     style RO fill:#ef5350,stroke:#333,stroke-width:2px,color:#333
     style GIT fill:#4a9eff,stroke:#333,stroke-width:2px
     style WORK fill:#4a9eff,stroke:#333,stroke-width:2px
@@ -187,7 +187,7 @@ graph LR
     CONFIGRW --> HUMAN
 
     style WORKRO fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
-    style CONFIGRW fill:#ffb6c1,stroke:#333,stroke-width:2px,color:#333
+    style CONFIGRW fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
 ```
 
 ### Permission Matrix
