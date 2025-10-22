@@ -8,6 +8,22 @@
 - **Line endings**: bash/sh=LF, ps1/bat/cmd=CRLF (use `.gitattributes` + tools below)
 - **Syntax**: Check bash scripts after editing (use tools below)
 
+## DevContainer Context
+
+**IMPORTANT**: BitBot has two separate devcontainer contexts - do NOT confuse them!
+
+| Context                | Location                  | Purpose                      | Notes                        |
+|------------------------|---------------------------|------------------------------|------------------------------|
+| **BitBot Development** | `/.devcontainer/`         | Develop BitBot itself        | MinGW, BitBot dev tools      |
+| **Workspace**          | `/templates/workspace/`   | User AI workspaces           | Claude Code, AI tools, shared home folders |
+
+**Key Points**:
+- `/.devcontainer/` = **For BitBot contributors** (developing BitBot)
+- `templates/workspace/` = **For BitBot users** (AI-powered development)
+- Do NOT modify root `/.devcontainer/` unless working on BitBot itself
+- Workspace templates include shared home folders for AI tool configs
+- See `templates/workspace/README.md` for workspace template docs
+
 ## Available Tools
 
 **IMPORTANT**: ALWAYS use these tools instead of raw `dos2unix` or `sed` commands. These are auto-approved and don't require user confirmation.
@@ -58,6 +74,59 @@
 **Paths**:
 - WSL paths work: `/mnt/c/Projects/...`
 - Windows paths: `C:\Projects\...` (escape backslashes in quotes)
+
+## Testing Guidelines
+
+**Process**: Step-by-step testing with todo list tracking
+
+1. **Create Tests**:
+   - Write test script in `tests/test-<feature>.sh`
+   - Include bash syntax check, unit tests, integration tests
+   - Use clear test names and section headers
+   - Follow existing test structure (see `tests/test-container-bitbot.sh`)
+
+2. **Run Tests in WSL**:
+   - Run directly: `./tests/test-<feature>.sh`
+   - Fix CRLF issues: `sed -i 's/\r$//' tests/test-<feature>.sh`
+   - Debug failures individually before moving on
+
+3. **Fix Issues**:
+   - Fix line endings in tested code (use `sed -i 's/\r$//'`)
+   - Fix logic errors one at a time
+   - Rerun tests after each fix
+   - Don't commit until all tests pass
+
+4. **Commit After Success**:
+   - Commit line ending fixes separately
+   - Commit test suite with results in commit message
+   - Add test to `tests/run-tests.sh` if appropriate
+
+5. **Test Framework**:
+   - Use `run_test()`, `test_passed()`, `test_failed()` helpers
+   - Show colored output (GREEN=pass, RED=fail, BLUE=section)
+   - Print summary with success rate
+   - Exit 0 if all pass, exit 1 if any fail
+
+**Example Workflow**:
+```bash
+# 1. Create test
+vim tests/test-feature.sh
+chmod +x tests/test-feature.sh
+
+# 2. Run and fix line endings
+./tests/test-feature.sh  # May fail with CRLF error
+sed -i 's/\r$//' tests/test-feature.sh
+sed -i 's/\r$//' feature/script.sh
+
+# 3. Rerun until passing
+./tests/test-feature.sh  # Fix issues, rerun
+
+# 4. Commit
+git add feature/script.sh
+git commit -m "Fix line endings"
+git add tests/test-feature.sh
+git commit -m "Add feature test suite (28/28 pass)"
+```
 
 ## Additional Guidelines
 
