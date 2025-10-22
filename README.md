@@ -395,12 +395,7 @@ Native bash execution, no virtualization layer needed.
 
 Contributions welcome! This project is under active development.
 
-**Current priorities:**
-1. macOS/Linux testing
-2. Additional templates
-3. Documentation improvements
-
-See [CLAUDE.md](CLAUDE.md) for development guidelines.
+For contribution guidelines, current priorities, and development setup, see [DEVELOPER.md](DEVELOPER.md).
 
 ---
 
