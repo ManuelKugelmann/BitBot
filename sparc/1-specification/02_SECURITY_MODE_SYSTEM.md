@@ -34,7 +34,7 @@ Two-mode security system (work/setup) implemented via separate containers with d
 - **AI Access**: Can modify `.devcontainer` (workspace mounted with RW access)
 - **Protection**: Git warnings on uncommitted changes (non-blocking)
 - **Prerequisites**: Docker + DevContainer CLI (to run the config container)
-- **Container Contents**: Lightweight editing tools only (NO Docker inside container)
+- **Container Contents**: Claude Code AI + config-specific tooling (NO Docker inside container)
 
 ### 1.2 Security Model
 
@@ -187,10 +187,10 @@ echo "✓ Created checkpoint: git stash pop to restore"
 ```
 ~/.bitbot/setup-devcontainer/
 ├── devcontainer.json        # Global setup config
-└── Dockerfile               # Setup container image (lightweight, no Docker inside)
+└── Dockerfile               # Config container (Claude Code AI + config tools, no Docker inside)
 ```
 
-**Note**: Config mode container doesn't include Docker - it's only for editing .devcontainer files, not running containers.
+**Note**: Config mode container includes Claude Code AI and config-specific tools, but NO Docker inside - it's for editing .devcontainer files with AI assistance, not running containers.
 
 **Per-Workspace Config**: `.bitbot/setup/devcontainer.json`
 - Created on first `bitbot setup` launch
@@ -410,10 +410,10 @@ ENTRYPOINT ["/opt/work-entrypoint.sh"]
 ### 8.2 Setup/Config Mode Container Security
 
 ```dockerfile
-# Config container is lightweight - only edits .devcontainer files
+# Config container includes AI + config-specific tools (no Docker inside)
 FROM ubuntu:22.04
 
-# Tools for editing configuration files (no Docker needed)
+# Claude Code AI + config-specific tools (no Docker needed)
 RUN apt-get update && apt-get install -y \
     git \
     vim \
