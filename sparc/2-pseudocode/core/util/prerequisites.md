@@ -29,7 +29,7 @@ FUNCTION validate_prerequisites(command):
     END IF
 
     # All container commands need Docker on host (to run containers)
-    # Note: Config mode runs a lightweight container (no Docker inside)
+    # Note: Config mode runs container with AI + config tools (no Docker inside)
     #       but still needs Docker engine on host to run the container
     IF NOT check_docker():
         EXIT 1
