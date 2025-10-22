@@ -28,12 +28,13 @@ Two-mode security system (work/setup) implemented via separate containers with d
 - **Protection**: `.devcontainer` mounted read-only, `.bitbot/setup/` invisible
 - **Git Safety**: Warnings on uncommitted/unpushed changes
 
-**Setup Mode** (MVP Simplified):
+**Setup Mode** (MVP Simplified - also called "Config Mode"):
 - **Purpose**: Infrastructure changes and devcontainer configuration
 - **Container**: Uses global setup devcontainer template (~/.bitbot/setup-devcontainer/)
 - **AI Access**: Can modify `.devcontainer` (workspace mounted with RW access)
 - **Protection**: Git warnings on uncommitted changes (non-blocking)
-- **Docker Access**: Not needed (devcontainer CLI handles Docker operations on host)
+- **Docker Requirement**: **NOT NEEDED** - Config mode only edits .devcontainer files, doesn't run them
+- **Prerequisites**: Only DevContainer CLI required (Docker not needed for config mode)
 
 ### 1.2 Security Model
 
@@ -151,13 +152,14 @@ echo "✓ Created checkpoint: git stash pop to restore"
 ```
 ~/.bitbot/setup-devcontainer/
 ├── devcontainer.json        # Global setup config
-├── Dockerfile               # Setup container image
-└── docker-compose.yml       # Setup orchestration
+└── Dockerfile               # Setup container image (lightweight, no Docker inside)
 ```
+
+**Note**: Config mode container doesn't include Docker - it's only for editing .devcontainer files, not running containers.
 
 **Per-Workspace Config**: `.bitbot/setup/devcontainer.json`
 - Created on first `bitbot setup` launch
-- Links to global Dockerfile/compose
+- References global Dockerfile
 - Configures workspace-specific mounts
 
 **Setup Container Mounts** (MVP):
@@ -236,9 +238,8 @@ Add comprehensive warning on config mode entry that explains:
 **~/.bitbot/setup-devcontainer/ Contents** (On host, not workspace):
 ```
 ~/.bitbot/setup-devcontainer/
-├── devcontainer.json        # Global setup config template
-├── Dockerfile               # Setup container image
-└── docker-compose.yml       # Setup orchestration
+├── devcontainer.json        # Global config mode template
+└── Dockerfile               # Config container image (no Docker inside)
 ```
 
 **Per-Workspace Setup Config**:
@@ -371,18 +372,22 @@ COPY --from=bitbot-security /opt/bitbot/work-entrypoint.sh /opt/
 ENTRYPOINT ["/opt/work-entrypoint.sh"]
 ```
 
-### 8.2 Setup Mode Container Security
+### 8.2 Setup/Config Mode Container Security
 
 ```dockerfile
-# Setup container has Docker access but requires approval
+# Config container is lightweight - only edits .devcontainer files
 FROM ubuntu:22.04
 
-# Tools for infrastructure changes
-RUN apt-get update && apt-get install -y docker.io docker-compose
+# Tools for editing configuration files (no Docker needed)
+RUN apt-get update && apt-get install -y \
+    git \
+    vim \
+    jq \
+    curl
 
-# Security: Approval required for Docker socket mount
-COPY --from=bitbot-security /opt/bitbot/setup-entrypoint.sh /opt/
-ENTRYPOINT ["/opt/setup-entrypoint.sh"]
+# Note: No Docker installation - config mode only edits files
+COPY --from=bitbot-security /opt/bitbot/config-entrypoint.sh /opt/
+ENTRYPOINT ["/opt/config-entrypoint.sh"]
 ```
 
 ### 8.3 Git Safety Script
