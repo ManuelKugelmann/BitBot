@@ -14,17 +14,45 @@ BitBot is a cross-platform CLI tool that sandboxes AI coding assistants in isola
 
 ## Why BitBot?
 
+### The Problem
+
 When working with AI coding assistants like Claude Code, you want them to:
 - ✅ Make changes to your application code freely
 - ✅ Run tests and debug issues
 - ✅ Refactor and improve your codebase
+- ✅ Install dependencies and tools
 
 But **not** accidentally:
+- ❌ Write random files on your host system
+- ❌ Modify system configuration files
 - ❌ Break your Docker configuration
-- ❌ Modify `.devcontainer` files incorrectly
-- ❌ Change infrastructure files unintentionally
+- ❌ Corrupt `.devcontainer` or `.github` workflows
+- ❌ Delete or overwrite important files outside the project
+- ❌ Access or modify other projects on your machine
+- ❌ Install system-wide packages that affect other projects
 
-**BitBot solves this with two-mode containers:**
+### Why DevContainers?
+
+BitBot uses DevContainers to provide isolated, reproducible environments:
+
+**Isolation:**
+- ✅ AI changes stay inside the container
+- ✅ Host system protected from accidental modifications
+- ✅ Each workspace has its own isolated environment
+- ✅ No conflicts between project dependencies
+
+**Reproducibility:**
+- ✅ Same environment for all developers
+- ✅ Works identically on Windows, macOS, and Linux
+- ✅ Version-controlled environment configuration
+- ✅ Easy onboarding for new team members
+
+**Safety:**
+- ✅ Container can be reset/rebuilt without affecting host
+- ✅ Experiments stay isolated (try risky changes safely)
+- ✅ Clean separation of development tools from host system
+
+### BitBot's Two-Mode Solution
 
 ### Work Mode (Default)
 - AI can freely modify application code
