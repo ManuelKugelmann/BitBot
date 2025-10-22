@@ -21,9 +21,16 @@ print_logo
 
 echo ""
 echo "───────────────────────────────────────────────────────────────"
-echo "Blue Minion Design:"
+echo "Rounded Variant:"
 echo "───────────────────────────────────────────────────────────────"
-source "${SCRIPT_DIR}/logo-minion.sh"
+source "${SCRIPT_DIR}/logo-rounded.sh"
+print_logo
+
+echo ""
+echo "───────────────────────────────────────────────────────────────"
+echo "Monospace-Only Variant:"
+echo "───────────────────────────────────────────────────────────────"
+source "${SCRIPT_DIR}/logo-mono.sh"
 print_logo
 
 echo ""
