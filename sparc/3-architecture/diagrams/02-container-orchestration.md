@@ -21,7 +21,7 @@ graph TB
         CC[Config Container]
         CDC[.devcontainer<br/>READ-WRITE]
         WS2[/workspace<br/>Read-Write]
-        EDIT[Editing Tools<br/>git, vim, jq]
+        AI2[Claude Code<br/>Config-focused]
         TM2[tmux]
     end
 
@@ -45,7 +45,7 @@ graph TB
 
     CC --> CDC
     CC --> WS2
-    CC --> EDIT
+    CC --> AI2
     CC --> TM2
 
     WDC -.->|ro bind| HWS
@@ -109,25 +109,26 @@ Mounts:
 ## Config Mode (Infrastructure Management)
 
 ### Purpose
-Lightweight environment for editing infrastructure configuration files.
+AI-assisted infrastructure configuration environment with write access to `.devcontainer`.
 
 ### Prerequisites
 - Requires Docker on host (to run the config container)
 - Requires DevContainer CLI (to build/launch the config container)
 
 ### Characteristics
-- **Container**: Lightweight config template for editing files
+- **Container**: Config template with config-specific tooling
 - **.devcontainer**: Read-write bind mount (can modify infrastructure)
 - **Workspace**: Read-write bind mount (can edit everything)
-- **Tools**: git, vim, jq, curl (no Docker CLI inside - lightweight editing only)
+- **AI Agent**: Claude Code AI for assisted configuration changes
+- **Tools**: Config-specific tools (devcontainer features, YAML/JSON editors, git, etc.)
 - **Access**: No Docker socket mount - config container doesn't run other containers
 
 ### Use Cases
-- Editing `.devcontainer/devcontainer.json`
-- Modifying `Dockerfile`
+- AI-assisted editing of `.devcontainer/devcontainer.json`
+- Modifying `Dockerfile` with AI help
+- Adding/configuring devcontainer features
 - Updating workspace configuration files
-- Editing git configuration
-- Modifying .gitignore, README, documentation
+- Infrastructure documentation changes
 
 ### Mount Configuration
 ```yaml
@@ -191,15 +192,15 @@ graph LR
 
 ### Permission Matrix
 
-| Resource                 | Work Mode         | Config Mode       |
-|--------------------------|-------------------|-------------------|
-| Source code (workspace)  | Read-Write        | Read-Write        |
-| .devcontainer files      | Read-Only         | Read-Write        |
-| Docker socket            | Optional (⚠️)     | No Access         |
-| DevContainer CLI         | No Access         | No Access         |
-| Editing tools (vim, jq)  | Available         | Available         |
-| Claude Code AI           | Available         | Available         |
-| Git operations           | Available         | Available         |
+| Resource                    | Work Mode                  | Config Mode                     |
+|-----------------------------|----------------------------|---------------------------------|
+| Source code (workspace)     | Read-Write                 | Read-Write                      |
+| .devcontainer files         | Read-Only                  | Read-Write                      |
+| Docker socket               | Optional (⚠️)              | No Access                       |
+| DevContainer CLI            | No Access                  | No Access                       |
+| Workload/Config tools       | Workload-specific          | Config-specific (YAML, JSON)    |
+| Claude Code AI              | Available (code-focused)   | Available (config-focused)      |
+| Git operations              | Available                  | Available                       |
 
 **Note**: Docker socket access in work mode is optional and template-dependent. When enabled, uses rootless Docker-in-Docker with limited isolation (⚠️ security trade-off). See SPEC-02 section 2.3 for details.
 
@@ -229,9 +230,9 @@ sequenceDiagram
     alt Container exists
         Docker->>ConfigContainer: Reuse existing
     else Container doesn't exist
-        Docker->>ConfigContainer: Build new (lightweight, no Docker inside)
+        Docker->>ConfigContainer: Build new (with AI + config tools, no Docker inside)
     end
-    ConfigContainer->>User: tmux session (read-write .devcontainer, no Docker inside)
+    ConfigContainer->>User: tmux session (AI-assisted config, read-write .devcontainer)
 
     Note over WorkContainer,ConfigContainer: Both can run simultaneously!
 ```

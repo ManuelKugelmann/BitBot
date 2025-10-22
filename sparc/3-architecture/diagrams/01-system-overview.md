@@ -94,8 +94,8 @@ graph TB
 - **Git Repository**: Version control and safety checks
 
 ### Templates
-- **Basic Template**: Minimal Ubuntu + Node.js + Claude Code (for work mode)
-- **Config Template**: Lightweight editing environment (git, vim, jq - no Docker)
+- **Work Template**: Ubuntu + workload-specific tools + Claude Code AI
+- **Config Template**: Ubuntu + config-specific tools (devcontainer features, YAML/JSON editors) + Claude Code AI (no Docker inside)
 
 ## Information Flow
 
