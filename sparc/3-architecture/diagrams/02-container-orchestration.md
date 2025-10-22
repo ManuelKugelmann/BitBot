@@ -77,7 +77,8 @@ Isolated development environment with AI assistant, protected infrastructure.
 - **.devcontainer**: Read-only bind mount (cannot modify infrastructure)
 - **Workspace**: Read-write bind mount (can edit code)
 - **Tools**: Claude Code AI, tmux session, git
-- **Security**: Git safety warnings, no Docker access
+- **Security**: Git safety warnings, no Docker access (by default)
+- **Docker-in-Docker**: Optional (⚠️ security trade-off - see SPEC-02 section 2.3)
 
 ### Use Cases
 - Writing code
@@ -85,6 +86,7 @@ Isolated development environment with AI assistant, protected infrastructure.
 - AI-assisted development
 - Git operations
 - Regular development workflow
+- **(Optional)** Docker image building, Docker Compose testing (⚠️ requires trust)
 
 ### Mount Configuration
 ```yaml
@@ -189,15 +191,17 @@ graph LR
 
 ### Permission Matrix
 
-| Resource                 | Work Mode  | Config Mode       |
-|--------------------------|------------|-------------------|
-| Source code (workspace)  | Read-Write | Read-Write        |
-| .devcontainer files      | Read-Only  | Read-Write        |
-| Docker socket            | No Access  | No Access         |
-| DevContainer CLI         | No Access  | No Access         |
-| Editing tools (vim, jq)  | Available  | Available         |
-| Claude Code AI           | Available  | Available         |
-| Git operations           | Available  | Available         |
+| Resource                 | Work Mode         | Config Mode       |
+|--------------------------|-------------------|-------------------|
+| Source code (workspace)  | Read-Write        | Read-Write        |
+| .devcontainer files      | Read-Only         | Read-Write        |
+| Docker socket            | Optional (⚠️)     | No Access         |
+| DevContainer CLI         | No Access         | No Access         |
+| Editing tools (vim, jq)  | Available         | Available         |
+| Claude Code AI           | Available         | Available         |
+| Git operations           | Available         | Available         |
+
+**Note**: Docker socket access in work mode is optional and template-dependent. When enabled, uses rootless Docker-in-Docker with limited isolation (⚠️ security trade-off). See SPEC-02 section 2.3 for details.
 
 ---
 
