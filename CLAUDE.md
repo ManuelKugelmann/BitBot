@@ -58,9 +58,39 @@
 **Paths**:
 - WSL paths work: `/mnt/c/Projects/...`
 - Windows paths: `C:\Projects\...` (escape backslashes in quotes)
-- do not overengineer or add unasked for features. do not add backward for previous implementation interation steps.
-- tables in .md files should have aligned columns
-- do not use pwsh to run powershel scripts
-- use mermaid for flow diagrams
-- DO NOT add 🤖 Generated with [Claude Code](https://claude.com/claude-code) Co-Authored-By: Claude <noreply@anthropic.com>") or similar to commits
-- DO always take small steps to not get overwhelmed. DO NOT attempt big refactorings or implementation steps in one go.
+
+## Additional Guidelines
+
+- **DO NOT** overengineer or add unasked for features
+- **DO NOT** add backward compatibility for previous implementation iteration steps
+- **DO NOT** create copies of files when iterating. Only create copies when explicitly requested
+- **DO** align columns in .md tables
+- **DO** use mermaid for flow diagrams
+- **DO** take small steps to avoid getting overwhelmed
+- **DO NOT** attempt big refactorings or implementation steps in one go
+- **DO NOT** use pwsh to run PowerShell scripts
+- **DO NOT** add 🤖 Generated with [Claude Code] or Co-Authored-By to commits
+
+## Mermaid Diagram Guidelines
+
+**Color Scheme** (keep diagrams consistent):
+```
+User/Entry:      #4a9eff  (blue)     - CLI, user interface
+Secure/Work:     #90ee90  (green)    - Work mode, safe operations
+Config/Infra:    #ffb6c1  (pink)     - Config mode, infrastructure
+Router/Key:      #ffd700  (gold)     - Main routers, key components
+Warning/Error:   #ff6b6b  (red)      - Errors, security boundaries
+Notice/Prompt:   #ffcc00  (yellow)   - Prompts, decisions
+```
+
+**Width**: Keep diagrams narrow (~60 chars per line) for terminal viewing
+
+**Example**:
+```mermaid
+graph LR
+    A[User Input] --> B[Router]
+    B --> C[Work Mode]
+    style A fill:#4a9eff
+    style B fill:#ffd700
+    style C fill:#90ee90
+```
