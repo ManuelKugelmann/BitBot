@@ -47,9 +47,9 @@ graph TB
     ROUTER --> HANDLER
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:3px
-    style DETECT fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
-    style ROUTER fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
-    style WIN_ADAPT fill:#ffb6c1,stroke:#333,stroke-width:2px,color:#333
+    style DETECT fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
+    style ROUTER fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
+    style WIN_ADAPT fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
     style UNIX_ADAPT fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
 
@@ -126,7 +126,7 @@ graph TB
     CODE_EXE --> DOCKER
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:2px
-    style ALPINE fill:#ffb6c1,stroke:#333,stroke-width:2px,color:#333
+    style ALPINE fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
     style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
 
@@ -186,7 +186,7 @@ graph TB
     CODE --> DOCKER
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:2px
-    style BITBOT fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
+    style BITBOT fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
     style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
 
@@ -236,7 +236,7 @@ graph TB
     CODE --> DOCKER
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:2px
-    style BITBOT fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
+    style BITBOT fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
     style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
 
@@ -414,9 +414,9 @@ graph TB
     MAC_BRANCH --> MAC_IMPL[macOS impl]
     LINUX_BRANCH --> LINUX_IMPL[Linux impl]
 
-    style DETECT fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
+    style DETECT fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
     style COMMON fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
-    style WSL_IMPL fill:#ffb6c1,stroke:#333,stroke-width:2px,color:#333
+    style WSL_IMPL fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
     style MAC_IMPL fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
     style LINUX_IMPL fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
