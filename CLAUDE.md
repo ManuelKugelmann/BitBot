@@ -73,30 +73,30 @@
 
 ## Mermaid Diagram Guidelines
 
-**Color Scheme** (keep diagrams consistent, optimized for dark text):
+**Color Scheme** (simplified from FLOW_INNER_BITBOT):
 ```
-User/Entry:      #4a9eff  (blue)     - CLI, user interface
-Secure/Work:     #66bb6a  (green)    - Work mode, safe operations
-Config/Infra:    #ffb6c1  (pink)     - Config mode, infrastructure
-Router/Key:      #ffd700  (gold)     - Main routers, key components
-Warning/Error:   #ef5350  (red)      - Errors, security boundaries
-Notice/Prompt:   #ffa726  (orange)   - Prompts, decisions
+Entry/CLI:       #4a9eff  (blue)     - User input, CLI, entry points
+Decisions:       #ffa726  (orange)   - Prompts, checks, config, warnings
+Success/Work:    #66bb6a  (green)    - Work mode, done, safe operations
+Errors:          #ef5350  (red)      - Errors only
 ```
 
 **Text Color Rules**:
-- Bright backgrounds (green, pink, gold, red, orange): Use `color:#333` (dark text)
-- Dark backgrounds (blue): Can omit color or use white text
-- Always include: `fill:#COLOR,stroke:#333,stroke-width:2px,color:#333`
+- Blue (#4a9eff): No color needed (dark enough)
+- Orange (#ffa726): ALWAYS add `color:#333` (dark text on bright background)
+- Green (#66bb6a): ALWAYS add `color:#333` (dark text on bright background)
+- Red (#ef5350): ALWAYS add `color:#333` (dark text on bright background)
+- Format: `fill:#COLOR,stroke:#333,stroke-width:2px,color:#333`
 
 **Width**: Keep diagrams narrow (~60 chars per line) for terminal viewing
 
 **Example**:
 ```mermaid
 graph LR
-    A[User Input] --> B[Router]
+    A[User Input] --> B[Decision]
     B --> C[Work Mode]
     style A fill:#4a9eff,stroke:#333,stroke-width:2px
-    style B fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
+    style B fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
     style C fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
 - DO step by step, small steps, create TODO list for steps. test after steps. fix. commit if working.\
