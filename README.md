@@ -423,7 +423,7 @@ Copyright (c) 2025 Manuel Kugelmann, Bitcraft IT Consulting
 
 **Manuel Kugelmann**
 Bitcraft IT Consulting
-LinkedIn: [linkedin.com/in/mkugelmann](https://www.linkedin.com/in/mkugelmann/)
+Web: [bitcraft.org](https://bitcraft.org) | LinkedIn: [linkedin.com/in/mkugelmann](https://www.linkedin.com/in/mkugelmann/)
 
 ---
 
