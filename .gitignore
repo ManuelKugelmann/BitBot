@@ -1,0 +1,12 @@
+# Release branch - exclude dev files
+sparc/
+tests/
+.devcontainer/
+src/
+scripts/
+.github/
+.vscode/
+*.log
+CLAUDE.md
+DEVELOPER.md
+RELEASE.md
