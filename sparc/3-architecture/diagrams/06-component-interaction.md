@@ -72,13 +72,13 @@ graph TB
 
     VERSION --> HELPERS
 
-    style BITBOT fill:#ffd700,stroke:#333,stroke-width:3px
-    style WWORK fill:#66bb6a,stroke:#333,stroke-width:2px
-    style WCONFIG fill:#ffb6c1,stroke:#333,stroke-width:2px
+    style BITBOT fill:#ffd700,stroke:#333,stroke-width:3px,color:#333
+    style WWORK fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
+    style WCONFIG fill:#ffb6c1,stroke:#333,stroke-width:2px,color:#333
     style DETECT fill:#4a9eff,stroke:#333,stroke-width:2px
-    style GIT fill:#ef5350,stroke:#333,stroke-width:2px
-    style DEVCON fill:#66bb6a,stroke:#333,stroke-width:2px
-    style HELPERS fill:#ffd700,stroke:#333,stroke-width:2px
+    style GIT fill:#ef5350,stroke:#333,stroke-width:2px,color:#333
+    style DEVCON fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
+    style HELPERS fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
 ```
 
 ## Component Responsibilities
@@ -480,11 +480,11 @@ graph TB
     BITBOT --> HELP
     BITBOT --> VSCODE
 
-    style HELPERS fill:#ffd700,stroke:#333,stroke-width:2px
+    style HELPERS fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
     style BITBOT fill:#4a9eff,stroke:#333,stroke-width:3px
-    style WORK fill:#66bb6a,stroke:#333,stroke-width:2px
-    style CONFIG fill:#ffb6c1,stroke:#333,stroke-width:2px
-    style GIT fill:#ef5350,stroke:#333,stroke-width:2px
+    style WORK fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
+    style CONFIG fill:#ffb6c1,stroke:#333,stroke-width:2px,color:#333
+    style GIT fill:#ef5350,stroke:#333,stroke-width:2px,color:#333
 ```
 
 ---
