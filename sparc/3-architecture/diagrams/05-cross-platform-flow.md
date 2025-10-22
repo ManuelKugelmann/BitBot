@@ -186,8 +186,8 @@ graph TB
     CODE --> DOCKER
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:2px
-    style BITBOT fill:#ffd700,stroke:#333,stroke-width:2px
-    style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:2px
+    style BITBOT fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
+    style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
 
 ### macOS Entry Point
@@ -236,8 +236,8 @@ graph TB
     CODE --> DOCKER
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:2px
-    style BITBOT fill:#ffd700,stroke:#333,stroke-width:2px
-    style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:2px
+    style BITBOT fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
+    style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
 
 ### Linux Entry Point
