@@ -200,6 +200,19 @@ Config mode devcontainer:
 
 **Both scenarios then launch config mode:**
 
+**TODO: Add comprehensive config mode warning (Post-MVP)**
+Before launching config mode, show warning that:
+- Config mode defines the workspace environment for AI agents
+- AI will have access to modify critical infrastructure files:
+  - `.devcontainer` configuration
+  - `.github` workflows
+  - `.gitignore` patterns
+  - Docker configs
+  - Secrets and environment files
+- Users should carefully review all changes before committing
+- Reference README "The Problem" section for risks
+- Show examples of what AI can modify in this mode
+
 ```
 Launching config mode...
 

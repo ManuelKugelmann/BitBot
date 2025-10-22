@@ -47,6 +47,14 @@ FUNCTION bitbot_config(args):
     # From lib/util/git.md
     CALL check_git_safety(workspace_path)
 
+    # TODO: Add comprehensive config mode warning (Post-MVP)
+    # Warn user that config mode defines AI workspace environment:
+    #   - AI can modify critical infrastructure (.devcontainer, .github, .gitignore, Docker, secrets)
+    #   - Review all changes carefully before committing
+    #   - Reference README "The Problem" section for what AI can accidentally modify
+    #   - Show examples of files AI will have access to modify
+    # CALL show_config_mode_warning(workspace_path)
+
     IF use_vscode:
         PRINT "[>] Launching config mode in VS Code..."
     ELSE:

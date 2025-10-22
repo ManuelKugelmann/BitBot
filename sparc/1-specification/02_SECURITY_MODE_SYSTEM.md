@@ -183,6 +183,19 @@ fi
 # Non-blocking - continues after warning
 ```
 
+**TODO: Config Mode Warning** (Post-MVP):
+Add comprehensive warning on config mode entry that explains:
+- Config mode defines the workspace environment for AI agents
+- AI will have access to modify critical infrastructure files:
+  - `.devcontainer` configuration
+  - `.github` workflows
+  - `.gitignore` patterns
+  - Docker configs
+  - Secrets and environment files
+- Users should carefully review all changes before committing
+- Recommend reviewing points from README "The Problem" section
+- Consider showing example of what AI can modify in this mode
+
 **Safe Infrastructure Workflow** (MVP):
 1. User runs `bitbot setup`
 2. Git warning shown if uncommitted changes (non-blocking)
