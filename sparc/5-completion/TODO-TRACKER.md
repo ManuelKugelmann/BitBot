@@ -11,23 +11,25 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 ## P0 - Critical Fixes from Consistency Review
 
 **Source**: CONSISTENCY_REVIEW.md (2025-10-22)
-**Status**: 🔴 **BLOCKING ALPHA RELEASE**
+**Status**: ✅ **COMPLETE** (Fixed: 2025-10-22, Commit: ab5003b)
 
-### 1. Security Feature Missing
-- [ ] **Add read-only `.devcontainer` mount to work mode template**
+### 1. Security Feature Missing ✅ FIXED
+- [x] **Add read-only `.devcontainer` mount to work mode template**
   - **File**: `templates/workspace/devcontainer.json`
   - **Issue**: Core security feature not implemented - AI can modify infrastructure files
   - **Action**: Add `"source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly"` as first mount
   - **Impact**: HIGH - Without this, work mode doesn't protect infrastructure as advertised
   - **Priority**: P0 (Blocking)
+  - **Status**: ✅ Fixed - Read-only mount added to template and fallback minimal template
 
-### 2. Template Path Fix
-- [ ] **Fix template path reference in bitbot-init.sh**
+### 2. Template Path Fix ✅ FIXED
+- [x] **Fix template path reference in bitbot-init.sh**
   - **File**: `core/workspace/bitbot-init.sh` line 178
   - **Issue**: References non-existent `devcontainer-template/`, falls back to inline minimal template
   - **Action**: Change to `templates/workspace/`
   - **Impact**: MEDIUM - Currently works via fallback but not using actual template
   - **Priority**: P0 (Blocking)
+  - **Status**: ✅ Fixed - Now uses templates/workspace/, template properly copied on init
 
 ### 3. Documentation Updates (P1 - Not Blocking)
 - [ ] **Update SPEC-02 terminology and paths**
@@ -415,23 +417,23 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 
 ## Next Actions
 
-### Immediate (This Week) - Consistency Review Fixes
+### Immediate (This Week) - Ready for Alpha Testing
 
-**Priority**: Fix P0 blockers before testing
+**P0 Fixes**: ✅ Complete (Commit: ab5003b)
 
-1. [ ] **Fix read-only .devcontainer mount** (P0 - Blocking)
-   - Edit `templates/workspace/devcontainer.json`
-   - Add readonly mount as first mount entry
-   - Test in new workspace initialization
-   - Verify AI cannot modify .devcontainer files
+1. [x] **Fix read-only .devcontainer mount** (P0 - Blocking) ✅ DONE
+   - Edit `templates/workspace/devcontainer.json` ✅
+   - Add readonly mount as first mount entry ✅
+   - Test in new workspace initialization ✅
+   - Verify AI cannot modify .devcontainer files ✅
 
-2. [ ] **Fix template path reference** (P0 - Blocking)
-   - Edit `core/workspace/bitbot-init.sh` line 178
-   - Change `devcontainer-template` to `templates/workspace`
-   - Test workspace init uses actual template
-   - Verify no fallback to inline minimal template
+2. [x] **Fix template path reference** (P0 - Blocking) ✅ DONE
+   - Edit `core/workspace/bitbot-init.sh` line 178 ✅
+   - Change `devcontainer-template` to `templates/workspace` ✅
+   - Test workspace init uses actual template ✅
+   - Verify no fallback to inline minimal template ✅
 
-3. [ ] **Manual testing on Windows** (P0)
+3. [ ] **Manual testing on Windows** (P0 - Next Step)
    - Test with P0 fixes applied
    - Document known issues found during testing
    - Fix critical bugs discovered
