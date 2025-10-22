@@ -10,3 +10,7 @@ scripts/
 CLAUDE.md
 DEVELOPER.md
 RELEASE.md
+
+# Build outputs (but allow bitbot.exe)
+*.exe
+!bitbot.exe
