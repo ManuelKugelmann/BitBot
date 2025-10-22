@@ -101,3 +101,4 @@ graph LR
 ```
 - DO step by step, small steps, create TODO list for steps. test after steps. fix. commit if working.\
 DON'T: large changes, multiple changes, large combined commits
+- DO use worktrees when doing more complex git work like e.g. a release.
