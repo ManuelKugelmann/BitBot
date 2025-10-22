@@ -1,7 +1,28 @@
-# Inner BitBot Flow
+# Container BitBot Flow
 
 **Scenario**: AI agent enters container and needs to start working
 **Purpose**: Guide AI through session management and Claude Code launch
+
+---
+
+## Transparent BitBot Behavior
+
+The `bitbot` command works transparently across host and container contexts:
+
+**On Host** (`bitbot` + `core/`):
+- `bitbot` → Enters work mode container
+- `bitbot work` → Launches work mode container
+- `bitbot config` → Launches config mode container
+- `bitbot init` → Initializes workspace
+
+**In Container** (`/opt/bitbot/bitbot` + `/opt/bitbot/core/`):
+- `bitbot` → Same as `bitbot start` (starts/resumes session)
+- `bitbot start` → Creates new Claude session in tmux
+- `bitbot resume` → Resumes existing tmux session
+- `bitbot analyze` → Analyzes workspace
+- `bitbot status` → Shows container status
+
+**Key Insight**: Same command name, context-aware behavior!
 
 ---
 
@@ -35,7 +56,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Cmd[bitbot-helper start] --> Check{Existing<br/>Sessions?}
+    Cmd[bitbot start] --> Check{Existing<br/>Sessions?}
 
     Check -->|YES| ShowEx[Show existing sessions]
     Check -->|NO| NewSess[Create new session]
@@ -75,7 +96,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Cmd[bitbot-helper resume] --> CheckName{Session<br/>name given?}
+    Cmd[bitbot resume] --> CheckName{Session<br/>name given?}
 
     CheckName -->|YES| TryAttach{Session<br/>exists?}
     CheckName -->|NO| List[List sessions]
@@ -117,14 +138,14 @@ flowchart TD
     Welcome --> Sess{Check<br/>sessions}
 
     Sess -->|Existing| ShowList[Show session list:<br/>• claude-20251022-1430]
-    Sess -->|None| ShowHelp[Show: bitbot-helper start]
+    Sess -->|None| ShowHelp[Show: bitbot start]
 
     ShowList --> UserDec1{User<br/>Decision}
     ShowHelp --> UserDec2{User<br/>Decision}
 
-    UserDec1 -->|Resume| Resume[bitbot-helper resume]
-    UserDec1 -->|New| Start[bitbot-helper start]
-    UserDec1 -->|Analyze| Analyze[bitbot-helper analyze]
+    UserDec1 -->|Resume| Resume[bitbot resume]
+    UserDec1 -->|New| Start[bitbot start]
+    UserDec1 -->|Analyze| Analyze[bitbot analyze]
 
     UserDec2 -->|Start| Start
     UserDec2 -->|Analyze| Analyze
@@ -168,17 +189,17 @@ flowchart TD
 ```mermaid
 stateDiagram-v2
     [*] --> NoSessions: Container starts
-    NoSessions --> SessionCreating: bitbot-helper start
+    NoSessions --> SessionCreating: bitbot start
     SessionCreating --> SessionActive: tmux + claude launched
     SessionActive --> SessionDetached: Ctrl+B D (detach)
-    SessionDetached --> SessionActive: bitbot-helper resume
+    SessionDetached --> SessionActive: bitbot resume
     SessionActive --> SessionEnded: exit
     SessionEnded --> NoSessions: session closed
 
-    NoSessions --> Analyzing: bitbot-helper analyze
+    NoSessions --> Analyzing: bitbot analyze
     Analyzing --> NoSessions: analysis complete
 
-    SessionDetached --> NewSession: bitbot-helper start
+    SessionDetached --> NewSession: bitbot start
     NewSession --> MultiSession: 2+ sessions active
     MultiSession --> SessionActive: attach to selected
 ```
@@ -202,10 +223,10 @@ stateDiagram-v2
 Found existing tmux sessions:
   • claude-20251022-1430 (1 window)
 
-To resume: bitbot-helper resume
-To start new: bitbot-helper start
+To resume: bitbot resume
+To start new: bitbot start
 
-Type 'bitbot-helper help' for more commands
+Type 'bitbot help' for more commands
 
 user@container:/workspace$
 ```
@@ -214,11 +235,11 @@ user@container:/workspace$
 
 ### Step 2: Resume Existing Session
 
-**Command**: `bitbot-helper resume`
+**Command**: `bitbot resume`
 
 **Flow**:
 ```
-$ bitbot-helper resume
+$ bitbot resume
 
 Found 1 tmux session:
   • claude-20251022-1430 (created 2 hours ago)
@@ -230,7 +251,7 @@ Resuming session...
 
 **With Multiple Sessions**:
 ```
-$ bitbot-helper resume
+$ bitbot resume
 
 Select session to resume:
 
@@ -247,11 +268,11 @@ Choice: 1
 
 ### Step 3: Start New Session
 
-**Command**: `bitbot-helper start`
+**Command**: `bitbot start`
 
 **Flow**:
 ```
-$ bitbot-helper start
+$ bitbot start
 
 BitBot - Claude Code Launcher
 
@@ -288,11 +309,11 @@ Session: claude-20251022-1630
 
 ### Step 4: No Existing Sessions
 
-**Command**: `bitbot-helper start`
+**Command**: `bitbot start`
 
 **Flow**:
 ```
-$ bitbot-helper start
+$ bitbot start
 
 BitBot - Claude Code Launcher
 
@@ -321,11 +342,11 @@ Session: claude-20251022-1630
 
 ### Step 5: Analyze Workspace
 
-**Command**: `bitbot-helper analyze`
+**Command**: `bitbot analyze`
 
 **Output**:
 ```
-$ bitbot-helper analyze
+$ bitbot analyze
 
 Analyzing workspace: /workspace
 
@@ -357,11 +378,11 @@ $ ← [Back to shell]
 
 ### Step 6: Status Check
 
-**Command**: `bitbot-helper status`
+**Command**: `bitbot status`
 
 **Output**:
 ```
-$ bitbot-helper status
+$ bitbot status
 
 BitBot Container Status
 
@@ -439,7 +460,7 @@ $
 ### No tmux Installed
 
 ```
-$ bitbot-helper start
+$ bitbot start
 
 ERROR: tmux not found
   tmux is required for session management
@@ -452,7 +473,7 @@ ERROR: tmux not found
 ### No Claude Installed
 
 ```
-$ bitbot-helper start
+$ bitbot start
 
 ERROR: claude command not found
   Claude Code is not installed in this container
@@ -463,14 +484,14 @@ ERROR: claude command not found
 ### Session Attach Failed
 
 ```
-$ bitbot-helper resume claude-invalid
+$ bitbot resume claude-invalid
 
 ERROR: Session 'claude-invalid' not found
 
 Available sessions:
   • claude-20251022-1430
 
-Try: bitbot-helper resume
+Try: bitbot resume
 ```
 
 ---
@@ -500,7 +521,7 @@ RUN apt-get update && apt-get install -y tmux
 
 # Copy inner bitbot scripts
 COPY bitbot /opt/bitbot
-RUN chmod +x /opt/bitbot/bitbot-helper.sh /opt/bitbot/commands/*.sh
+RUN chmod +x /opt/bitbot/bitbot.sh /opt/bitbot/commands/*.sh
 
 # Add to PATH
 ENV PATH="/opt/bitbot:${PATH}"
