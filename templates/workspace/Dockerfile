@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     file \
+    jq \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Create workspace and home directories
