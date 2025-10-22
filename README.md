@@ -598,6 +598,67 @@ df -T .
 # Bad:  Filesystem Type = 9p
 ```
 
+#### Windows Access to WSL Filesystem
+
+While you should store projects in WSL for performance, you may want convenient Windows access for browsing or Windows-native tools.
+
+**Create Windows Junction (Recommended)**:
+
+```cmd
+REM Open Command Prompt as Administrator
+REM Create junction to your WSL home directory
+mklink /J C:\WSL-Home \\wsl$\Ubuntu\home\username
+
+REM Or create in your user profile
+mklink /J %USERPROFILE%\WSL-Home \\wsl$\Ubuntu\home\username
+```
+
+**Result**: Access WSL home at `C:\WSL-Home` or `%USERPROFILE%\WSL-Home` in Windows
+
+**Alternative: Create Shortcut (No Admin Required)**:
+
+1. Open File Explorer
+2. Navigate to `\\wsl$\Ubuntu\home\username` (replace `Ubuntu` with your distro name)
+3. Right-click → "Create shortcut"
+4. Move shortcut to desired location (Desktop, Quick Access, etc.)
+
+**VSCode WSL Mode Shortcut**:
+
+Create a shortcut that always opens VSCode in WSL mode for your projects:
+
+```powershell
+# Create VSCode WSL shortcut (PowerShell)
+$WshShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\VSCode WSL.lnk")
+$Shortcut.TargetPath = "C:\Program Files\Microsoft VS Code\Code.exe"
+$Shortcut.Arguments = "--remote wsl+Ubuntu --folder-uri vscode-remote://wsl+Ubuntu/home/username/projects"
+$Shortcut.WorkingDirectory = "%USERPROFILE%"
+$Shortcut.IconLocation = "C:\Program Files\Microsoft VS Code\Code.exe,0"
+$Shortcut.Description = "VSCode in WSL Mode"
+$Shortcut.Save()
+```
+
+Replace:
+- `Ubuntu` with your WSL distro name
+- `username` with your WSL username
+- `/home/username/projects` with your actual project path
+
+**Manual Shortcut Creation**:
+
+1. Right-click Desktop → New → Shortcut
+2. Target: `"C:\Program Files\Microsoft VS Code\Code.exe" --remote wsl+Ubuntu --folder-uri vscode-remote://wsl+Ubuntu/home/username/projects`
+3. Name: "VSCode WSL - Projects"
+
+**VSCode from BitBot**:
+
+BitBot automatically uses correct VSCode mode:
+```bash
+# BitBot detects WSL and uses proper remote mode
+bitbot work vscode
+
+# VS Code opens with: code --remote wsl+distro --folder-uri ...
+```
+
 ### macOS / Linux
 
 Native bash execution, no virtualization layer needed.
