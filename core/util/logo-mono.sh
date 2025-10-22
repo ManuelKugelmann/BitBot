@@ -32,9 +32,9 @@ print_logo() {
     local current_dir="${1:-$(pwd)}"
 
     echo ""
-    echo -e "${YELLOW}+${NAVY}━${NAVY}╮ ${TEAL}╭${NAVY}\033[48;5;24m${TEAL}╲${YELLOW}O${TEAL}═${YELLOW}O${TEAL}╱${RESET}${TEAL}╮${RESET} ${NAVY}╭${YELLOW}#${RESET}    ${WHITE}BitBot${RESET} ${GREY}v${version}${RESET}"
-    echo -e "${YELLOW}o${NAVY}┳${NAVY}┻${YELLOW}+${RESET}\033[48;5;24m${TEAL}▌${NAVY}╲${TEAL}━${NAVY}╱${TEAL}━${NAVY}╲${TEAL}▐${RESET}${NAVY}┳${NAVY}┻${YELLOW}#${RESET}     ${DIM}${GREY}Secure AI Development Environment${RESET}"
-    echo -e " ${NAVY}╰${YELLOW}+${RESET} ${TEAL}╰\033[48;5;24m${TEAL}▄${NAVY}╱${RESET}${TEAL}━\033[48;5;24m${NAVY}╲${TEAL}▄${RESET}${TEAL}╯${NAVY}╰${YELLOW}o${NAVY}━${YELLOW}#${RESET}  ${DIM}${GREY}${current_dir}${RESET}"
+    echo -e " ${YELLOW}*${NAVY}━╮${RESET} ${TEAL}╭${NAVY}\033[48;5;24m${TEAL}╲${YELLOW}O${TEAL}═${YELLOW}O${TEAL}╱${RESET}${TEAL}╮${RESET} ${NAVY}╭${YELLOW}>${RESET}    ${WHITE}BitBot${RESET} ${GREY}v${version}${RESET}"
+    echo -e " ${YELLOW}o${NAVY}┳┻${YELLOW}^${RESET}\033[48;5;24m${TEAL}▌${NAVY}╲${TEAL}━${NAVY}╱${TEAL}━${NAVY}╲${TEAL}▐${RESET}${NAVY}┳┻${YELLOW}#${RESET}     ${DIM}${GREY}Secure AI Development Environment${RESET}"
+    echo -e "  ${NAVY}╰${YELLOW}<${RESET} ${TEAL}╰\033[48;5;24m${TEAL}▄${NAVY}╱${RESET}${TEAL}━\033[48;5;24m${NAVY}╲${TEAL}▄${RESET}${TEAL}╯${NAVY}╰${YELLOW}o${NAVY}━${YELLOW}[${RESET}  ${DIM}${GREY}${current_dir}${RESET}"
     echo ""
 }
 
