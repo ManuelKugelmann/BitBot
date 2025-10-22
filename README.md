@@ -48,6 +48,8 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 - ✅ Container can be reset/rebuilt without affecting host
 - ✅ Experiments stay isolated (try risky changes safely)
 - ✅ Clean separation of development tools from host system
+- ✅ **Current**: Docker containerization provides strong isolation
+- 🚧 **WIP**: Full VM sandboxing for maximum security (Docker-in-VM)
 
 ### BitBot's Two-Mode Solution
 
@@ -70,10 +72,10 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 ## Features
 
 🔒 **AI Agent Sandboxing**
-- Containerization isolates AI agents to reduce risk
+- **Current**: Docker containerization isolates AI agents to reduce risk
 - AI works in controlled environment with limited access
 - Infrastructure files protected from accidental modification
-- WIP: VM containers for even stronger isolation
+- **WIP**: Full VM sandboxing for maximum isolation (Docker-in-VM architecture)
 
 ✨ **Two-Mode Security**
 - Work mode protects infrastructure files
@@ -318,10 +320,9 @@ bitbot/
 - [ ] Linux testing and packaging
 - [ ] Rootless Docker template for Docker-in-Docker workflows
 - [ ] Agent steering templates for different workloads (code, docs, testing)
-- [x] Hash matching for CLI-built containers with VS Code (solved via path matching in sparc/4-refinement/poc-tests)
 
 **Phase 3:**
-- [ ] VM containers for enhanced isolation
+- [ ] Full VM sandboxing for maximum isolation (Docker-in-VM architecture)
 - [ ] BitBot self-configuration capabilities
 - [ ] Agent-driven self-improvement mechanisms
 - [ ] Multi-container orchestration (Docker Compose)
