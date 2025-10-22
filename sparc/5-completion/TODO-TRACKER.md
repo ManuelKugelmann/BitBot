@@ -4,6 +4,44 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 
 **Status**: Pre-Alpha → Alpha (v0.1.0)
 **Last Updated**: 2025-10-22
+**Last Consistency Review**: 2025-10-22 (see CONSISTENCY_REVIEW.md)
+
+---
+
+## P0 - Critical Fixes from Consistency Review
+
+**Source**: CONSISTENCY_REVIEW.md (2025-10-22)
+**Status**: 🔴 **BLOCKING ALPHA RELEASE**
+
+### 1. Security Feature Missing
+- [ ] **Add read-only `.devcontainer` mount to work mode template**
+  - **File**: `templates/workspace/devcontainer.json`
+  - **Issue**: Core security feature not implemented - AI can modify infrastructure files
+  - **Action**: Add `"source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly"` as first mount
+  - **Impact**: HIGH - Without this, work mode doesn't protect infrastructure as advertised
+  - **Priority**: P0 (Blocking)
+
+### 2. Template Path Fix
+- [ ] **Fix template path reference in bitbot-init.sh**
+  - **File**: `core/workspace/bitbot-init.sh` line 178
+  - **Issue**: References non-existent `devcontainer-template/`, falls back to inline minimal template
+  - **Action**: Change to `templates/workspace/`
+  - **Impact**: MEDIUM - Currently works via fallback but not using actual template
+  - **Priority**: P0 (Blocking)
+
+### 3. Documentation Updates (P1 - Not Blocking)
+- [ ] **Update SPEC-02 terminology and paths**
+  - Change "setup mode" → "config mode" consistently
+  - Change `~/.bitbot/setup-devcontainer/` → `templates/config/`
+  - Change `.bitbot/setup/` → `.bitbot/internal/`
+
+- [ ] **Update MVP_SCOPE.md paths**
+  - Update architecture diagram with correct template paths
+  - Change `config-devcontainer/` → `templates/config/`
+  - Change `devcontainer-template/` → `templates/workspace/`
+
+- [ ] **Update pseudocode paths**
+  - `core/workspace/init.md` line 121: Update template path reference
 
 ---
 
@@ -335,14 +373,32 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 
 ### Phase Completion
 
-| Phase              | Status      | Progress |
-|--------------------|-------------|----------|
-| 0. Research        | ✓ Complete  | 100%     |
-| 1. Specification   | ✓ Complete  | 100%     |
-| 2. Pseudocode      | ✓ Complete  | 100%     |
-| 3. Architecture    | ✓ Complete  | 100%     |
-| 4. Refinement      | ✓ Complete  | 100%     |
-| 5. Completion      | In Progress | 5%       |
+| Phase              | Status      | Progress | Notes |
+|--------------------|-------------|----------|-------|
+| 0. Research        | ✓ Complete  | 100%     | All research documents complete |
+| 1. Specification   | ⚠ Review    | 95%      | Need terminology/path updates (P1) |
+| 2. Pseudocode      | ⚠ Review    | 95%      | Need path updates (P1) |
+| 3. Architecture    | ✓ Complete  | 100%     | Diagrams accurate to intent |
+| 4. Refinement      | ✓ Complete  | 100%     | Implementation solid |
+| 5. Completion      | In Progress | 75%      | Implementation 85% consistent, 2 P0 fixes needed |
+
+### Consistency Review Status
+
+**Overall Score**: 85/100 (🟡 Good with critical security gap)
+
+| Category | Score | Status |
+|----------|-------|--------|
+| **Naming** | 70/100 | ⚠️  Multiple terms for same concepts |
+| **Paths** | 60/100 | ⚠️  Significant mismatches between docs and implementation |
+| **Features** | 90/100 | ✅ Most features implemented correctly |
+| **Security** | 70/100 | ✅ Git safety implemented, ❌ RO mount missing |
+| **Documentation** | 85/100 | ⚠️  Generally accurate but some outdated paths |
+| **Code Quality** | 95/100 | ✅ Clean, well-structured, tested |
+
+**Key Findings**:
+- ✅ **Strong**: Git safety, devcontainer launch, platform detection, error handling, test suite
+- ⚠️  **Needs Improvement**: Naming consistency, path references, template usage
+- ❌ **Missing**: Read-only .devcontainer mount (P0), Config mode warning (P1/post-MVP)
 
 ### Current Milestone: Alpha (v0.1.0)
 
@@ -359,12 +415,31 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 
 ## Next Actions
 
-### Immediate (This Week)
+### Immediate (This Week) - Consistency Review Fixes
 
-1. [ ] Manual testing on Windows
-2. [ ] Document known issues found during testing
-3. [ ] Fix critical bugs discovered
-4. [ ] Create basic installation guide
+**Priority**: Fix P0 blockers before testing
+
+1. [ ] **Fix read-only .devcontainer mount** (P0 - Blocking)
+   - Edit `templates/workspace/devcontainer.json`
+   - Add readonly mount as first mount entry
+   - Test in new workspace initialization
+   - Verify AI cannot modify .devcontainer files
+
+2. [ ] **Fix template path reference** (P0 - Blocking)
+   - Edit `core/workspace/bitbot-init.sh` line 178
+   - Change `devcontainer-template` to `templates/workspace`
+   - Test workspace init uses actual template
+   - Verify no fallback to inline minimal template
+
+3. [ ] **Manual testing on Windows** (P0)
+   - Test with P0 fixes applied
+   - Document known issues found during testing
+   - Fix critical bugs discovered
+
+4. [ ] **Update documentation** (P1 - Not blocking alpha)
+   - Update SPEC-02 terminology and paths
+   - Update MVP_SCOPE.md paths
+   - Update pseudocode paths
 
 ### Short-term (Next 2 Weeks)
 
