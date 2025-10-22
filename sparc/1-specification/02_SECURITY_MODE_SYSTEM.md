@@ -119,11 +119,46 @@ volumes:
 **What AI cannot do in Work Mode**:
 - ❌ Modify `.devcontainer/devcontainer.json`
 - ❌ Edit Dockerfile or docker-compose files
-- ❌ Access Docker socket to create/destroy containers
+- ❌ Access Docker socket to create/destroy containers (default)
 - ❌ See or modify `.bitbot/setup/` directory
 - ❌ Change container configuration without user switching to setup mode
 
-### 2.3 Git Safety Integration
+**Note on Docker-in-Docker:** Some workspace templates may include Docker for building images or running containers. This is an advanced feature with security implications - see section 2.4.
+
+### 2.3 Docker-in-Docker Support (Optional, ⚠️ Security Trade-off)
+
+**Use Case:**
+Some workflows require Docker inside the work container (e.g., building Docker images, running Docker Compose services, testing container deployments).
+
+**Current Implementation (Interim):**
+- **Approach**: Rootless Docker-in-Docker (no privileged mode required)
+- **Isolation Level**: Limited - container escape possible by design
+- **Security Model**: Trust-based - suitable only for trusted AI agents and code
+
+**Security Limitations:**
+- ⚠️ **Container breakout possible**: Rootless Docker shares host kernel, escapes are feasible
+- ⚠️ **AI has Docker access**: Can create/destroy containers, access Docker socket
+- ⚠️ **Not for untrusted code**: Should not be used with malicious code or adversarial AI testing
+- ⚠️ **Trust requirement**: Only use with AI agents and codebases you fully trust
+
+**When to Use:**
+- ✅ Building Docker images for deployment
+- ✅ Testing Docker Compose configurations
+- ✅ Local multi-container development (databases, services)
+- ✅ CI/CD pipeline testing
+- ❌ **NOT** for running untrusted code
+- ❌ **NOT** for adversarial AI agent testing
+- ❌ **NOT** for security-critical isolation
+
+**Future Enhancement (Planned):**
+- Full VM-based sandboxing (Docker-in-VM architecture)
+- Complete isolation between host and work environment
+- Safe for untrusted code and experimental AI agents
+- Timeline: Post-MVP (Phase 3 roadmap)
+
+**Recommendation:** Until VM isolation is implemented, prefer work mode **without** Docker-in-Docker for maximum safety. Only enable Docker access in work containers for trusted development workflows.
+
+### 2.4 Git Safety Integration
 
 **Git Status Checks**:
 ```bash

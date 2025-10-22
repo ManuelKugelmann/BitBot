@@ -112,6 +112,34 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 
 ---
 
+## ⚠️ Security Considerations
+
+### Docker-in-Docker for Work Containers
+
+If your work container needs Docker (e.g., for building Docker images, running Docker Compose), BitBot will use **rootless Docker-in-Docker** as a temporary solution:
+
+**Current Approach (Interim):**
+- Rootless Docker inside work container (no privileged mode)
+- Limited isolation - container escape possible by design
+- **Use only for trusted AI agents and code**
+- Not suitable for untrusted/malicious code execution
+
+**Limitations:**
+- ⚠️ Container breakout is possible (rootless Docker shares host kernel)
+- ⚠️ AI agent has access to Docker socket (can create containers)
+- ⚠️ Not suitable for running untrusted code or adversarial AI testing
+- ⚠️ Should only be used with AI agents you trust
+
+**Future (Planned):**
+- Full VM-based sandboxing (Docker-in-VM architecture)
+- Complete isolation between host and work environment
+- Safe for untrusted code and experimental AI agents
+- See roadmap for VM sandboxing implementation timeline
+
+**Recommendation:** Until VM isolation is implemented, use work mode without Docker for maximum safety, or only use Docker-in-Docker with AI agents and codebases you fully trust.
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -245,7 +273,8 @@ BitBot uses a **two-mode container system** with separate DevContainers for diff
         ├─────────────────────┤  ├─────────────────────┤
         │ • Code: RW          │  │ • Code: RW          │
         │ • .devcontainer: RO │  │ • .devcontainer: RW │
-        │ • Docker: No        │  │ • Docker: Yes       │
+        │ • Docker-in-Docker: │  │ • Docker inside: No │
+        │   Optional (⚠️)     │  │ • Editing tools only│
         │ • AI: Code-focused  │  │ • AI: Infra-focused │
         └─────────────────────┘  └─────────────────────┘
 ```
