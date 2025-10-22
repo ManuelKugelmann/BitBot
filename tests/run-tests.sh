@@ -141,7 +141,17 @@ run_test "BitBot Commands" \
 run_test "Platform Detection" \
     "${SCRIPT_DIR}/test-platform-detection.sh"
 
-# Test 5: Integration tests (skipped in quick mode)
+# Test 5: Filesystem Performance (WSL only, skipped in quick mode)
+if [[ "$QUICK" == "true" ]]; then
+    run_test "Filesystem Performance (WSL vs /mnt/c/)" \
+        "${SCRIPT_DIR}/test-filesystem-performance.sh" \
+        true  # skip=true
+else
+    run_test "Filesystem Performance (WSL vs /mnt/c/)" \
+        "${SCRIPT_DIR}/test-filesystem-performance.sh"
+fi
+
+# Test 6: Integration tests (skipped in quick mode)
 if [[ "$QUICK" == "true" ]]; then
     run_test "Full Integration Test" \
         "${SCRIPT_DIR}/test-integration.sh" \
