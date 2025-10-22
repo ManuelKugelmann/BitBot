@@ -4,35 +4,35 @@ How BitBot's core components interact to deliver functionality.
 
 ```mermaid
 graph TB
-    subgraph "Entry Point"
-        BITBOT[bitbot<br/>Main Router]
+    subgraph ENTRY["Entry"]
+        BITBOT[bitbot]
     end
 
-    subgraph "Command Handlers"
-        GLOBAL[Global Commands]
-        WORKSPACE[Workspace Commands]
+    subgraph HAND["Handlers"]
+        GLOBAL[Global]
+        WORKSPACE[Workspace]
     end
 
-    subgraph "Global Commands"
-        GINIT[bitbot-init.sh<br/>First-run setup]
-        VERSION[bitbot-version.sh<br/>Version display]
+    subgraph GCMD["Global Cmds"]
+        GINIT[init.sh]
+        VERSION[version.sh]
     end
 
-    subgraph "Workspace Commands"
-        WINIT[bitbot-init.sh<br/>Workspace init]
-        WWORK[bitbot-work.sh<br/>Work mode]
-        WCONFIG[bitbot-config.sh<br/>Config mode]
-        WHELP[bitbot-help.sh<br/>Help display]
-        WVSCODE[bitbot-vscode.sh<br/>VS Code launcher]
+    subgraph WCMD["Workspace Cmds"]
+        WINIT[init.sh]
+        WWORK[work.sh]
+        WCONFIG[config.sh]
+        WHELP[help.sh]
+        WVSCODE[vscode.sh]
     end
 
-    subgraph "Utilities"
-        DETECT[detect.sh<br/>Workspace detection]
-        GIT[git.sh<br/>Git safety]
-        HELPERS[helpers.sh<br/>Common functions]
-        PREREQ[prerequisites.sh<br/>Dependency check]
-        DEVCON[devcontainer.sh<br/>Container wrapper]
-        LOGO[logo.sh<br/>ASCII logo]
+    subgraph UTIL["Utilities"]
+        DETECT[detect.sh]
+        GIT[git.sh]
+        HELPERS[helpers.sh]
+        PREREQ[prereq.sh]
+        DEVCON[devcontainer.sh]
+        LOGO[logo.sh]
     end
 
     BITBOT --> GLOBAL
@@ -73,9 +73,12 @@ graph TB
     VERSION --> HELPERS
 
     style BITBOT fill:#ffd700,stroke:#333,stroke-width:3px
+    style WWORK fill:#90ee90,stroke:#333,stroke-width:2px
+    style WCONFIG fill:#ffb6c1,stroke:#333,stroke-width:2px
     style DETECT fill:#4a9eff,stroke:#333,stroke-width:2px
     style GIT fill:#ff6b6b,stroke:#333,stroke-width:2px
     style DEVCON fill:#90ee90,stroke:#333,stroke-width:2px
+    style HELPERS fill:#ffd700,stroke:#333,stroke-width:2px
 ```
 
 ## Component Responsibilities
@@ -314,21 +317,21 @@ print_bitbot_logo()        # Display ASCII logo
 sequenceDiagram
     participant User
     participant bitbot
-    participant detect.sh
-    participant git.sh
-    participant devcontainer.sh
+    participant detect
+    participant git
+    participant devcontainer
     participant Docker
 
     User->>bitbot: bitbot work
-    bitbot->>detect.sh: detect_workspace()
-    detect.sh-->>bitbot: workspace_path
-    bitbot->>git.sh: check_git_safety()
-    git.sh-->>bitbot: warnings (if any)
-    bitbot->>devcontainer.sh: launch_devcontainer(work mode)
-    devcontainer.sh->>Docker: docker run (read-only .devcontainer)
-    Docker-->>devcontainer.sh: container_id
-    devcontainer.sh->>Docker: docker exec tmux
-    Docker-->>User: tmux session
+    bitbot->>detect: detect_workspace()
+    detect-->>bitbot: path
+    bitbot->>git: check_safety()
+    git-->>bitbot: warnings
+    bitbot->>devcontainer: launch(work)
+    devcontainer->>Docker: run (ro .devcontainer)
+    Docker-->>devcontainer: id
+    devcontainer->>Docker: exec tmux
+    Docker-->>User: session
 ```
 
 ---
@@ -339,21 +342,21 @@ sequenceDiagram
 sequenceDiagram
     participant User
     participant bitbot
-    participant detect.sh
-    participant git.sh
-    participant devcontainer.sh
+    participant detect
+    participant git
+    participant devcontainer
     participant Docker
 
     User->>bitbot: bitbot config
-    bitbot->>detect.sh: detect_workspace()
-    detect.sh-->>bitbot: workspace_path
-    bitbot->>git.sh: check_git_safety()
-    git.sh-->>bitbot: warnings (if any)
-    bitbot->>devcontainer.sh: launch_devcontainer(config mode)
-    devcontainer.sh->>Docker: docker run (read-write .devcontainer)
-    Docker-->>devcontainer.sh: container_id
-    devcontainer.sh->>Docker: docker exec tmux
-    Docker-->>User: tmux session
+    bitbot->>detect: detect_workspace()
+    detect-->>bitbot: path
+    bitbot->>git: check_safety()
+    git-->>bitbot: warnings
+    bitbot->>devcontainer: launch(config)
+    devcontainer->>Docker: run (rw .devcontainer)
+    Docker-->>devcontainer: id
+    devcontainer->>Docker: exec tmux
+    Docker-->>User: session
 ```
 
 ---
@@ -364,19 +367,19 @@ sequenceDiagram
 sequenceDiagram
     participant User
     participant bitbot
-    participant detect.sh
-    participant bitbot-vscode.sh
+    participant detect
+    participant vscode
     participant VSCode
 
     User->>bitbot: bitbot vscode
-    bitbot->>detect.sh: detect_workspace()
-    detect.sh-->>bitbot: workspace_path
-    bitbot->>bitbot-vscode.sh: open_vscode_devcontainer()
-    bitbot-vscode.sh->>bitbot-vscode.sh: detect_platform()
-    bitbot-vscode.sh->>bitbot-vscode.sh: hex_encode_path()
-    bitbot-vscode.sh->>bitbot-vscode.sh: build_uri()
-    bitbot-vscode.sh->>VSCode: code --folder-uri={uri}
-    VSCode-->>User: VS Code opens in container
+    bitbot->>detect: detect_workspace()
+    detect-->>bitbot: path
+    bitbot->>vscode: open_devcontainer()
+    vscode->>vscode: detect_platform()
+    vscode->>vscode: hex_encode()
+    vscode->>vscode: build_uri()
+    vscode->>VSCode: code --folder-uri
+    VSCode-->>User: Opens ✓
 ```
 
 ---
@@ -387,19 +390,19 @@ sequenceDiagram
 sequenceDiagram
     participant User
     participant bitbot
-    participant detect.sh
-    participant bitbot-init.sh
+    participant detect
+    participant init
     participant Templates
 
     User->>bitbot: bitbot init
-    bitbot->>detect.sh: detect_workspace()
-    detect.sh-->>bitbot: not found
-    bitbot->>bitbot-init.sh: initialize_workspace()
-    bitbot-init.sh->>User: Select template (basic/config)
-    User-->>bitbot-init.sh: basic
-    bitbot-init.sh->>Templates: Copy basic template
-    Templates-->>bitbot-init.sh: .devcontainer/ created
-    bitbot-init.sh-->>User: Workspace initialized!
+    bitbot->>detect: detect_workspace()
+    detect-->>bitbot: not found
+    bitbot->>init: initialize()
+    init->>User: Select template
+    User-->>init: basic
+    init->>Templates: Copy basic
+    Templates-->>init: created
+    init-->>User: Initialized!
 ```
 
 ---
@@ -408,32 +411,32 @@ sequenceDiagram
 
 ```mermaid
 graph TB
-    subgraph "No Dependencies"
+    subgraph L0["Level 0"]
         DETECT[detect.sh]
         GIT[git.sh]
         LOGO[logo.sh]
     end
 
-    subgraph "Level 1: Base Utilities"
+    subgraph L1["Level 1"]
         HELPERS[helpers.sh]
     end
 
-    subgraph "Level 2: Dependent Utilities"
-        PREREQ[prerequisites.sh]
-        DEVCON[devcontainer.sh]
+    subgraph L2["Level 2"]
+        PREREQ[prereq.sh]
+        DEVCON[devcontainer]
     end
 
-    subgraph "Level 3: Commands"
+    subgraph L3["Level 3"]
         GINIT[Global init]
         VERSION[Version]
-        WINIT[Workspace init]
-        WORK[Work mode]
-        CONFIG[Config mode]
+        WINIT[WS init]
+        WORK[Work]
+        CONFIG[Config]
         HELP[Help]
         VSCODE[VS Code]
     end
 
-    subgraph "Level 4: Router"
+    subgraph L4["Level 4"]
         BITBOT[bitbot]
     end
 
@@ -479,6 +482,9 @@ graph TB
 
     style HELPERS fill:#ffd700,stroke:#333,stroke-width:2px
     style BITBOT fill:#4a9eff,stroke:#333,stroke-width:3px
+    style WORK fill:#90ee90,stroke:#333,stroke-width:2px
+    style CONFIG fill:#ffb6c1,stroke:#333,stroke-width:2px
+    style GIT fill:#ff6b6b,stroke:#333,stroke-width:2px
 ```
 
 ---

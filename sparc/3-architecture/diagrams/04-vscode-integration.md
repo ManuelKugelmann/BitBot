@@ -10,30 +10,30 @@ sequenceDiagram
     participant Docker
     participant Container
 
-    User->>BitBot: bitbot vscode /path/to/workspace
-    BitBot->>BitBot: Detect platform (Windows/macOS/Linux)
-    BitBot->>BitBot: Convert path to hex encoding
+    User->>BitBot: bitbot vscode
+    BitBot->>BitBot: Detect platform
+    BitBot->>BitBot: Convert to hex
 
-    Note over BitBot: Windows: C:\Projects\MyApp<br/>Hex: 433a5c50726f6a656374735c4d794170
+    Note over BitBot: C:\Projects\MyApp<br/>→ 433a5c...
 
-    BitBot->>BitBot: Build URI:<br/>vscode-remote://dev-container+{hex}/workspace
+    BitBot->>BitBot: Build URI
 
-    BitBot->>VSCode: code --folder-uri={URI}
-    VSCode->>Docker: Check for existing container
+    BitBot->>VSCode: code --folder-uri
+    VSCode->>Docker: Check container
 
     alt Container exists
-        Docker-->>VSCode: Reuse container
+        Docker-->>VSCode: Reuse
     else No container
-        VSCode->>Docker: Build new container
-        Docker->>Container: Create from .devcontainer
-        Docker-->>VSCode: Container ready
+        VSCode->>Docker: Build new
+        Docker->>Container: Create
+        Docker-->>VSCode: Ready
     end
 
-    VSCode->>Container: Attach to container
-    Container-->>User: VS Code opens in container<br/>✓ No popup!
+    VSCode->>Container: Attach
+    Container-->>User: Opens ✓
 
     style BitBot fill:#ffd700,stroke:#333,stroke-width:2px
-    style VSCode fill:#0078d4,stroke:#333,stroke-width:2px
+    style VSCode fill:#4a9eff,stroke:#333,stroke-width:2px
     style Container fill:#90ee90,stroke:#333,stroke-width:2px
 ```
 
@@ -43,12 +43,12 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    USER[User opens VS Code]
-    NORMAL[VS Code opens normally]
-    POPUP[Popup: Reopen in Container?]
-    CLICK[User clicks Reopen]
-    RELOAD[VS Code reloads]
-    CONTAINER[Finally in container]
+    USER[Open VS Code]
+    NORMAL[Opens normally]
+    POPUP[Popup: Reopen?]
+    CLICK[Click Reopen]
+    RELOAD[Reloads]
+    CONTAINER[In container]
 
     USER --> NORMAL
     NORMAL --> POPUP
@@ -56,8 +56,10 @@ flowchart TD
     CLICK --> RELOAD
     RELOAD --> CONTAINER
 
+    style USER fill:#4a9eff,stroke:#333,stroke-width:2px
     style POPUP fill:#ffcc00,stroke:#333,stroke-width:2px
     style CLICK fill:#ffcc00,stroke:#333,stroke-width:2px
+    style CONTAINER fill:#90ee90,stroke:#333,stroke-width:2px
 ```
 
 **Problems**:
@@ -71,17 +73,18 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    USER[User runs: bitbot vscode]
-    HEX[Convert path to hex]
-    URI[Build special URI]
-    OPEN[Open VS Code with URI]
-    CONTAINER[VS Code opens in container]
+    USER[bitbot vscode]
+    HEX[Convert to hex]
+    URI[Build URI]
+    OPEN[Open VS Code]
+    CONTAINER[In container]
 
     USER --> HEX
     HEX --> URI
     URI --> OPEN
     OPEN --> CONTAINER
 
+    style USER fill:#4a9eff,stroke:#333,stroke-width:2px
     style CONTAINER fill:#90ee90,stroke:#333,stroke-width:3px
 ```
 
@@ -152,23 +155,23 @@ vscode-remote://dev-container+433a5c50726f6a656374735c4d794170/workspace
 graph TB
     DETECT[Detect Platform]
 
-    subgraph "Windows (WSL)"
-        WSL_PATH[WSL Path:<br/>/mnt/c/Projects/MyApp]
-        WIN_PATH[Windows Path:<br/>C:\Projects\MyApp]
+    subgraph WIN["Windows WSL"]
+        WSL_PATH[WSL Path]
+        WIN_PATH[Win Path]
         WIN_HEX[Hex Encode]
-        WIN_CODE[code.exe from WSL]
+        WIN_CODE[code.exe]
     end
 
-    subgraph "macOS"
-        MAC_PATH[macOS Path:<br/>/Users/me/Projects/MyApp]
+    subgraph MAC["macOS"]
+        MAC_PATH[Path]
         MAC_HEX[Hex Encode]
-        MAC_CODE[code command]
+        MAC_CODE[code]
     end
 
-    subgraph "Linux"
-        LINUX_PATH[Linux Path:<br/>/home/me/Projects/MyApp]
+    subgraph LIN["Linux"]
+        LINUX_PATH[Path]
         LINUX_HEX[Hex Encode]
-        LINUX_CODE[code command]
+        LINUX_CODE[code]
     end
 
     DETECT -->|WSL| WSL_PATH
@@ -185,6 +188,7 @@ graph TB
     LINUX_PATH --> LINUX_HEX
     LINUX_HEX --> LINUX_CODE
 
+    style DETECT fill:#ffd700,stroke:#333,stroke-width:2px
     style WIN_CODE fill:#4a9eff,stroke:#333,stroke-width:2px
     style MAC_CODE fill:#4a9eff,stroke:#333,stroke-width:2px
     style LINUX_CODE fill:#4a9eff,stroke:#333,stroke-width:2px
@@ -229,9 +233,9 @@ VS Code automatically reuses existing containers:
 flowchart TD
     OPEN[Open VS Code URI]
     CHECK{Container<br/>exists?}
-    REUSE[Reuse existing container]
-    BUILD[Build new container]
-    ATTACH[Attach VS Code]
+    REUSE[Reuse existing]
+    BUILD[Build new]
+    ATTACH[Attach]
 
     OPEN --> CHECK
     CHECK -->|Yes| REUSE
@@ -239,7 +243,9 @@ flowchart TD
     REUSE --> ATTACH
     BUILD --> ATTACH
 
+    style OPEN fill:#4a9eff,stroke:#333,stroke-width:2px
     style REUSE fill:#90ee90,stroke:#333,stroke-width:2px
+    style ATTACH fill:#90ee90,stroke:#333,stroke-width:2px
 ```
 
 **Benefits**:
@@ -390,13 +396,13 @@ $ bitbot vscode  # One command, direct container opening
 ```mermaid
 flowchart TD
     START[bitbot vscode]
-    CHECK_WS{Workspace<br/>detected?}
-    CHECK_DC{.devcontainer/<br/>exists?}
-    CHECK_CODE{VS Code<br/>installed?}
-    SUCCESS[Open VS Code]
-    ERROR1[Error: No workspace]
-    ERROR2[Error: No .devcontainer]
-    ERROR3[Error: VS Code not installed]
+    CHECK_WS{Workspace?}
+    CHECK_DC{.devcontainer?}
+    CHECK_CODE{VS Code?}
+    SUCCESS[Open]
+    ERROR1[No workspace]
+    ERROR2[No config]
+    ERROR3[No VS Code]
 
     START --> CHECK_WS
     CHECK_WS -->|No| ERROR1
@@ -406,6 +412,7 @@ flowchart TD
     CHECK_CODE -->|No| ERROR3
     CHECK_CODE -->|Yes| SUCCESS
 
+    style START fill:#4a9eff,stroke:#333,stroke-width:2px
     style ERROR1 fill:#ff6b6b,stroke:#333,stroke-width:2px
     style ERROR2 fill:#ff6b6b,stroke:#333,stroke-width:2px
     style ERROR3 fill:#ff6b6b,stroke:#333,stroke-width:2px

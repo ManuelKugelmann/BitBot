@@ -4,73 +4,67 @@ High-level architecture of BitBot showing major components and their interaction
 
 ```mermaid
 graph TB
-    subgraph "User Interface"
-        CLI[BitBot CLI Entry Point]
-        VSCODE[VS Code IDE]
+    subgraph UI["User Interface"]
+        CLI[BitBot CLI]
+        VS[VS Code]
     end
 
-    subgraph "Platform Layer"
-        WINDOWS[Windows + WSL2]
-        MACOS[macOS Native]
-        LINUX[Linux Native]
+    subgraph PLAT["Platform Layer"]
+        WIN[Windows+WSL2]
+        MAC[macOS]
+        LIN[Linux]
     end
 
-    subgraph "Core Components"
-        ROUTER[Command Router<br/>bitbot script]
-        GLOBAL[Global Commands<br/>init, version]
-        WORKSPACE[Workspace Commands<br/>work, config, help]
-        UTILS[Utilities<br/>detect, git, helpers]
+    subgraph CORE["Core Components"]
+        ROUTER[Router<br/>bitbot]
+        GLOBAL[Global<br/>Commands]
+        WORK[Workspace<br/>Commands]
+        UTIL[Utilities]
     end
 
-    subgraph "Container Orchestration"
-        WORKMODE[Work Mode Container<br/>Read-only .devcontainer]
-        CONFIGMODE[Config Mode Container<br/>Read-write .devcontainer]
+    subgraph CONT["Container Orchestration"]
+        WMODE[Work Mode<br/>ro .devcontainer]
+        CMODE[Config Mode<br/>rw .devcontainer]
     end
 
-    subgraph "External Services"
-        DOCKER[Docker Desktop<br/>Container Runtime]
-        DEVCONTAINER[DevContainer Spec<br/>Configuration]
-        GIT[Git Repository<br/>Version Control]
+    subgraph EXT["External Services"]
+        DOC[Docker]
+        DC[DevContainer]
+        GIT[Git]
     end
 
-    subgraph "Templates"
-        BASIC[Basic Template<br/>Minimal setup]
-        CONFIG[Config Template<br/>Infrastructure tools]
+    subgraph TMPL["Templates"]
+        BASIC[Basic]
+        CFG[Config]
     end
 
     CLI --> ROUTER
-    VSCODE --> WORKMODE
-    VSCODE --> CONFIGMODE
-
+    VS --> WMODE
+    VS --> CMODE
     ROUTER --> GLOBAL
-    ROUTER --> WORKSPACE
-    GLOBAL --> UTILS
-    WORKSPACE --> UTILS
-
-    WORKSPACE --> WORKMODE
-    WORKSPACE --> CONFIGMODE
-    WORKSPACE --> VSCODE
-
-    WORKMODE --> DOCKER
-    CONFIGMODE --> DOCKER
-    WORKMODE --> DEVCONTAINER
-    CONFIGMODE --> DEVCONTAINER
-
-    UTILS --> GIT
-    UTILS --> DOCKER
-
+    ROUTER --> WORK
+    GLOBAL --> UTIL
+    WORK --> UTIL
+    WORK --> WMODE
+    WORK --> CMODE
+    WORK --> VS
+    WMODE --> DOC
+    WMODE --> DC
+    CMODE --> DC
+    UTIL --> GIT
+    UTIL --> DOC
     GLOBAL --> BASIC
-    GLOBAL --> CONFIG
-
-    WINDOWS --> ROUTER
-    MACOS --> ROUTER
-    LINUX --> ROUTER
+    GLOBAL --> CFG
+    WIN --> ROUTER
+    MAC --> ROUTER
+    LIN --> ROUTER
 
     style CLI fill:#4a9eff,stroke:#333,stroke-width:3px
-    style VSCODE fill:#0078d4,stroke:#333,stroke-width:2px
-    style WORKMODE fill:#90ee90,stroke:#333,stroke-width:2px
-    style CONFIGMODE fill:#ffb6c1,stroke:#333,stroke-width:2px
-    style ROUTER fill:#ffd700,stroke:#333,stroke-width:2px
+    style VS fill:#4a9eff,stroke:#333,stroke-width:2px
+    style WMODE fill:#90ee90,stroke:#333,stroke-width:2px
+    style CMODE fill:#ffb6c1,stroke:#333,stroke-width:2px
+    style ROUTER fill:#ffd700,stroke:#333,stroke-width:3px
+    style WORK fill:#ffd700,stroke:#333,stroke-width:2px
 ```
 
 ## Key Components
@@ -100,8 +94,8 @@ graph TB
 - **Git Repository**: Version control and safety checks
 
 ### Templates
-- **Basic Template**: Minimal Ubuntu + Node.js + Claude Code
-- **Config Template**: Basic + Docker CLI + DevContainer CLI
+- **Basic Template**: Minimal Ubuntu + Node.js + Claude Code (for work mode)
+- **Config Template**: Lightweight editing environment (git, vim, jq - no Docker)
 
 ## Information Flow
 

@@ -4,28 +4,28 @@ How BitBot handles Windows/WSL, macOS, and Linux with a single codebase.
 
 ```mermaid
 graph TB
-    USER[User runs: bitbot]
+    USER[bitbot]
 
-    subgraph "Windows Execution Path"
-        WIN_ENTRY[bitbot.exe or bitbot.cmd]
-        WIN_WSL[Launch Alpine WSL distro]
-        WIN_BASH[Execute bash script in Alpine]
+    subgraph WIN["Windows Path"]
+        WIN_ENTRY[bitbot.exe/.cmd]
+        WIN_WSL[Alpine WSL]
+        WIN_BASH[Bash]
     end
 
-    subgraph "macOS/Linux Execution Path"
-        UNIX_ENTRY[bitbot bash script]
-        UNIX_BASH[Execute directly]
+    subgraph UNIX["macOS/Linux Path"]
+        UNIX_ENTRY[bitbot]
+        UNIX_BASH[Bash]
     end
 
-    subgraph "Common Core"
-        DETECT[Platform Detection]
-        ROUTER[Command Router]
-        HANDLER[Command Handler]
+    subgraph CORE["Common Core"]
+        DETECT[Platform Detect]
+        ROUTER[Router]
+        HANDLER[Handler]
     end
 
-    subgraph "Platform-Specific Adaptations"
-        WIN_ADAPT[Windows Adaptations<br/>- wslpath conversion<br/>- code.exe execution<br/>- cmd.exe interop]
-        UNIX_ADAPT[Unix Adaptations<br/>- Native paths<br/>- code command<br/>- Standard bash]
+    subgraph ADAPT["Platform Adapt"]
+        WIN_ADAPT[Windows<br/>wslpath, code.exe]
+        UNIX_ADAPT[Unix<br/>native paths, code]
     end
 
     USER -->|Windows| WIN_ENTRY
@@ -38,9 +38,8 @@ graph TB
     UNIX_ENTRY --> UNIX_BASH
     UNIX_BASH --> DETECT
 
-    DETECT -->|Windows/WSL| WIN_ADAPT
-    DETECT -->|macOS| UNIX_ADAPT
-    DETECT -->|Linux| UNIX_ADAPT
+    DETECT -->|WSL| WIN_ADAPT
+    DETECT -->|macOS/Linux| UNIX_ADAPT
 
     WIN_ADAPT --> ROUTER
     UNIX_ADAPT --> ROUTER
@@ -49,6 +48,7 @@ graph TB
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:3px
     style DETECT fill:#ffd700,stroke:#333,stroke-width:2px
+    style ROUTER fill:#ffd700,stroke:#333,stroke-width:2px
     style WIN_ADAPT fill:#ffb6c1,stroke:#333,stroke-width:2px
     style UNIX_ADAPT fill:#90ee90,stroke:#333,stroke-width:2px
 ```
@@ -86,25 +86,25 @@ detect_platform() {
 
 ```mermaid
 graph TB
-    subgraph "Windows Host"
+    subgraph HOST["Windows Host"]
         USER[User]
-        BITBOT_EXE[bitbot.exe<br/>C launcher]
-        BITBOT_CMD[bitbot.cmd<br/>CMD wrapper]
+        BITBOT_EXE[bitbot.exe]
+        BITBOT_CMD[bitbot.cmd]
         CMD[cmd.exe]
         WSLEXE[wsl.exe]
-        CODE_EXE[code.exe<br/>VS Code]
+        CODE_EXE[code.exe]
         DOCKER[Docker Desktop]
     end
 
-    subgraph "WSL2 (Alpine Distro)"
-        ALPINE[BitBot-Alpine<br/>~8MB]
-        BASH_SCRIPT[/opt/bitbot/bin/bitbot<br/>Bash script]
-        CORE_LIB[/opt/bitbot/core/<br/>Library scripts]
+    subgraph WSL["WSL2 Alpine"]
+        ALPINE[BitBot-Alpine]
+        BASH_SCRIPT[bitbot script]
+        CORE_LIB[core libs]
     end
 
-    subgraph "Dev Container"
-        CONTAINER[Work/Config Container]
-        WORKSPACE[/workspace<br/>Project files]
+    subgraph CONT["Container"]
+        CONTAINER[Work/Config]
+        WORKSPACE[/workspace]
     end
 
     USER --> BITBOT_EXE
@@ -125,7 +125,8 @@ graph TB
     BASH_SCRIPT -.->|Launch| CODE_EXE
     CODE_EXE --> DOCKER
 
-    style ALPINE fill:#b3d9ff,stroke:#333,stroke-width:2px
+    style USER fill:#4a9eff,stroke:#333,stroke-width:2px
+    style ALPINE fill:#ffb6c1,stroke:#333,stroke-width:2px
     style CONTAINER fill:#90ee90,stroke:#333,stroke-width:2px
 ```
 
@@ -161,17 +162,17 @@ graph TB
 
 ```mermaid
 graph TB
-    subgraph "macOS System"
+    subgraph MAC["macOS System"]
         USER[User]
-        BITBOT[/usr/local/bin/bitbot<br/>Bash script]
-        CORE_LIB[/opt/bitbot/core/<br/>Library scripts]
-        CODE[code<br/>VS Code]
-        DOCKER[Docker Desktop<br/>for Mac]
+        BITBOT[bitbot]
+        CORE_LIB[core libs]
+        CODE[code]
+        DOCKER[Docker Desktop]
     end
 
-    subgraph "Dev Container"
-        CONTAINER[Work/Config Container]
-        WORKSPACE[/workspace<br/>Project files]
+    subgraph CONT["Container"]
+        CONTAINER[Work/Config]
+        WORKSPACE[/workspace]
     end
 
     USER --> BITBOT
@@ -184,7 +185,8 @@ graph TB
     BITBOT -.->|Launch| CODE
     CODE --> DOCKER
 
-    style BITBOT fill:#90ee90,stroke:#333,stroke-width:2px
+    style USER fill:#4a9eff,stroke:#333,stroke-width:2px
+    style BITBOT fill:#ffd700,stroke:#333,stroke-width:2px
     style CONTAINER fill:#90ee90,stroke:#333,stroke-width:2px
 ```
 
@@ -210,17 +212,17 @@ ln -s /opt/bitbot/bin/bitbot ~/bin/bitbot
 
 ```mermaid
 graph TB
-    subgraph "Linux System"
+    subgraph LIN["Linux System"]
         USER[User]
-        BITBOT[/usr/local/bin/bitbot<br/>Bash script]
-        CORE_LIB[/opt/bitbot/core/<br/>Library scripts]
-        CODE[code<br/>VS Code]
+        BITBOT[bitbot]
+        CORE_LIB[core libs]
+        CODE[code]
         DOCKER[Docker Engine]
     end
 
-    subgraph "Dev Container"
-        CONTAINER[Work/Config Container]
-        WORKSPACE[/workspace<br/>Project files]
+    subgraph CONT["Container"]
+        CONTAINER[Work/Config]
+        WORKSPACE[/workspace]
     end
 
     USER --> BITBOT
@@ -233,7 +235,8 @@ graph TB
     BITBOT -.->|Launch| CODE
     CODE --> DOCKER
 
-    style BITBOT fill:#90ee90,stroke:#333,stroke-width:2px
+    style USER fill:#4a9eff,stroke:#333,stroke-width:2px
+    style BITBOT fill:#ffd700,stroke:#333,stroke-width:2px
     style CONTAINER fill:#90ee90,stroke:#333,stroke-width:2px
 ```
 
@@ -302,28 +305,28 @@ code --folder-uri="vscode-remote://dev-container+${HEX}/workspace"
 
 ```mermaid
 graph LR
-    subgraph "Windows (WSL)"
-        WSL_BASH[Alpine Bash]
-        WSL_CODE[code.exe<br/>Windows VS Code]
+    subgraph WIN["Windows WSL"]
+        WSL_BASH[Bash]
+        WSL_CODE[code.exe]
     end
 
-    subgraph "macOS"
-        MAC_BASH[macOS Bash]
-        MAC_CODE[code<br/>macOS VS Code]
+    subgraph MAC["macOS"]
+        MAC_BASH[Bash]
+        MAC_CODE[code]
     end
 
-    subgraph "Linux"
-        LINUX_BASH[Linux Bash]
-        LINUX_CODE[code<br/>Linux VS Code]
+    subgraph LIN["Linux"]
+        LINUX_BASH[Bash]
+        LINUX_CODE[code]
     end
 
     WSL_BASH -->|Execute| WSL_CODE
     MAC_BASH -->|Execute| MAC_CODE
     LINUX_BASH -->|Execute| LINUX_CODE
 
-    style WSL_CODE fill:#ffb6c1,stroke:#333,stroke-width:2px
-    style MAC_CODE fill:#90ee90,stroke:#333,stroke-width:2px
-    style LINUX_CODE fill:#90ee90,stroke:#333,stroke-width:2px
+    style WSL_CODE fill:#4a9eff,stroke:#333,stroke-width:2px
+    style MAC_CODE fill:#4a9eff,stroke:#333,stroke-width:2px
+    style LINUX_CODE fill:#4a9eff,stroke:#333,stroke-width:2px
 ```
 
 **Platform-Specific Commands**:
@@ -386,17 +389,17 @@ sudo usermod -aG docker $USER
 
 ```mermaid
 graph TB
-    subgraph "Single Bash Codebase"
-        MAIN[Main bitbot script]
-        DETECT[Platform detection]
-        PLATFORM_FUNCS[Platform-specific functions]
-        COMMON[Common functions]
+    subgraph CODE["Bash Codebase"]
+        MAIN[Main script]
+        DETECT[Platform detect]
+        PLATFORM_FUNCS[Platform funcs]
+        COMMON[Common funcs]
     end
 
-    subgraph "Platform Branches"
-        WSL_BRANCH{WSL branch}
-        MAC_BRANCH{macOS branch}
-        LINUX_BRANCH{Linux branch}
+    subgraph BRANCH["Branches"]
+        WSL_BRANCH{WSL?}
+        MAC_BRANCH{macOS?}
+        LINUX_BRANCH{Linux?}
     end
 
     MAIN --> DETECT
@@ -407,12 +410,15 @@ graph TB
     PLATFORM_FUNCS --> MAC_BRANCH
     PLATFORM_FUNCS --> LINUX_BRANCH
 
-    WSL_BRANCH --> WSL_IMPL[WSL implementation]
-    MAC_BRANCH --> MAC_IMPL[macOS implementation]
-    LINUX_BRANCH --> LINUX_IMPL[Linux implementation]
+    WSL_BRANCH --> WSL_IMPL[WSL impl]
+    MAC_BRANCH --> MAC_IMPL[macOS impl]
+    LINUX_BRANCH --> LINUX_IMPL[Linux impl]
 
     style DETECT fill:#ffd700,stroke:#333,stroke-width:2px
     style COMMON fill:#90ee90,stroke:#333,stroke-width:2px
+    style WSL_IMPL fill:#ffb6c1,stroke:#333,stroke-width:2px
+    style MAC_IMPL fill:#90ee90,stroke:#333,stroke-width:2px
+    style LINUX_IMPL fill:#90ee90,stroke:#333,stroke-width:2px
 ```
 
 **Design Pattern**:

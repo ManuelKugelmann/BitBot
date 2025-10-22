@@ -4,34 +4,34 @@ BitBot's intelligent workspace detection algorithm for finding or initializing B
 
 ```mermaid
 flowchart TD
-    START[User runs: bitbot work/config/init]
+    START[bitbot work/config/init]
 
-    CWD_CHECK{Check CWD for<br/>.devcontainer/}
-    CWD_FOUND[Workspace: CWD<br/>✓ Found]
+    CWD_CHECK{CWD has<br/>.devcontainer?}
+    CWD_FOUND[✓ Found in CWD]
 
-    PARENT_CHECK{Check parent for<br/>.devcontainer/}
-    PARENT_FOUND[Workspace: Parent<br/>✓ Found]
+    PARENT_CHECK{Parent has<br/>.devcontainer?}
+    PARENT_FOUND[✓ Found in parent]
 
-    NO_WORKSPACE[No workspace found]
-    PROMPT{Prompt user:<br/>Initialize here?}
+    NO_WORKSPACE[No workspace]
+    PROMPT{Initialize<br/>here?}
 
-    INIT_YES[Run: bitbot init]
-    INIT_NO[Exit with message]
+    INIT_YES[Run bitbot init]
+    INIT_NO[Exit]
 
-    VALIDATE{Validate<br/>devcontainer.json}
-    VALID[✓ Valid workspace]
-    INVALID[✗ Invalid config]
-    ERROR[Display error<br/>+ fix suggestions]
+    VALIDATE{Valid<br/>config?}
+    VALID[✓ Valid]
+    INVALID[✗ Invalid]
+    ERROR[Show errors]
 
-    LAUNCH[Launch container<br/>work/config mode]
+    LAUNCH[Launch container]
 
     START --> CWD_CHECK
 
-    CWD_CHECK -->|Found| CWD_FOUND
-    CWD_CHECK -->|Not found| PARENT_CHECK
+    CWD_CHECK -->|Yes| CWD_FOUND
+    CWD_CHECK -->|No| PARENT_CHECK
 
-    PARENT_CHECK -->|Found| PARENT_FOUND
-    PARENT_CHECK -->|Not found| NO_WORKSPACE
+    PARENT_CHECK -->|Yes| PARENT_FOUND
+    PARENT_CHECK -->|No| NO_WORKSPACE
 
     CWD_FOUND --> VALIDATE
     PARENT_FOUND --> VALIDATE
@@ -43,19 +43,22 @@ flowchart TD
     INIT_YES --> VALIDATE
     INIT_NO --> END1[Exit]
 
-    VALIDATE -->|Valid| VALID
-    VALIDATE -->|Invalid| INVALID
+    VALIDATE -->|Yes| VALID
+    VALIDATE -->|No| INVALID
 
     VALID --> LAUNCH
     INVALID --> ERROR
     ERROR --> END2[Exit]
 
-    LAUNCH --> END3[Container running]
+    LAUNCH --> END3[Running]
 
+    style START fill:#4a9eff,stroke:#333,stroke-width:2px
     style CWD_FOUND fill:#90ee90,stroke:#333,stroke-width:2px
     style PARENT_FOUND fill:#90ee90,stroke:#333,stroke-width:2px
     style VALID fill:#90ee90,stroke:#333,stroke-width:2px
+    style LAUNCH fill:#90ee90,stroke:#333,stroke-width:2px
     style ERROR fill:#ff6b6b,stroke:#333,stroke-width:2px
+    style INVALID fill:#ff6b6b,stroke:#333,stroke-width:2px
     style PROMPT fill:#ffcc00,stroke:#333,stroke-width:2px
 ```
 
@@ -123,16 +126,16 @@ Once workspace is detected, validate the devcontainer configuration:
 
 ```mermaid
 flowchart LR
-    WORKSPACE[Workspace Path]
+    WORKSPACE[Workspace]
 
-    subgraph "Validation Checks"
-        EXISTS{.devcontainer/<br/>exists?}
-        JSON{devcontainer.json<br/>exists?}
+    subgraph CHK["Checks"]
+        EXISTS{.devcontainer<br/>exists?}
+        JSON{json file<br/>exists?}
         VALID_JSON{Valid<br/>JSON?}
-        HAS_NAME{Has 'name'<br/>field?}
+        HAS_NAME{Has<br/>name?}
     end
 
-    subgraph "Results"
+    subgraph RES["Results"]
         PASS[✓ Valid]
         FAIL[✗ Invalid]
     end
@@ -147,6 +150,7 @@ flowchart LR
     HAS_NAME -->|Yes| PASS
     HAS_NAME -->|No| FAIL
 
+    style WORKSPACE fill:#4a9eff,stroke:#333,stroke-width:2px
     style PASS fill:#90ee90,stroke:#333,stroke-width:2px
     style FAIL fill:#ff6b6b,stroke:#333,stroke-width:2px
 ```
@@ -218,7 +222,8 @@ $ bitbot work
 ✓ Initializing workspace...
 ? Select template:
   1) basic - Ubuntu + Node.js + Claude Code
-  2) config - Basic + Docker CLI + DevContainer CLI
+  2) python - Python + common data science tools
+  3) web - Node.js + web development tools
 
   Choice: 1
 ✓ Workspace initialized!
