@@ -46,8 +46,8 @@ flowchart TD
 
     style CheckInit fill:#f9cb9c,stroke:#333,color:#000
     style DevContainerExists fill:#f9cb9c,stroke:#333,color:#000
-    style Error fill:#cc4125,stroke:#333
-    style Done fill:#6aa84f,stroke:#333
+    style Error fill:#ef5350,stroke:#333,color:#333
+    style Done fill:#66bb6a,stroke:#333,color:#333
 ```
 
 ---
