@@ -65,7 +65,7 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 - **Current**: Docker containerization isolates AI agents to reduce risk
 - AI works in controlled environment with limited access
 - Infrastructure files protected from accidental modification
-- **WIP**: Full VM sandboxing for maximum isolation
+- 🚧 **WIP**: Full VM sandboxing for maximum isolation
 
 ✨ **Two-Mode Security**
 - Work mode protects infrastructure files
@@ -83,10 +83,10 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 - Hex-encoded URI protocol for seamless workflow
 
 📦 **Flexible Templates**
-- Base template: Ubuntu + Node.js + Claude Code + inner BitBot helpers
-- WIP: Rootless Docker template for Docker-in-Docker workflows
-- WIP: VM-based template with full Docker for maximum isolation
-- WIP: Agent steering templates for different workloads
+- Base template: Ubuntu + BitBot (Claude Code, Claude Flow, Open Code)
+- 🚧 WIP: Rootless Docker template for Docker-in-Docker workflows
+- 🚧 WIP: VM-based template with full Docker for maximum isolation
+- 🚧 WIP: Agent steering templates for different workloads
 
 🛡️ **Git Safety**
 - Warnings for uncommitted changes
@@ -95,7 +95,7 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 - Non-blocking (won't stop your workflow)
 - Helps prevent AI from making risky changes to dirty repos
 
-🤖 **Self-Improving System (WIP)**
+🤖 **Self-Improving System** 🚧 **WIP**
 - BitBot self-configuration capabilities
 - Agent-driven self-improvement mechanisms
 - AI agents can help optimize their own environment
@@ -119,7 +119,6 @@ BitBot provides multiple isolation levels depending on your security requirement
 - **Default**: No Docker in work containers (safest, recommended)
 - **Optional**: Rootless Docker-in-Docker for Docker/Docker Compose workflows
   - ⚠️ Limited isolation (shares host kernel)
-  - ⚠️ **Use only with trusted AI agents and code**
   - ⚠️ Container escape possible by design
 
 ### Future Architecture
