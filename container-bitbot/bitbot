@@ -1,0 +1,96 @@
+#!/bin/bash
+# Container BitBot - AI Agent Assistant
+# Runs inside devcontainers to help AI agents manage sessions and workspace
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+GREY='\033[0;90m'
+RESET='\033[0m'
+
+# Paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BITBOT_CONTAINER_HOME="${SCRIPT_DIR}"
+WORKSPACE="${WORKSPACE:-/workspace}"
+
+# Source utilities
+source "${BITBOT_CONTAINER_HOME}/core/util/helpers.sh" 2>/dev/null || true
+
+# Main command router
+main() {
+    local command="${1:-help}"
+    shift || true
+
+    case "$command" in
+        start)
+            "${BITBOT_CONTAINER_HOME}/core/commands/start.sh" "$@"
+            ;;
+        resume)
+            "${BITBOT_CONTAINER_HOME}/core/commands/resume.sh" "$@"
+            ;;
+        analyze)
+            "${BITBOT_CONTAINER_HOME}/core/commands/analyze.sh" "$@"
+            ;;
+        status)
+            "${BITBOT_CONTAINER_HOME}/core/commands/status.sh" "$@"
+            ;;
+        configure)
+            "${BITBOT_CONTAINER_HOME}/core/commands/configure.sh" "$@"
+            ;;
+        help|--help|-h)
+            show_help
+            ;;
+        *)
+            echo -e "${RED}Error: Unknown command '${command}'${RESET}" >&2
+            echo ""
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+show_help() {
+    cat <<'EOF'
+BitBot (Container) - AI Agent Assistant
+
+Usage:
+  bitbot <command> [options]
+
+Commands:
+  start         Start Claude Code in tmux session
+  resume [name] Resume tmux session (or choose from list)
+  analyze       Analyze workspace tech stack and structure
+  status        Show container environment status
+  configure     Configure devcontainer (config mode only)
+  help          Show this help message
+
+Examples:
+  # Start Claude Code (with launch mode choice)
+  bitbot start
+
+  # Resume existing session
+  bitbot resume
+
+  # Resume specific session
+  bitbot resume claude-20251022-1430
+
+  # Analyze workspace
+  bitbot analyze
+
+  # Show status
+  bitbot status
+
+Environment:
+  WORKSPACE     Workspace path (default: /workspace)
+  BITBOT_MODE   Current mode (work/config)
+
+For more information, see /opt/bitbot/README.md
+EOF
+}
+
+# Run main
+main "$@"

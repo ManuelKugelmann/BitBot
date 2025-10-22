@@ -1,22 +1,27 @@
-# Inner BitBot Pseudocode
+# Container BitBot Pseudocode
 
-**Component**: Inner BitBot Helper Scripts
-**Location**: `/opt/bitbot/` inside containers
-**Purpose**: Provide AI agent assistance inside devcontainers
+**Component**: Container BitBot (runs inside containers)
+**Source**: `container-bitbot/` directory
+**Installed**: `/opt/bitbot/` inside containers
+**Purpose**: AI agent assistance and session management inside devcontainers
 
 ---
 
 ## Overview
 
-Inner BitBot scripts run **inside** the devcontainer to assist AI agents:
+Container BitBot runs **inside** devcontainers to assist AI agents:
 - Manage tmux sessions for Claude Code
 - Resume unattached sessions
 - Launch Claude Code with resume or interactive mode
 - Provide workspace analysis and configuration helpers
 
 ```
-Container Entry → Inner BitBot → Session Management → Claude Code
+Container Entry → Container BitBot → Session Management → Claude Code
 ```
+
+**Transparent Behavior**: Same `bitbot` command works on host and in container
+- **On Host**: `bitbot` orchestrates containers (enters/launches containers)
+- **In Container**: `bitbot` manages sessions (starts/resumes Claude Code)
 
 **Key Principle**: Simple bash scripts that help AI agents get started quickly in containers
 
@@ -25,12 +30,16 @@ Container Entry → Inner BitBot → Session Management → Claude Code
 ## Main Entry Point
 
 ```pseudocode
-FUNCTION bitbot_helper(command, args):
-    # /opt/bitbot/bitbot-helper.sh
-    # Main router for inner bitbot commands
+FUNCTION bitbot(command, args):
+    # /opt/bitbot/bitbot
+    # Main router for container bitbot commands
+    # Mirrors outer bitbot structure (bitbot + core/)
 
     SET script_dir = get_script_directory()
-    SET commands_dir = script_dir + "/commands"
+    SET bitbot_container_home = script_dir
+
+    # Source utilities
+    SOURCE bitbot_container_home + "/core/util/helpers.sh"
 
     CASE command OF:
         "start":
@@ -449,18 +458,38 @@ END FUNCTION
 
 ## Implementation Notes
 
-**File Structure**:
+**Source Structure** (`container-bitbot/`):
+```
+container-bitbot/
+├── bitbot                 # Main entry point (mirrors outer bitbot)
+├── README.md              # Container BitBot documentation
+└── core/                  # Mirrors outer bitbot core/ structure
+    ├── commands/          # Command implementations
+    │   ├── start.sh       # Start Claude session
+    │   ├── resume.sh      # Resume tmux session
+    │   ├── analyze.sh     # Workspace analysis
+    │   ├── status.sh      # Status display
+    │   └── configure.sh   # DevContainer configuration
+    └── util/              # Shared utilities
+        ├── helpers.sh     # Common helper functions
+        └── tmux-utils.sh  # tmux session management
+```
+
+**Installed Structure** (`/opt/bitbot/` inside containers):
 ```
 /opt/bitbot/
-├── bitbot-helper.sh       # Main entry point (implements above pseudocode)
-├── entrypoint.sh          # Container entrypoint (optional)
-├── commands/
-│   ├── start.sh           # Start Claude session
-│   ├── resume.sh          # Resume tmux session
-│   ├── analyze.sh         # Workspace analysis (existing)
-│   └── status.sh          # Status display (existing)
-└── lib/
-    └── tmux-utils.sh      # tmux helper functions
+├── bitbot                 # Container entry point
+├── README.md
+└── core/
+    ├── commands/
+    └── util/
+```
+
+**Deployment**: Dockerfile copies during build:
+```dockerfile
+COPY container-bitbot/ /opt/bitbot/
+RUN chmod +x /opt/bitbot/bitbot /opt/bitbot/core/commands/*.sh
+ENV PATH="/opt/bitbot:${PATH}"
 ```
 
 **Dependencies**:
