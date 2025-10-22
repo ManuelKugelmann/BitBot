@@ -358,10 +358,10 @@ bitbot/
 
 Store projects in **WSL filesystem** (`~/projects`), **NOT** Windows filesystem (`/mnt/c/`):
 
-| Location | Performance | Status |
-|----------|-------------|--------|
-| `~/projects` (WSL) | ⭐⭐⭐⭐⭐ Fast | ✅ Use this |
-| `/mnt/c/` (Windows) | ⭐⭐ Slow (10-40x) | ⚠️ Avoid |
+| Location               | Performance             | Status          |
+|------------------------|-------------------------|-----------------|
+| `~/projects` (WSL)     | ⭐⭐⭐⭐⭐ Fast           | ✅ Use this     |
+| `/mnt/c/` (Windows)    | ⭐⭐ Slow (10-40x)       | ⚠️  Avoid       |
 
 **Why?**
 - WSL filesystem: Native ext4 (fast)

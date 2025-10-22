@@ -25,11 +25,11 @@ If your work container needs Docker (e.g., for building Docker images, running D
 
 BitBot provides multiple isolation levels depending on your security requirements:
 
-| Mode | Default Security | Optional Docker | Isolation Level |
-|------|------------------|-----------------|-----------------|
-| **No Docker** (default) | ✅ High | N/A | Container only |
-| **Rootless Docker-in-Docker** | ⚠️ Medium | Available | Container + user namespace |
-| **VM-based** (planned) | ✅ Very High | Planned Phase 3 | Full VM isolation |
+| Mode                              | Default Security | Optional Docker  | Isolation Level             |
+|-----------------------------------|------------------|------------------|-----------------------------|
+| **No Docker** (default)           | ✅ High          | N/A              | Container only              |
+| **Rootless Docker-in-Docker**     | ⚠️  Medium       | Available        | Container + user namespace  |
+| **VM-based** (planned)            | ✅ Very High     | Planned Phase 3  | Full VM isolation           |
 
 ### Current Approach
 
