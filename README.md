@@ -429,9 +429,7 @@ LinkedIn: [linkedin.com/in/mkugelmann](https://www.linkedin.com/in/mkugelmann/)
 
 ## Acknowledgments
 
-Built with the assistance of AI coding tools: Claude, Gemini, GitHub Copilot, and Perplexity.
-
-Inspired by the need for safe AI-assisted development with infrastructure protection.
+Built with the assistance of AI coding tools: Claude, Gemini, GitHub Copilot, Perplexity.
 
 ---
 
