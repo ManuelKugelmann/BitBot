@@ -23,11 +23,8 @@ When working with AI coding assistants like Claude Code, you want them to:
 - ✅ Install dependencies and tools
 
 But **not** accidentally:
-- ❌ Write random files on your host system
-- ❌ Modify system configuration files
-- ❌ Break your Docker configuration
-- ❌ Corrupt `.devcontainer` or `.github` workflows
-- ❌ Delete or overwrite important files outside the project
+- ❌ Modify critical infrastructure files (`.devcontainer`, `.github`, `.gitignore`, secrets, Docker configs)
+- ❌ Write files outside the project directory
 - ❌ Access or modify other projects on your machine
 - ❌ Install system-wide packages that affect other projects
 
