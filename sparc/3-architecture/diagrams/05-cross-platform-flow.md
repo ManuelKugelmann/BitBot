@@ -50,7 +50,7 @@ graph TB
     style DETECT fill:#ffd700,stroke:#333,stroke-width:2px
     style ROUTER fill:#ffd700,stroke:#333,stroke-width:2px
     style WIN_ADAPT fill:#ffb6c1,stroke:#333,stroke-width:2px
-    style UNIX_ADAPT fill:#90ee90,stroke:#333,stroke-width:2px
+    style UNIX_ADAPT fill:#66bb6a,stroke:#333,stroke-width:2px
 ```
 
 ## Platform Detection
@@ -127,7 +127,7 @@ graph TB
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:2px
     style ALPINE fill:#ffb6c1,stroke:#333,stroke-width:2px
-    style CONTAINER fill:#90ee90,stroke:#333,stroke-width:2px
+    style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:2px
 ```
 
 ### Windows Entry Points
@@ -187,7 +187,7 @@ graph TB
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:2px
     style BITBOT fill:#ffd700,stroke:#333,stroke-width:2px
-    style CONTAINER fill:#90ee90,stroke:#333,stroke-width:2px
+    style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:2px
 ```
 
 ### macOS Entry Point
@@ -237,7 +237,7 @@ graph TB
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:2px
     style BITBOT fill:#ffd700,stroke:#333,stroke-width:2px
-    style CONTAINER fill:#90ee90,stroke:#333,stroke-width:2px
+    style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:2px
 ```
 
 ### Linux Entry Point
@@ -415,10 +415,10 @@ graph TB
     LINUX_BRANCH --> LINUX_IMPL[Linux impl]
 
     style DETECT fill:#ffd700,stroke:#333,stroke-width:2px
-    style COMMON fill:#90ee90,stroke:#333,stroke-width:2px
+    style COMMON fill:#66bb6a,stroke:#333,stroke-width:2px
     style WSL_IMPL fill:#ffb6c1,stroke:#333,stroke-width:2px
-    style MAC_IMPL fill:#90ee90,stroke:#333,stroke-width:2px
-    style LINUX_IMPL fill:#90ee90,stroke:#333,stroke-width:2px
+    style MAC_IMPL fill:#66bb6a,stroke:#333,stroke-width:2px
+    style LINUX_IMPL fill:#66bb6a,stroke:#333,stroke-width:2px
 ```
 
 **Design Pattern**:

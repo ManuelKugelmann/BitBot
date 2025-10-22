@@ -53,13 +53,13 @@ flowchart TD
     LAUNCH --> END3[Running]
 
     style START fill:#4a9eff,stroke:#333,stroke-width:2px
-    style CWD_FOUND fill:#90ee90,stroke:#333,stroke-width:2px
-    style PARENT_FOUND fill:#90ee90,stroke:#333,stroke-width:2px
-    style VALID fill:#90ee90,stroke:#333,stroke-width:2px
-    style LAUNCH fill:#90ee90,stroke:#333,stroke-width:2px
-    style ERROR fill:#ff6b6b,stroke:#333,stroke-width:2px
-    style INVALID fill:#ff6b6b,stroke:#333,stroke-width:2px
-    style PROMPT fill:#ffcc00,stroke:#333,stroke-width:2px
+    style CWD_FOUND fill:#66bb6a,stroke:#333,stroke-width:2px
+    style PARENT_FOUND fill:#66bb6a,stroke:#333,stroke-width:2px
+    style VALID fill:#66bb6a,stroke:#333,stroke-width:2px
+    style LAUNCH fill:#66bb6a,stroke:#333,stroke-width:2px
+    style ERROR fill:#ef5350,stroke:#333,stroke-width:2px
+    style INVALID fill:#ef5350,stroke:#333,stroke-width:2px
+    style PROMPT fill:#ffa726,stroke:#333,stroke-width:2px
 ```
 
 ## Detection Algorithm
@@ -151,8 +151,8 @@ flowchart LR
     HAS_NAME -->|No| FAIL
 
     style WORKSPACE fill:#4a9eff,stroke:#333,stroke-width:2px
-    style PASS fill:#90ee90,stroke:#333,stroke-width:2px
-    style FAIL fill:#ff6b6b,stroke:#333,stroke-width:2px
+    style PASS fill:#66bb6a,stroke:#333,stroke-width:2px
+    style FAIL fill:#ef5350,stroke:#333,stroke-width:2px
 ```
 
 ### Validation Checks

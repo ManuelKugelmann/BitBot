@@ -73,11 +73,11 @@ graph TB
     VERSION --> HELPERS
 
     style BITBOT fill:#ffd700,stroke:#333,stroke-width:3px
-    style WWORK fill:#90ee90,stroke:#333,stroke-width:2px
+    style WWORK fill:#66bb6a,stroke:#333,stroke-width:2px
     style WCONFIG fill:#ffb6c1,stroke:#333,stroke-width:2px
     style DETECT fill:#4a9eff,stroke:#333,stroke-width:2px
-    style GIT fill:#ff6b6b,stroke:#333,stroke-width:2px
-    style DEVCON fill:#90ee90,stroke:#333,stroke-width:2px
+    style GIT fill:#ef5350,stroke:#333,stroke-width:2px
+    style DEVCON fill:#66bb6a,stroke:#333,stroke-width:2px
     style HELPERS fill:#ffd700,stroke:#333,stroke-width:2px
 ```
 
@@ -482,9 +482,9 @@ graph TB
 
     style HELPERS fill:#ffd700,stroke:#333,stroke-width:2px
     style BITBOT fill:#4a9eff,stroke:#333,stroke-width:3px
-    style WORK fill:#90ee90,stroke:#333,stroke-width:2px
+    style WORK fill:#66bb6a,stroke:#333,stroke-width:2px
     style CONFIG fill:#ffb6c1,stroke:#333,stroke-width:2px
-    style GIT fill:#ff6b6b,stroke:#333,stroke-width:2px
+    style GIT fill:#ef5350,stroke:#333,stroke-width:2px
 ```
 
 ---

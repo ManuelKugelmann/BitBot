@@ -34,7 +34,7 @@ sequenceDiagram
 
     style BitBot fill:#ffd700,stroke:#333,stroke-width:2px
     style VSCode fill:#4a9eff,stroke:#333,stroke-width:2px
-    style Container fill:#90ee90,stroke:#333,stroke-width:2px
+    style Container fill:#66bb6a,stroke:#333,stroke-width:2px
 ```
 
 ## The Innovation
@@ -57,9 +57,9 @@ flowchart TD
     RELOAD --> CONTAINER
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:2px
-    style POPUP fill:#ffcc00,stroke:#333,stroke-width:2px
-    style CLICK fill:#ffcc00,stroke:#333,stroke-width:2px
-    style CONTAINER fill:#90ee90,stroke:#333,stroke-width:2px
+    style POPUP fill:#ffa726,stroke:#333,stroke-width:2px
+    style CLICK fill:#ffa726,stroke:#333,stroke-width:2px
+    style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:2px
 ```
 
 **Problems**:
@@ -85,7 +85,7 @@ flowchart TD
     OPEN --> CONTAINER
 
     style USER fill:#4a9eff,stroke:#333,stroke-width:2px
-    style CONTAINER fill:#90ee90,stroke:#333,stroke-width:3px
+    style CONTAINER fill:#66bb6a,stroke:#333,stroke-width:3px
 ```
 
 **Benefits**:
@@ -244,8 +244,8 @@ flowchart TD
     BUILD --> ATTACH
 
     style OPEN fill:#4a9eff,stroke:#333,stroke-width:2px
-    style REUSE fill:#90ee90,stroke:#333,stroke-width:2px
-    style ATTACH fill:#90ee90,stroke:#333,stroke-width:2px
+    style REUSE fill:#66bb6a,stroke:#333,stroke-width:2px
+    style ATTACH fill:#66bb6a,stroke:#333,stroke-width:2px
 ```
 
 **Benefits**:
@@ -413,10 +413,10 @@ flowchart TD
     CHECK_CODE -->|Yes| SUCCESS
 
     style START fill:#4a9eff,stroke:#333,stroke-width:2px
-    style ERROR1 fill:#ff6b6b,stroke:#333,stroke-width:2px
-    style ERROR2 fill:#ff6b6b,stroke:#333,stroke-width:2px
-    style ERROR3 fill:#ff6b6b,stroke:#333,stroke-width:2px
-    style SUCCESS fill:#90ee90,stroke:#333,stroke-width:2px
+    style ERROR1 fill:#ef5350,stroke:#333,stroke-width:2px
+    style ERROR2 fill:#ef5350,stroke:#333,stroke-width:2px
+    style ERROR3 fill:#ef5350,stroke:#333,stroke-width:2px
+    style SUCCESS fill:#66bb6a,stroke:#333,stroke-width:2px
 ```
 
 ---

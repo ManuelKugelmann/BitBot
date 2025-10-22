@@ -73,15 +73,17 @@
 
 ## Mermaid Diagram Guidelines
 
-**Color Scheme** (keep diagrams consistent):
+**Color Scheme** (keep diagrams consistent, optimized for dark text):
 ```
 User/Entry:      #4a9eff  (blue)     - CLI, user interface
-Secure/Work:     #90ee90  (green)    - Work mode, safe operations
+Secure/Work:     #66bb6a  (green)    - Work mode, safe operations
 Config/Infra:    #ffb6c1  (pink)     - Config mode, infrastructure
 Router/Key:      #ffd700  (gold)     - Main routers, key components
-Warning/Error:   #ff6b6b  (red)      - Errors, security boundaries
-Notice/Prompt:   #ffcc00  (yellow)   - Prompts, decisions
+Warning/Error:   #ef5350  (red)      - Errors, security boundaries
+Notice/Prompt:   #ffa726  (orange)   - Prompts, decisions
 ```
+
+**Note**: Colors chosen for good contrast with dark text (stroke:#333)
 
 **Width**: Keep diagrams narrow (~60 chars per line) for terminal viewing
 
@@ -90,7 +92,7 @@ Notice/Prompt:   #ffcc00  (yellow)   - Prompts, decisions
 graph LR
     A[User Input] --> B[Router]
     B --> C[Work Mode]
-    style A fill:#4a9eff
-    style B fill:#ffd700
-    style C fill:#90ee90
+    style A fill:#4a9eff,stroke:#333,stroke-width:2px
+    style B fill:#ffd700,stroke:#333,stroke-width:2px
+    style C fill:#66bb6a,stroke:#333,stroke-width:2px
 ```
