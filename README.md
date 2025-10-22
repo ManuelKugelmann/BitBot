@@ -138,6 +138,86 @@ If your work container needs Docker (e.g., for building Docker images, running D
 
 **Recommendation:** Until VM isolation is implemented, use work mode without Docker for maximum safety, or only use Docker-in-Docker with AI agents and codebases you fully trust.
 
+### Docker-in-Docker Security Comparison
+
+Different approaches to running Docker inside containers have vastly different security profiles:
+
+| Solution | Kernel Sharing | Container Escape Risk | Setup Complexity | Performance | Best For |
+|----------|---------------|----------------------|-----------------|-------------|----------|
+| **No Docker** (default) | N/A | ✅ None | ⭐ Simple | ⭐⭐⭐⭐⭐ | Code-only work |
+| **Privileged DinD** | ✅ Yes (same kernel) | ⚠️ HIGH - Multiple vectors | ⭐⭐ Medium | ⭐⭐⭐⭐ | Trusted dev only |
+| **Rootless Docker-in-Docker** | ✅ Yes (same kernel) | ⚠️ MEDIUM - Kernel exploits possible | ⭐⭐⭐ Complex | ⭐⭐⭐ | Better than privileged |
+| **Docker Socket Mount** | ✅ Yes (host Docker) | ⚠️ HIGH - Root equivalent | ⭐ Simple | ⭐⭐⭐⭐⭐ | Trusted dev only |
+| **Sysbox Runtime** | ✅ Yes (with user namespaces) | ✅ LOW - User namespace isolation | ⭐⭐⭐⭐ Hard | ⭐⭐⭐⭐ | Production-like |
+| **VM + Full Docker** (future) | ❌ No (VM kernel) | ✅ VERY LOW - VM isolation | ⭐⭐⭐⭐ Hard | ⭐⭐⭐ | Untrusted code |
+| **Kata Containers** | ❌ No (micro-VM per container) | ✅ VERY LOW - VM per container | ⭐⭐⭐⭐⭐ Very Hard | ⭐⭐ | Maximum security |
+
+**Security Risk Details:**
+
+| Approach | Container Breakout | Host Compromise | Kernel Vulnerabilities | Resource Exhaustion | Privilege Escalation |
+|----------|-------------------|-----------------|----------------------|---------------------|---------------------|
+| **Privileged DinD** | ⚠️ HIGH | ⚠️ HIGH | ⚠️ HIGH | ⚠️ HIGH | ⚠️ HIGH |
+| **Rootless DinD** | ⚠️ MEDIUM | ⚠️ MEDIUM | ⚠️ HIGH | ⚠️ MEDIUM | ✅ LOW |
+| **Socket Mount** | ⚠️ HIGH | ⚠️ HIGH | ⚠️ MEDIUM | ⚠️ HIGH | ⚠️ HIGH |
+| **Sysbox** | ✅ LOW | ✅ LOW | ⚠️ MEDIUM | ⚠️ MEDIUM | ✅ LOW |
+| **VM + Docker** | ✅ VERY LOW | ✅ VERY LOW | ✅ LOW | ✅ LOW | ✅ VERY LOW |
+| **Kata Containers** | ✅ VERY LOW | ✅ VERY LOW | ✅ VERY LOW | ✅ VERY LOW | ✅ VERY LOW |
+
+**Specific Attack Vectors:**
+
+<details>
+<summary><b>Privileged DinD Attack Examples</b> (click to expand)</summary>
+
+**Device Access Escape:**
+```bash
+# Inside privileged container - attacker can:
+mkdir /mnt/host
+mount /dev/sda1 /mnt/host  # Mount host filesystem
+# Now has full read/write access to host
+```
+
+**Kernel Module Loading:**
+```bash
+# Can load malicious kernel modules
+insmod rootkit.ko  # Compromise entire host
+```
+
+**PID Namespace Manipulation:**
+```bash
+# Access host processes
+nsenter -t 1 -m -u -n -i sh  # Escape to host namespace
+```
+</details>
+
+<details>
+<summary><b>Rootless Docker-in-Docker Limitations</b> (click to expand)</summary>
+
+**Still Vulnerable To:**
+- Kernel exploits (shares host kernel)
+- Container runtime vulnerabilities
+- Resource exhaustion attacks
+- Side-channel attacks (Spectre/Meltdown)
+
+**Better Than Privileged:**
+- Root in container ≠ Root on host (user namespace remapping)
+- Limited device access
+- Reduced attack surface
+</details>
+
+**BitBot's Approach:**
+
+| Phase | Solution | Security Level | Status |
+|-------|----------|---------------|--------|
+| **Current (MVP)** | No Docker by default | ✅ High | ✅ Implemented |
+| **Optional (Now)** | Rootless Docker-in-Docker | ⚠️ Medium | 🚧 Available for trusted workflows |
+| **Future (Phase 3)** | VM + Full Docker (Sysbox or Multipass) | ✅ Very High | 📋 Planned |
+| **Long-term** | Kata Containers or VM-per-workspace | ✅ Maximum | 💡 Research |
+
+**References:**
+- Docker-in-Docker Research: [sparc/0-research/docker-in-docker-research.md](sparc/0-research/docker-in-docker-research.md)
+- VM Wrapper Solutions: [sparc/0-research/VM_WRAPPER_SOLUTIONS_RESEARCH.md](sparc/0-research/VM_WRAPPER_SOLUTIONS_RESEARCH.md)
+- Container Isolation: [sparc/0-research/CONTAINER_ISOLATION_RESEARCH.md](sparc/0-research/CONTAINER_ISOLATION_RESEARCH.md)
+
 ---
 
 ## Quick Start
