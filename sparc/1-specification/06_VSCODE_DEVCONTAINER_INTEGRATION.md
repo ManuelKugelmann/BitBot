@@ -393,6 +393,111 @@ labels:
 
 ---
 
+## 2. Shared Home Folders for AI Tools
+
+### 2.0 Concept and Architecture
+
+**Purpose**: Persistent, shared configuration folders for AI development tools (Claude Code, Claude Flow, OpenCode) across BitBot workspace containers.
+
+**Key Principle**: These folders are **BitBot-specific** and **version-controlled**, not system-wide user configurations.
+
+### 2.0.1 Directory Structure
+
+```
+templates/workspace/
+├── home/
+│   ├── claude/          → mounted to /home/bitbot/.claude
+│   ├── claude-flow/     → mounted to /home/bitbot/.claude-flow
+│   └── opencode/        → mounted to /home/bitbot/.opencode
+├── scripts/
+│   ├── post-create.sh
+│   └── install-fallbacks.sh
+├── Dockerfile
+├── devcontainer.json
+└── README.md
+```
+
+### 2.0.2 Why Shared Folders?
+
+| Benefit              | Description                                              |
+|----------------------|----------------------------------------------------------|
+| ✅ **Persistent**     | Survive container rebuilds and recreations              |
+| ✅ **Shared**         | Common configs across all BitBot workspace containers   |
+| ✅ **BitBot-scoped**  | Specific to your BitBot project, not system-wide        |
+| ✅ **Version-controlled** | Part of your project repository                     |
+| ✅ **Portable**       | Move with the project, share with team                  |
+
+### 2.0.3 Mount Configuration
+
+**devcontainer.json** (`templates/workspace/devcontainer.json`):
+```json
+{
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+
+    "source=${localWorkspaceFolder}/.devcontainer/home/claude,target=/home/bitbot/.claude,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer/home/claude-flow,target=/home/bitbot/.claude-flow,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer/home/opencode,target=/home/bitbot/.opencode,type=bind,consistency=cached"
+  ]
+}
+```
+
+### 2.0.4 What Goes in Shared Folders?
+
+| Folder         | Contains                               | Example Files                |
+|----------------|----------------------------------------|------------------------------|
+| `claude/`      | Claude Code instructions, tools        | CLAUDE.md, tools/*.sh        |
+| `claude-flow/` | Workflow definitions, automation       | workflows/*.yaml, config.yml |
+| `opencode/`    | Code templates, snippets, config       | templates/*.tmpl, config.yml |
+
+### 2.0.5 Distinction: BitBot Development vs. Workspace Containers
+
+**IMPORTANT**: BitBot has two devcontainer contexts:
+
+| Context                | Location            | Purpose                           | Used For                |
+|------------------------|---------------------|-----------------------------------|-------------------------|
+| **BitBot Development** | `/.devcontainer`    | Develop BitBot itself            | Contributors, maintainers |
+| **Workspace**          | `/templates/workspace` | AI-powered user workspaces    | BitBot users, projects  |
+
+**Key Points**:
+- Root `/.devcontainer` is for **developing BitBot itself** (has MinGW, BitBot dependencies)
+- `templates/workspace` is for **BitBot-managed workspaces** (has AI tools, dev environment)
+- Shared home folders are in **workspace template only** (user-facing feature)
+
+See `templates/workspace/README.md` for full workspace template documentation.
+
+### 2.0.6 Hybrid Installation Approach
+
+BitBot uses a **hybrid approach** for installing AI tools in workspace containers:
+
+**Official Features** (preferred, via devcontainer features):
+```json
+{
+  "features": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {
+      "version": "latest"
+    }
+  }
+}
+```
+
+**Fallback Scripts** (when features unavailable):
+```bash
+# .devcontainer/scripts/install-fallbacks.sh
+if ! command -v claude &> /dev/null; then
+    npm install -g @anthropic-ai/claude-code@latest
+fi
+```
+
+**Benefits**:
+- ✅ Use official features when available (up-to-date, maintained)
+- ✅ Fallback to manual installation when needed
+- ✅ Flexibility for experimental or custom tools
+
+See `sparc/0-research/DEVCONTAINER_FEATURES_RESEARCH.md` for feature details.
+
+---
+
 ## 2. devcontainer.json Configuration
 
 ### 2.1 Work Mode devcontainer.json

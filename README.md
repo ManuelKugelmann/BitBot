@@ -83,7 +83,12 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 - Hex-encoded URI protocol for seamless workflow
 
 📦 **Flexible Templates**
-- Base template: Ubuntu + BitBot (Claude Code, Claude Flow, Open Code)
+- **Workspace template**: Ubuntu + AI tools (Claude Code, Claude Flow, Open Code)
+  - Hybrid installation: Official devcontainer features + fallback scripts
+  - Shared home folders for persistent AI tool configs (version-controlled)
+  - See `templates/workspace/README.md` for details
+- Base template: Ubuntu + basic dev environment
+- Config template: For managing devcontainer configurations
 - 🚧 WIP: Rootless Docker template for Docker-in-Docker workflows
 - 🚧 WIP: VM-based template with full Docker for maximum isolation
 - 🚧 WIP: Agent steering templates for different workloads
