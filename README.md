@@ -142,26 +142,26 @@ If your work container needs Docker (e.g., for building Docker images, running D
 
 Different approaches to running Docker inside containers have vastly different security profiles:
 
-| Solution | Kernel Sharing | Container Escape Risk | Setup Complexity | Performance | Best For |
-|----------|---------------|----------------------|-----------------|-------------|----------|
-| **No Docker** (default) | N/A | ✅ None | ⭐ Simple | ⭐⭐⭐⭐⭐ | Code-only work |
-| **Privileged DinD** | ✅ Yes (same kernel) | ⚠️ HIGH - Multiple vectors | ⭐⭐ Medium | ⭐⭐⭐⭐ | Trusted dev only |
-| **Rootless Docker-in-Docker** | ✅ Yes (same kernel) | ⚠️ MEDIUM - Kernel exploits possible | ⭐⭐⭐ Complex | ⭐⭐⭐ | Better than privileged |
-| **Docker Socket Mount** | ✅ Yes (host Docker) | ⚠️ HIGH - Root equivalent | ⭐ Simple | ⭐⭐⭐⭐⭐ | Trusted dev only |
-| **Sysbox Runtime** | ✅ Yes (with user namespaces) | ✅ LOW - User namespace isolation | ⭐⭐⭐⭐ Hard | ⭐⭐⭐⭐ | Production-like |
-| **VM + Full Docker** (future) | ❌ No (VM kernel) | ✅ VERY LOW - VM isolation | ⭐⭐⭐⭐ Hard | ⭐⭐⭐ | Untrusted code |
-| **Kata Containers** | ❌ No (micro-VM per container) | ✅ VERY LOW - VM per container | ⭐⭐⭐⭐⭐ Very Hard | ⭐⭐ | Maximum security |
+| Solution                           | Kernel Sharing                 | Container Escape Risk                   | Setup Complexity | Performance    | Best For             |
+|------------------------------------|--------------------------------|-----------------------------------------|------------------|----------------|----------------------|
+| **No Docker** (default)            | N/A                            | ✅ None                                 | ⭐ Simple        | ⭐⭐⭐⭐⭐       | Code-only work       |
+| **Privileged DinD**                | ✅ Yes (same kernel)           | ⚠️  HIGH - Multiple vectors             | ⭐⭐ Medium       | ⭐⭐⭐⭐         | Trusted dev only     |
+| **Rootless Docker-in-Docker**      | ✅ Yes (same kernel)           | ⚠️  MEDIUM - Kernel exploits possible   | ⭐⭐⭐ Complex     | ⭐⭐⭐           | Better than priv     |
+| **Docker Socket Mount**            | ✅ Yes (host Docker)           | ⚠️  HIGH - Root equivalent              | ⭐ Simple        | ⭐⭐⭐⭐⭐       | Trusted dev only     |
+| **Sysbox Runtime**                 | ✅ Yes (with user namespaces)  | ✅ LOW - User namespace isolation       | ⭐⭐⭐⭐ Hard      | ⭐⭐⭐⭐         | Production-like      |
+| **DevPod + VM/Cloud** (target)     | ❌ No (VM/cloud kernel)        | ✅ VERY LOW - VM isolation              | ⭐⭐⭐⭐ Hard      | ⭐⭐⭐           | Untrusted code       |
+| **Kata Containers**                | ❌ No (micro-VM per container) | ✅ VERY LOW - VM per container          | ⭐⭐⭐⭐⭐ V.Hard  | ⭐⭐             | Maximum security     |
 
 **Security Risk Details:**
 
-| Approach | Container Breakout | Host Compromise | Kernel Vulnerabilities | Resource Exhaustion | Privilege Escalation |
-|----------|-------------------|-----------------|----------------------|---------------------|---------------------|
-| **Privileged DinD** | ⚠️ HIGH | ⚠️ HIGH | ⚠️ HIGH | ⚠️ HIGH | ⚠️ HIGH |
-| **Rootless DinD** | ⚠️ MEDIUM | ⚠️ MEDIUM | ⚠️ HIGH | ⚠️ MEDIUM | ✅ LOW |
-| **Socket Mount** | ⚠️ HIGH | ⚠️ HIGH | ⚠️ MEDIUM | ⚠️ HIGH | ⚠️ HIGH |
-| **Sysbox** | ✅ LOW | ✅ LOW | ⚠️ MEDIUM | ⚠️ MEDIUM | ✅ LOW |
-| **VM + Docker** | ✅ VERY LOW | ✅ VERY LOW | ✅ LOW | ✅ LOW | ✅ VERY LOW |
-| **Kata Containers** | ✅ VERY LOW | ✅ VERY LOW | ✅ VERY LOW | ✅ VERY LOW | ✅ VERY LOW |
+| Approach              | Container Breakout | Host Compromise | Kernel Vulnerabilities | Resource Exhaustion | Privilege Escalation |
+|-----------------------|--------------------|-----------------|------------------------|---------------------|----------------------|
+| **Privileged DinD**   | ⚠️  HIGH           | ⚠️  HIGH        | ⚠️  HIGH               | ⚠️  HIGH            | ⚠️  HIGH             |
+| **Rootless DinD**     | ⚠️  MEDIUM         | ⚠️  MEDIUM      | ⚠️  HIGH               | ⚠️  MEDIUM          | ✅ LOW               |
+| **Socket Mount**      | ⚠️  HIGH           | ⚠️  HIGH        | ⚠️  MEDIUM             | ⚠️  HIGH            | ⚠️  HIGH             |
+| **Sysbox**            | ✅ LOW             | ✅ LOW          | ⚠️  MEDIUM             | ⚠️  MEDIUM          | ✅ LOW               |
+| **DevPod + VM/Cloud** | ✅ VERY LOW        | ✅ VERY LOW     | ✅ LOW                 | ✅ LOW              | ✅ VERY LOW          |
+| **Kata Containers**   | ✅ VERY LOW        | ✅ VERY LOW     | ✅ VERY LOW            | ✅ VERY LOW         | ✅ VERY LOW          |
 
 **Specific Attack Vectors:**
 
@@ -206,12 +206,69 @@ nsenter -t 1 -m -u -n -i sh  # Escape to host namespace
 
 **BitBot's Approach:**
 
-| Phase | Solution | Security Level | Status |
-|-------|----------|---------------|--------|
-| **Current (MVP)** | No Docker by default | ✅ High | ✅ Implemented |
-| **Optional (Now)** | Rootless Docker-in-Docker | ⚠️ Medium | 🚧 Available for trusted workflows |
-| **Future (Phase 3)** | VM + Full Docker (Sysbox or Multipass) | ✅ Very High | 📋 Planned |
-| **Long-term** | Kata Containers or VM-per-workspace | ✅ Maximum | 💡 Research |
+| Phase                 | Solution                            | Security Level | Status                           |
+|-----------------------|-------------------------------------|----------------|----------------------------------|
+| **Current (MVP)**     | No Docker by default                | ✅ High        | ✅ Implemented                   |
+| **Optional (Now)**    | Rootless Docker-in-Docker           | ⚠️  Medium     | 🚧 Available for trusted flows   |
+| **Future (Phase 3)**  | DevPod (Docker/VM/Cloud providers)  | ✅ Very High   | 📋 Planned                       |
+| **Long-term**         | Kata Containers or VM-per-workspace | ✅ Maximum     | 💡 Research                      |
+
+**DevPod Provider Options** (Phase 3):
+- **Docker** (local) - Fast, same as current but via DevPod
+- **Multipass** (local VM) - Ubuntu VM isolation on Windows/macOS/Linux
+- **AWS/GCP/Azure** (cloud) - Remote development with VM isolation
+- **Kubernetes** (cluster) - For team/enterprise deployments
+- **SSH** (custom) - Connect to any remote machine
+
+### DevPod on Windows + WSL2 + Docker Desktop
+
+**Compatibility**: ✅ DevPod works with Docker Desktop on Windows via WSL2 integration
+
+**Critical Path Considerations**:
+
+| Storage Location                 | Performance          | DevPod Compatibility | Recommendation |
+|----------------------------------|----------------------|----------------------|----------------|
+| WSL filesystem (`/home/user/`)   | ⭐⭐⭐⭐⭐ Fast         | ✅ Excellent         | **Use this**   |
+| Windows filesystem (`/mnt/c/`)   | ⭐⭐ Slow (10x)       | ⚠️  Path issues      | **Avoid**      |
+
+**Known Issues**:
+- ⚠️ **Path Binding**: DevPod may have issues with `/mnt/c/` paths when Docker is in WSL
+- ⚠️ **devpod-home**: Setting `devpod-home=/mnt/c/Users/MyUser/` can cause incorrect volume binding
+- ✅ **Workaround**: Store projects in WSL filesystem (`/home/user/projects`)
+- ✅ **Docker Desktop**: Ensure WSL2 integration is enabled in Docker Desktop settings
+- 🔧 **Status**: WSL integration improved significantly as of April 2025
+
+**Recommended Setup for Windows**:
+```bash
+# 1. Store projects in WSL filesystem
+cd ~/projects  # Not /mnt/c/Projects
+
+# 2. Use DevPod with Docker provider
+devpod provider add docker
+devpod provider use docker
+
+# 3. Verify Docker Desktop WSL2 integration
+docker context ls  # Should show WSL context
+
+# 4. Create workspace from WSL path
+devpod up ~/projects/my-repo
+```
+
+**Alternative for Better Isolation**:
+```bash
+# Use Multipass provider for VM isolation (doesn't use /mnt/c)
+devpod provider add multipass
+devpod provider use multipass
+devpod up ~/projects/my-repo
+```
+
+**Performance Comparison (Windows)**:
+
+| Approach                      | Startup | I/O Performance  | Isolation | Path Issues  |
+|-------------------------------|---------|------------------|-----------|--------------|
+| DevPod + Docker (WSL paths)   | Fast    | ⭐⭐⭐⭐⭐         | Medium    | ✅ None      |
+| DevPod + Docker (/mnt/c)      | Fast    | ⭐⭐             | Medium    | ⚠️  Common   |
+| DevPod + Multipass            | Medium  | ⭐⭐⭐⭐           | High      | ✅ None      |
 
 **References:**
 - Docker-in-Docker Research: [sparc/0-research/docker-in-docker-research.md](sparc/0-research/docker-in-docker-research.md)
