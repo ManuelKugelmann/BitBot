@@ -46,8 +46,8 @@ flowchart TD
     Shell --> UserCmd[User runs command]
 
     style Start fill:#4a9eff
-    style Check fill:#ffcc00
-    style Shell fill:#90ee90
+    style Check fill:#ffa726,color:#333
+    style Shell fill:#66bb6a,color:#333
 ```
 
 ---
@@ -84,10 +84,10 @@ flowchart TD
     Resume --> Done
 
     style Cmd fill:#4a9eff
-    style Check fill:#ffcc00
-    style Choice fill:#ffcc00
-    style Mode fill:#ffcc00
-    style Done fill:#90ee90
+    style Check fill:#ffa726,color:#333
+    style Choice fill:#ffa726,color:#333
+    style Mode fill:#ffa726,color:#333
+    style Done fill:#66bb6a,color:#333
 ```
 
 ---
@@ -122,10 +122,10 @@ flowchart TD
     Start --> Done
 
     style Cmd fill:#4a9eff
-    style CheckName fill:#ffcc00
-    style TryAttach fill:#ffcc00
-    style Count fill:#ffcc00
-    style Done fill:#90ee90
+    style CheckName fill:#ffa726,color:#333
+    style TryAttach fill:#ffa726,color:#333
+    style Count fill:#ffa726,color:#333
+    style Done fill:#66bb6a,color:#333
 ```
 
 ---
@@ -174,12 +174,12 @@ flowchart TD
     BackShell --> UserDec1
 
     style Enter fill:#4a9eff
-    style Sess fill:#ffcc00
-    style UserDec1 fill:#ffcc00
-    style UserDec2 fill:#ffcc00
-    style Mode fill:#ffcc00
-    style InClaude fill:#90ee90
-    style Work fill:#90ee90
+    style Sess fill:#ffa726,color:#333
+    style UserDec1 fill:#ffa726,color:#333
+    style UserDec2 fill:#ffa726,color:#333
+    style Mode fill:#ffa726,color:#333
+    style InClaude fill:#66bb6a,color:#333
+    style Work fill:#66bb6a,color:#333
 ```
 
 ---
