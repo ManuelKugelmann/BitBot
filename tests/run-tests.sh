@@ -163,7 +163,11 @@ else
     fi
 fi
 
-# Test 7: Integration tests (skipped in quick mode)
+# Test 7: Container BitBot (always run, fast)
+run_test "Container BitBot Test Suite" \
+    "${SCRIPT_DIR}/test-container-bitbot.sh"
+
+# Test 8: Integration tests (skipped in quick mode)
 if [[ "$QUICK" == "true" ]]; then
     run_test "Full Integration Test" \
         "${SCRIPT_DIR}/test-integration.sh" \
