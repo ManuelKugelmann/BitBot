@@ -291,7 +291,7 @@ bitbot/
 - [ ] Linux testing and packaging
 - [ ] Rootless Docker template for Docker-in-Docker workflows
 - [ ] Agent steering templates for different workloads (code, docs, testing)
-- [x] Hash matching for CLI-built containers with VS Code (solved in sparc/4-refinement/poc-tests)
+- [x] Hash matching for CLI-built containers with VS Code (solved via path matching in sparc/4-refinement/poc-tests)
 
 **Phase 3:**
 - [ ] VM containers for enhanced isolation
