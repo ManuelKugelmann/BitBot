@@ -32,7 +32,7 @@ sequenceDiagram
     VSCode->>Container: Attach
     Container-->>User: Opens ✓
 
-    style BitBot fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
+    style BitBot fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
     style VSCode fill:#4a9eff,stroke:#333,stroke-width:2px
     style Container fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
@@ -188,7 +188,7 @@ graph TB
     LINUX_PATH --> LINUX_HEX
     LINUX_HEX --> LINUX_CODE
 
-    style DETECT fill:#ffd700,stroke:#333,stroke-width:2px,color:#333
+    style DETECT fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
     style WIN_CODE fill:#4a9eff,stroke:#333,stroke-width:2px
     style MAC_CODE fill:#4a9eff,stroke:#333,stroke-width:2px
     style LINUX_CODE fill:#4a9eff,stroke:#333,stroke-width:2px
