@@ -1,7 +1,7 @@
 # Container BitBot Pseudocode
 
 **Component**: Container BitBot (runs inside containers)
-**Source**: `container-bitbot/` directory
+**Source**: `container/bitbot/` directory
 **Installed**: `/opt/bitbot/` inside containers
 **Purpose**: AI agent assistance and session management inside devcontainers
 
@@ -458,9 +458,9 @@ END FUNCTION
 
 ## Implementation Notes
 
-**Source Structure** (`container-bitbot/`):
+**Source Structure** (`container/bitbot/`):
 ```
-container-bitbot/
+container/bitbot/
 ├── bitbot                 # Main entry point (mirrors outer bitbot)
 ├── README.md              # Container BitBot documentation
 └── core/                  # Mirrors outer bitbot core/ structure
@@ -487,7 +487,7 @@ container-bitbot/
 
 **Deployment**: Dockerfile copies during build:
 ```dockerfile
-COPY container-bitbot/ /opt/bitbot/
+COPY container/bitbot/ /opt/bitbot/
 RUN chmod +x /opt/bitbot/bitbot /opt/bitbot/core/commands/*.sh
 ENV PATH="/opt/bitbot:${PATH}"
 ```

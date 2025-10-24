@@ -1,3 +1,97 @@
+## Project Structure
+
+BitBot follows a clean separation between core functionality, development artifacts, templates, and documentation.
+
+### Top-Level Organization
+
+```
+BitBot/
+├── bitbot              # Main launcher (bash)
+├── bitbot.cmd          # Windows CMD launcher
+├── bitbot.exe          # Windows compiled launcher
+├── core/               # Host-side BitBot implementation (shell scripts)
+├── container/          # Container-related files
+│   ├── bitbot/        # Container-side BitBot runtime (commands, utilities)
+│   └── templates/     # DevContainer templates
+│       ├── base/      # Minimal BitBot container
+│       ├── config/    # BitBot with configuration tools
+│       ├── bitbotdev/ # BitBot development container
+│       ├── workspace/ # AI-powered workspace container
+│       ├── custom/    # User custom templates
+│       └── shared/    # Shared scripts and configs
+├── dev/                # Development artifacts (scripts, src, tests)
+├── sparc/              # SPARC methodology documentation
+├── .claude/            # Claude Code configuration (CLAUDE.md, tools/)
+├── .devcontainer/      # BitBot development container
+└── .github/            # GitHub workflows
+```
+
+### Core Directories
+
+| Directory                      | Purpose                              | Naming Convention   |
+| ------------------------------ | ------------------------------------ | ------------------- |
+| `/core/`                       | Host-side BitBot (shell)             | kebab-case.sh       |
+| `/container/bitbot/`           | Container-side BitBot runtime        | kebab-case.sh       |
+| `/container/templates/`        | DevContainer templates               | lowercase/          |
+| `/container/templates/shared/` | Shared scripts and configs           | kebab-case          |
+| `/dev/`                        | Development artifacts                | kebab-case          |
+| `/sparc/`                      | SPARC documentation                  | (see SPARC section) |
+| `/.claude/`                    | Claude Code config                   | kebab-case          |
+| `/.devcontainer/`              | BitBot dev container                 | lowercase           |
+
+### Development Artifacts (/dev/)
+
+Development-related files organized under `/dev/`:
+
+| Directory       | Purpose                              | Examples                          |
+| --------------- | ------------------------------------ | --------------------------------- |
+| `/dev/scripts/` | Release and build scripts            | `create-release-branch.sh`        |
+| `/dev/src/`     | Source code (e.g., Windows launcher) | `launcher_windows/launcher.c`     |
+| `/dev/tests/`   | Test suites                          | `test-container-bitbot.sh`        |
+
+### Naming Conventions
+
+**Shell Scripts** (`.sh` files):
+- Use **kebab-case**: `fix-line-endings.sh`, `test-prerequisites.sh`
+- Always include `.sh` extension
+- Mark executable with `chmod +x`
+
+**Documentation** (`.md` files):
+- Root docs: **kebab-case** (`README.md`, `README-EXTENDED.md`)
+- SPARC research: **UPPERCASE_UNDERSCORE** (`AI_AGENT_RESEARCH.md`)
+- SPARC specs: **Numbered UPPERCASE** (`01_CONTAINER_ORCHESTRATION.md`)
+- Architecture: **numbered-kebab-case** (`01-system-overview.md`)
+
+**Directories**:
+- Use **lowercase** or **kebab-case**: `core/`, `container-bitbot/`, `sparc/`
+- Template types: lowercase single words (`base/`, `config/`, `dev/`, `workspace/`)
+
+**Configuration Files**:
+- JSON: lowercase or dot-separated (`devcontainer.json`, `settings.local.json`)
+- Dockerfile: `Dockerfile` (standard naming)
+- YAML: kebab-case (`.github/workflows/release.yml`)
+
+### Container Templates
+
+Templates under `container/templates/`:
+
+| Template     | Purpose                     | Features                          |
+| ------------ | --------------------------- | --------------------------------- |
+| `base/`      | Minimal BitBot              | Core only, no extras              |
+| `config/`    | BitBot with configuration   | + Config tools, JSON editing      |
+| `bitbotdev/` | BitBot development          | + Build tools, shared home        |
+| `workspace/` | AI-powered workspaces       | + Claude Code, AI tools, MCP      |
+| `custom/`    | User custom templates       | User-defined workload containers  |
+| `shared/`    | Shared resources            | Scripts, configs used by all      |
+
+Each template contains:
+- `Dockerfile` - Container image definition
+- `devcontainer.json` - VS Code DevContainer config
+- `details.devcontainer.json` - Template-specific settings
+- `README.md` - Template documentation
+
+Container runtime scripts are in `container/bitbot/` and get copied into all templates.
+
 ## SPARC Process
 
 BitBot follows the **SPARC** methodology for structured development:
@@ -16,12 +110,14 @@ BitBot follows the **SPARC** methodology for structured development:
 - Specifications → `sparc/1-specification/`
 - Design docs → `sparc/3-architecture/`
 - POC tests → `sparc/4-refinement/poc-tests/`
-- Supporting tools/helpers → `sparc/5-completion/`
-- Source code (e.g. launcher) → `sparc/5-completion/src/`
-- Test suites → `sparc/5-completion/tests/`
-- Core implementation → `/core` (BitBot shell scripts)
-- BitBot templates → `templates/bitbot/` (base, config, dev, workspace)
-- Custom templates → `templates/custom/` (user workload templates)
+- Completion docs → `sparc/5-completion/`
+- Release scripts → `dev/scripts/`
+- Source code (e.g. launcher) → `dev/src/`
+- Test suites → `dev/tests/`
+- Core implementation → `/core/` (host-side BitBot shell scripts)
+- Container runtime → `/container/bitbot/` (container-side BitBot)
+- Container templates → `container/templates/` (base, config, bitbotdev, workspace)
+- Custom templates → `container/templates/custom/` (user workload templates)
 - DO NOT put core implementation code in sparc/ folders
 - DO reference sparc/ docs when implementing features
 
@@ -60,18 +156,20 @@ BitBot follows the **SPARC** methodology for structured development:
 
 **IMPORTANT**: BitBot has two separate devcontainer contexts - do NOT confuse them!
 
-| Context                | Location                | Purpose               | Notes                                      |
-| ---------------------- | ----------------------- | --------------------- | ------------------------------------------ |
-| **BitBot Development** | `/.devcontainer/`       | Develop BitBot itself | MinGW, BitBot dev tools                    |
-| **Workspace**          | `/templates/workspace/` | User AI workspaces    | Claude Code, AI tools, shared home folders |
+| Context                | Location                            | Purpose               | Notes                                      |
+| ---------------------- | ----------------------------------- | --------------------- | ------------------------------------------ |
+| **BitBot Development** | `/.devcontainer/`                   | Develop BitBot itself | MinGW, BitBot dev tools                    |
+| **BitBot Dev Template**| `/container/templates/bitbotdev/`   | BitBot dev container  | Template for BitBot development            |
+| **User Workspace**     | `/container/templates/workspace/`   | User AI workspaces    | Claude Code, AI tools, shared home folders |
 
 **Key Points**:
 
-- `/.devcontainer/` = **For BitBot contributors** (developing BitBot)
-- `templates/workspace/` = **For BitBot users** (AI-powered development)
+- `/.devcontainer/` = **For Claude Code dev** (developing BitBot with Claude Code)
+- `container/templates/bitbotdev/` = **BitBot dev template** (for building dev containers)
+- `container/templates/workspace/` = **For BitBot users** (AI-powered development)
 - Do NOT modify root `/.devcontainer/` unless working on BitBot itself
 - Workspace templates include shared home folders for AI tool configs
-- See `templates/workspace/README.md` for workspace template docs
+- See `container/templates/workspace/README.md` for workspace template docs
 
 ## Available Tools
 
@@ -132,14 +230,14 @@ BitBot follows the **SPARC** methodology for structured development:
 
 1. **Create Tests**:
 
-   - Write test script in `tests/test-<feature>.sh`
+   - Write test script in `dev/tests/test-<feature>.sh`
    - Include bash syntax check, unit tests, integration tests
    - Use clear test names and section headers
-   - Follow existing test structure (see `tests/test-container-bitbot.sh`)
+   - Follow existing test structure (see `dev/tests/test-container-bitbot.sh`)
 1. **Run Tests in WSL**:
 
-   - Fix line endings + check syntax: `.claude/tools/fix-line-endings-check-bash tests/test-<feature>.sh`
-   - Run with timeout: `.claude/tools/run-with-timeout 60 ./tests/test-<feature>.sh`
+   - Fix line endings + check syntax: `.claude/tools/fix-line-endings-check-bash dev/tests/test-<feature>.sh`
+   - Run with timeout: `.claude/tools/run-with-timeout 60 dev/tests/test-<feature>.sh`
    - Debug failures individually before moving on
 1. **Fix Issues**:
 
@@ -152,7 +250,7 @@ BitBot follows the **SPARC** methodology for structured development:
 
    - Commit line ending fixes separately
    - Commit test suite with results in commit message
-   - Add test to `tests/run-tests.sh` if appropriate
+   - Add test to `dev/tests/run-tests.sh` if appropriate
 1. **Test Framework**:
 
    - Use `run_test()`, `test_passed()`, `test_failed()` helpers
@@ -164,24 +262,24 @@ BitBot follows the **SPARC** methodology for structured development:
 
 ```bash
 # 1. Create test
-vim tests/test-feature.sh
-chmod +x tests/test-feature.sh
+vim dev/tests/test-feature.sh
+chmod +x dev/tests/test-feature.sh
 
 # 2. Fix line endings and check syntax (use tools!)
-.claude/tools/fix-line-endings-check-bash tests/test-feature.sh
+.claude/tools/fix-line-endings-check-bash dev/tests/test-feature.sh
 .claude/tools/fix-line-endings-check-bash feature/script.sh
 
 # 3. Run tests with timeout to prevent hangs
-.claude/tools/run-with-timeout 60 ./tests/test-feature.sh
+.claude/tools/run-with-timeout 60 dev/tests/test-feature.sh
 
 # 4. Fix issues and rerun
 # ... fix logic errors ...
-.claude/tools/run-with-timeout 60 ./tests/test-feature.sh
+.claude/tools/run-with-timeout 60 dev/tests/test-feature.sh
 
 # 5. Commit
 git add feature/script.sh
 git commit -m "Fix line endings"
-git add tests/test-feature.sh
+git add dev/tests/test-feature.sh
 git commit -m "Add feature test suite (28/28 pass)"
 ```
 

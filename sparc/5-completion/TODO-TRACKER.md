@@ -199,7 +199,18 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
   - [ ] Test PATH setup (all platforms)
   - [ ] Validate first-run experience
 
-### 4. Bug Fixes
+### 4. Config Agent Preparation
+**Priority**: P1 (Important)
+
+- [ ] **Prepare template documentation for config agent**
+  - [ ] Reference BASE_TEMPLATE.md - explains base template structure
+  - [ ] Reference SHARED_RESOURCES.md - documents shared scripts/configs
+  - [ ] Reference CONTAINER_BITBOT.md - explains container-side BitBot runtime
+  - [ ] Reference BITBOTDEV_TEMPLATE.md - BitBot development template
+  - [ ] Agent should use these docs to help users customize templates
+  - [ ] Agent should understand template merge process (shared scripts)
+
+### 5. Bug Fixes
 **Priority**: P0 (Blocking)
 
 - [ ] **Known Issues**

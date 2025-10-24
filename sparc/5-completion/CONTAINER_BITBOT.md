@@ -22,9 +22,8 @@ Same command name, context-aware behavior!
 Mirrors outer bitbot structure for consistency:
 
 ```
-container-bitbot/              # Source (copied to container)
+container/bitbot/              # Source (copied to container)
 ├── bitbot                     # Entry point (same name as host)
-├── README.md                  # This file
 └── core/                      # Mirrors outer core/ structure
     ├── commands/              # Command implementations
     │   ├── start.sh           # Start Claude session in tmux
@@ -42,8 +41,8 @@ container-bitbot/              # Source (copied to container)
 Container BitBot is automatically installed during container build:
 
 ```dockerfile
-# In templates/base/Dockerfile (or custom template)
-COPY container-bitbot/ /opt/bitbot/
+# In container/templates/base/Dockerfile (or custom template)
+COPY container/bitbot/ /opt/bitbot/
 RUN chmod +x /opt/bitbot/bitbot /opt/bitbot/core/commands/*.sh
 ENV PATH="/opt/bitbot:${PATH}"
 ```
@@ -176,5 +175,5 @@ The `bitbot` command adapts to its environment:
 
 - **Outer BitBot**: `bitbot` (host-side entry point)
 - **Core Implementation**: `core/` (host-side scripts)
-- **Templates**: `templates/` (devcontainer templates)
+- **Templates**: `container/templates/` (devcontainer templates)
 - **Specifications**: `sparc/1-specification/`
