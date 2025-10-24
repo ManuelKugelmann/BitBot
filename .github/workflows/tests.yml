@@ -6,7 +6,7 @@ on:
       - trunk
     paths:
       - 'core/**'
-      - 'tests/**'
+      - 'dev/tests/**'
       - 'bitbot'
       - 'bitbot.cmd'
       - '.github/workflows/tests.yml'
@@ -28,7 +28,10 @@ jobs:
         run: |
           echo "Checking bash script syntax..."
           find core -name "*.sh" -type f -exec bash -n {} \;
-          find scripts -name "*.sh" -type f -exec bash -n {} \;
+          find dev/scripts -name "*.sh" -type f -exec bash -n {} \;
+          find dev/tests -name "*.sh" -type f -exec bash -n {} \;
+          find container/bitbot -name "*.sh" -type f -exec bash -n {} \;
+          find container/templates -name "*.sh" -type f -exec bash -n {} \;
           bash -n bitbot
           echo "✓ All bash scripts have valid syntax"
 
@@ -45,21 +48,26 @@ jobs:
       - name: Install DevContainer CLI
         run: npm install -g @devcontainers/cli
 
+      - name: Set execute permissions on test scripts
+        run: |
+          chmod +x dev/tests/*.sh
+          chmod +x dev/tests/helpers/*.sh 2>/dev/null || true
+
       - name: Run prerequisite tests
         run: |
-          cd tests
+          cd dev/tests
           ./test-prerequisites.sh || true
           echo "Prerequisite tests completed"
 
       - name: Run workspace init tests
         run: |
-          cd tests
+          cd dev/tests
           ./test-workspace-init.sh
           echo "Workspace init tests completed"
 
       - name: Run all tests
         run: |
-          cd tests
+          cd dev/tests
           ./run-tests.sh
 
       - name: Upload test results
@@ -67,7 +75,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: tests/*.log
+          path: dev/tests/*.log
           if-no-files-found: ignore
 
   # Optional: Windows basic tests (script validation only)
