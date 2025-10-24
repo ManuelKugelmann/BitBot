@@ -177,24 +177,7 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 
   **Conclusion**: BitBot can simply use `code` command - VS Code handles path formats correctly
 
-### 2. Release Preparation
-**Priority**: P0 (Blocking)
-
-- [ ] **Release Branch**
-  - [x] Create release branch script
-  - [x] Sync release branch script
-  - [x] GitHub Actions workflow
-  - [ ] Test release creation locally
-  - [ ] Create initial release (v0.1.0-alpha)
-  - [ ] Set default branch to release
-
-- [ ] **Distribution**
-  - [ ] Test installation from release archive
-  - [ ] Verify checksums
-  - [ ] Test PATH setup (all platforms)
-  - [ ] Validate first-run experience
-
-### 3. Config Agent Preparation
+### 2. Config Agent Preparation
 **Priority**: P1 (Important)
 
 - [ ] **Prepare template documentation for config agent**
@@ -205,7 +188,7 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
   - [ ] Agent should use these docs to help users customize templates
   - [ ] Agent should understand template merge process (shared scripts)
 
-### 4. Bug Fixes
+### 3. Bug Fixes
 **Priority**: P0 (Blocking)
 
 - [ ] **Known Issues**
@@ -338,25 +321,7 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
   - [ ] Known issues documented
   - [ ] Rollback plan documented
 
-### Release Process
-
-- [ ] **Branch & Tag**
-  - [ ] Sync trunk to release branch
-  - [ ] Verify release branch content
-  - [ ] Tag release version
-  - [ ] Push tag to trigger workflow
-
-- [ ] **Distribution**
-  - [ ] GitHub release created
-  - [ ] Release archive uploaded
-  - [ ] Checksums generated
-  - [ ] Release notes published
-
-- [ ] **Post-Release**
-  - [ ] Installation tested from release
-  - [ ] Documentation links verified
-  - [ ] Announcement prepared
-  - [ ] Community notified
+**Note**: Release process details in `RELEASE.md`
 
 ---
 
@@ -393,13 +358,11 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 - [ ] Successfully tested on all three platforms
 - [ ] Installation works without manual intervention
 - [ ] Core workflows (init, work, config) functional
-- [ ] Documentation enables self-service installation
 - [ ] At least 5 external users can install and use
 
 ### Beta Success Criteria
 
 - [ ] No critical bugs in issue tracker
-- [ ] Comprehensive troubleshooting documentation
 - [ ] At least 20 external users
 - [ ] Positive user feedback
 - [ ] Community contributions
@@ -408,7 +371,6 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 
 - [ ] Production readiness checklist satisfied
 - [ ] Full test coverage (>80%)
-- [ ] Professional documentation
 - [ ] Active community
 - [ ] Sustainable maintenance plan
 
