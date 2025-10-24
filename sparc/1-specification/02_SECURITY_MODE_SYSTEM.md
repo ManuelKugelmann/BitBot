@@ -11,9 +11,9 @@
 
 ## Executive Summary
 
-Two-mode security system (work/setup) implemented via separate containers with different mount strategies and git-based protection. Work mode protects infrastructure files from accidental AI changes, while setup mode allows controlled infrastructure modifications with git safety checks.
+Two-mode security system (work/config) implemented via separate containers with different mount strategies and git-based protection. Work mode protects infrastructure files from accidental AI changes, while config mode allows controlled infrastructure modifications with git safety checks.
 
-**Key Decision (D-02)**: Two modes (work/setup) + git-based protection provides simple, auditable safety without complex runtime mode switching.
+**Key Decision (D-02)**: Two modes (work/config) + git-based protection provides simple, auditable safety without complex runtime mode switching.
 
 ---
 
@@ -25,12 +25,12 @@ Two-mode security system (work/setup) implemented via separate containers with d
 - **Purpose**: Normal development and AI assistance
 - **Container**: Managed by `@devcontainers/cli`
 - **AI Access**: Can modify workspace code, cannot modify infrastructure
-- **Protection**: `.devcontainer` mounted read-only, `.bitbot/setup/` invisible
+- **Protection**: `.devcontainer` mounted read-only, `.bitbot/internal/` invisible
 - **Git Safety**: Warnings on uncommitted/unpushed changes
 
-**Setup Mode** (MVP Simplified - also called "Config Mode"):
+**Config Mode**:
 - **Purpose**: Infrastructure changes and devcontainer configuration
-- **Container**: Uses global setup devcontainer template (~/.bitbot/setup-devcontainer/)
+- **Container**: Uses global config devcontainer template (templates/bitbot/config/)
 - **AI Access**: Can modify `.devcontainer` (workspace mounted with RW access)
 - **Protection**: Git warnings on uncommitted changes (non-blocking)
 - **Prerequisites**: Docker + DevContainer CLI (to run the config container)
@@ -45,11 +45,11 @@ Two-mode security system (work/setup) implemented via separate containers with d
 │ 1. Work Mode: Protect infrastructure from accidental AI    │
 │    changes via read-only mounts                             │
 │                                                             │
-│ 2. Setup Mode: Protect via Git safety warnings (non-       │
+│ 2. Config Mode: Protect via Git safety warnings (non-      │
 │    blocking) - simpler for MVP                              │
 │                                                             │
 │ 3. Both Modes: Separate devcontainer configurations        │
-│    (work uses workspace .devcontainer, setup uses global)   │
+│    (work uses workspace .devcontainer, config uses global)  │
 │                                                             │
 │ 4. Git Protection: All infrastructure changes require       │
 │    clean git state or explicit backup                       │
@@ -79,10 +79,10 @@ docker run --user "${HOST_UID}:${HOST_GID}" ...
 **Trade-offs Accepted**:
 - ❌ All modes run as same UID (no UID-based isolation)
 - ✅ Security via mount restrictions (not UID separation)
-- ✅ Both work and setup containers use synced UID
+- ✅ Both work and config containers use synced UID
 
 **Alternative Considered**:
-- Static UIDs (2001=sketch, 2002=work, 2003=setup)
+- Static UIDs (2001=sketch, 2002=work, 2003=config)
 - Rejected: File ownership complexity outweighs security benefit
 - Security achieved through mount flags and git protection instead
 
@@ -120,8 +120,8 @@ volumes:
 - ❌ Modify `.devcontainer/devcontainer.json`
 - ❌ Edit Dockerfile or docker-compose files
 - ❌ Access Docker socket to create/destroy containers (default)
-- ❌ See or modify `.bitbot/setup/` directory
-- ❌ Change container configuration without user switching to setup mode
+- ❌ See or modify `.bitbot/internal/` directory
+- ❌ Change container configuration without user switching to config mode
 
 **Note on Docker-in-Docker:** Some workspace templates may include Docker for building images or running containers. This is an advanced feature with security implications - see section 2.4.
 
@@ -179,27 +179,27 @@ echo "✓ Created checkpoint: git stash pop to restore"
 
 ---
 
-## 3. Setup Mode Security (MVP Simplified)
+## 3. Config Mode Security (MVP Simplified)
 
-### 3.1 Setup Devcontainer Architecture
+### 3.1 Config Devcontainer Architecture
 
-**Global Template Location**: `~/.bitbot/setup-devcontainer/`
+**Global Template Location**: `templates/bitbot/config/`
 ```
-~/.bitbot/setup-devcontainer/
-├── devcontainer.json        # Global setup config
+templates/bitbot/config/
+├── devcontainer.json        # Global config mode config
 └── Dockerfile               # Config container (Claude Code AI + config tools, no Docker inside)
 ```
 
 **Note**: Config mode container includes Claude Code AI and config-specific tools, but NO Docker inside - it's for editing .devcontainer files with AI assistance, not running containers.
 
-**Per-Workspace Config**: `.bitbot/setup/devcontainer.json`
-- Created on first `bitbot setup` launch
+**Per-Workspace Config**: `.bitbot/internal/devcontainer.json`
+- Created on first `bitbot config` launch
 - References global Dockerfile
 - Configures workspace-specific mounts
 
-**Setup Container Mounts** (MVP):
+**Config Container Mounts** (MVP):
 ```yaml
-# Managed by global setup devcontainer
+# Managed by global config devcontainer
 # Parameterized with BITBOT_WORKSPACE env var
 volumes:
   # Full workspace access (read-write, no RO .devcontainer mount)
@@ -210,7 +210,7 @@ volumes:
 
 **Git Status Check** (MVP):
 ```bash
-# Before launching setup mode
+# Before launching config mode
 if [ "$(git status --porcelain | wc -l)" -gt 0 ]; then
     echo "⚠ WARNING: Uncommitted changes detected"
     echo "  Files modified: $(git status --porcelain | wc -l)"
@@ -234,9 +234,9 @@ Add comprehensive warning on config mode entry that explains:
 - Consider showing example of what AI can modify in this mode
 
 **Safe Infrastructure Workflow** (MVP):
-1. User runs `bitbot setup`
+1. User runs `bitbot config`
 2. Git warning shown if uncommitted changes (non-blocking)
-3. Setup devcontainer launches with RW access to .devcontainer
+3. Config devcontainer launches with RW access to .devcontainer
 4. AI/user modifies `.devcontainer` configuration
 5. Changes are tested and committed
 6. Work container rebuilt via devcontainer CLI
@@ -250,9 +250,9 @@ Add comprehensive warning on config mode entry that explains:
 - Blocking git checks
 - `.bitbot/logs/approvals.log`
 
-**Key Insight**: Setup is just another devcontainer with different configuration:
+**Key Insight**: Config is just another devcontainer with different configuration:
 - Work: Uses workspace's `.devcontainer/` + RO bind mount
-- Setup: Uses global `~/.bitbot/setup-devcontainer/` + no RO mount
+- Config: Uses global `templates/bitbot/config/` + no RO mount
 
 ---
 
@@ -260,33 +260,33 @@ Add comprehensive warning on config mode entry that explains:
 
 ### 4.1 Protected Directories
 
-| Directory            | Work Mode  | Setup Mode | Protection Method                  |
-|----------------------|------------|------------|------------------------------------|
-| `.devcontainer/`     | Read-only  | Read-write | RO bind mount (work only)          |
-| `.bitbot/config.json`| Read-write | Read-write | Standard mount                     |
-| `.bitbot/state/`     | Read-write | Read-write | Standard mount (MVP)               |
-| `.bitbot/setup/`     | N/A        | Config only| Per-workspace setup config         |
-| `src/`, `docs/`, etc.| Read-write | Read-write | Standard mount                     |
+| Directory            | Work Mode  | Config Mode | Protection Method                  |
+|----------------------|------------|-------------|------------------------------------|
+| `.devcontainer/`     | Read-only  | Read-write  | RO bind mount (work only)          |
+| `.bitbot/config.json`| Read-write | Read-write  | Standard mount                     |
+| `.bitbot/state/`     | Read-write | Read-write  | Standard mount (MVP)               |
+| `.bitbot/internal/`  | N/A        | Config only | Per-workspace config mode settings |
+| `src/`, `docs/`, etc.| Read-write | Read-write  | Standard mount                     |
 
-### 4.2 Global Setup Template Protection
+### 4.2 Global Config Template Protection
 
-**~/.bitbot/setup-devcontainer/ Contents** (On host, not workspace):
+**templates/bitbot/config/ Contents** (In BitBot installation):
 ```
-~/.bitbot/setup-devcontainer/
+templates/bitbot/config/
 ├── devcontainer.json        # Global config mode template
 └── Dockerfile               # Config container image (no Docker inside)
 ```
 
-**Per-Workspace Setup Config**:
+**Per-Workspace Config Settings**:
 ```
-.bitbot/setup/
+.bitbot/internal/
 └── devcontainer.json        # Links to global template, workspace mounts
 ```
 
 **Why Separate**:
-- Shared setup image across all workspaces
+- Shared config mode image across all workspaces
 - Per-workspace mount configuration
-- Setup container can work on any workspace via BITBOT_WORKSPACE env var
+- Config container can work on any workspace via workspace mount
 
 ---
 
@@ -299,7 +299,7 @@ Add comprehensive warning on config mode entry that explains:
 # MVP commands
 bitbot        # Default: launch work mode
 bitbot work   # Start/attach to work container
-bitbot setup  # Start/attach to setup container (simplified, no approval)
+bitbot config # Start/attach to config container (simplified, no approval)
 bitbot vscode # Launch VS Code in work container
 ```
 
@@ -314,7 +314,7 @@ bitbot vscode # Launch VS Code in work container
 
 Both containers can run simultaneously:
 - **Developer workflow**: Code in work container
-- **Infrastructure changes**: Configure in setup container
+- **Infrastructure changes**: Configure in config container
 - **No conflicts**: Different mount strategies prevent interference
 
 ---
@@ -331,7 +331,7 @@ Both containers can run simultaneously:
 ```bash
 # Container startup
 [2025-10-20T14:30:00Z] WORK_START: container=bitbot-work user=developer
-[2025-10-20T14:31:00Z] SETUP_START: container=bitbot-setup user=developer
+[2025-10-20T14:31:00Z] CONFIG_START: container=bitbot-config user=developer
 
 # Git safety events
 [2025-10-20T14:32:00Z] GIT_WARNING: uncommitted_changes=5
@@ -343,7 +343,7 @@ Both containers can run simultaneously:
 ### 6.2 Future: Approval Audit Trail (Post-MVP)
 
 **Not in MVP**: Approval tracking and audit logs cut for simplification
-**Future**: Add comprehensive audit trail when setup mode gets approval flow
+**Future**: Add comprehensive audit trail when config mode gets approval flow
 
 ---
 
@@ -356,8 +356,8 @@ Both containers can run simultaneously:
 # Stop broken container
 docker stop <container-name>
 
-# Enter setup mode to fix .devcontainer
-bitbot setup
+# Enter config mode to fix .devcontainer
+bitbot config
 
 # Edit .devcontainer configuration
 # Exit and rebuild work container
@@ -407,7 +407,7 @@ COPY --from=bitbot-security /opt/bitbot/work-entrypoint.sh /opt/
 ENTRYPOINT ["/opt/work-entrypoint.sh"]
 ```
 
-### 8.2 Setup/Config Mode Container Security
+### 8.2 Config Mode Container Security
 
 ```dockerfile
 # Config container includes AI + config-specific tools (no Docker inside)
@@ -467,9 +467,9 @@ check_git_safety() {
 
 **Security Requirements** (MVP):
 - [ ] Work mode cannot modify `.devcontainer` files (RO bind mount)
-- [ ] Setup mode allows `.devcontainer` modification (no RO mount)
+- [ ] Config mode allows `.devcontainer` modification (no RO mount)
 - [ ] Git warnings shown on uncommitted changes (both modes, non-blocking)
-- [ ] Setup uses global template (~/.bitbot/setup-devcontainer/)
+- [ ] Config uses global template (templates/bitbot/config/)
 - [ ] DevContainer CLI handles container naming automatically
 
 **Usability Requirements**:

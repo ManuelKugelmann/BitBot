@@ -68,7 +68,7 @@ FUNCTION bitbot_init():
     # Create config mode devcontainer.json (adjusted copy of global template)
     # This copy references global Dockerfile but mounts this workspace
     SET bitbot_install = get_bitbot_install_dir()
-    SET global_config_devcontainer = bitbot_install + "/config-devcontainer/devcontainer.json"
+    SET global_config_devcontainer = bitbot_install + "/templates/bitbot/config/devcontainer.json"
     SET workspace_config_devcontainer = workspace_path + "/.bitbot/internal/devcontainer.json"
 
     # Copy global config devcontainer.json
@@ -118,7 +118,7 @@ FUNCTION bitbot_init():
         # Copy base template from global BitBot installation
         PRINT "[>] Creating base .devcontainer from template..."
         SET bitbot_install = get_bitbot_install_dir()
-        SET template_path = bitbot_install + "/devcontainer-template"
+        SET template_path = bitbot_install + "/templates/bitbot/workspace"
 
         CALL copy_directory(template_path, devcontainer_path)
         PRINT "  ✓ Created .devcontainer/ from template"
@@ -152,7 +152,7 @@ END FUNCTION
 
 ## Git Utilities
 
-Git recommendation and safety check functions are defined in `lib/util/git.md`:
+Git recommendation and safety check functions are defined in `core/util/git.md`:
 
 - `recommend_git_push_before_init(workspace_path)` - Recommends git setup, remote, and push with skip options
 - `check_git_safety(workspace_path)` - Warns about uncommitted changes and public repo secrets
@@ -248,7 +248,7 @@ Both functions provide clear instructions and allow users to skip if needed.
 {
   "name": "my-project-config",
   "build": {
-    "dockerfile": "${env:BITBOT_HOME}/config-devcontainer/Dockerfile"
+    "dockerfile": "${env:BITBOT_HOME}/templates/bitbot/config/Dockerfile"
   },
 
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
@@ -279,4 +279,4 @@ Both functions provide clear instructions and allow users to skip if needed.
 
 ---
 
-**Counterpart**: `lib/global/init.md` for global initialization
+**Counterpart**: `core/global/init.md` for global initialization

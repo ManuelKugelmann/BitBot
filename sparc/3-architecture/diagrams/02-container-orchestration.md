@@ -12,7 +12,7 @@ graph TB
     subgraph WM["Work Mode Container"]
         WC[Work Container]
         WDC[.devcontainer<br/>READ-ONLY]
-        WS1[/workspace<br/>Read-Write]
+        WS1[workspace<br/>Read-Write]
         AI[Claude Code]
         TM1[tmux]
     end
@@ -20,7 +20,7 @@ graph TB
     subgraph CM["Config Mode Container"]
         CC[Config Container]
         CDC[.devcontainer<br/>READ-WRITE]
-        WS2[/workspace<br/>Read-Write]
+        WS2[workspace<br/>Read-Write]
         AI2[Claude Code<br/>Config-focused]
         TM2[tmux]
     end
@@ -70,9 +70,11 @@ graph TB
 ## Work Mode (Secure Development)
 
 ### Purpose
+
 Isolated development environment with AI assistant, protected infrastructure.
 
 ### Characteristics
+
 - **Container**: `devcontainer.json` from workspace
 - **.devcontainer**: Read-only bind mount (cannot modify infrastructure)
 - **Workspace**: Read-write bind mount (can edit code)
@@ -81,6 +83,7 @@ Isolated development environment with AI assistant, protected infrastructure.
 - **Docker-in-Docker**: Optional (⚠️ security trade-off - see SPEC-02 section 2.3)
 
 ### Use Cases
+
 - Writing code
 - Running tests
 - AI-assisted development
@@ -89,6 +92,7 @@ Isolated development environment with AI assistant, protected infrastructure.
 - **(Optional)** Docker image building, Docker Compose testing (⚠️ requires trust)
 
 ### Mount Configuration
+
 ```yaml
 Mounts:
   - source: ${localWorkspaceFolder}/.devcontainer
@@ -109,13 +113,16 @@ Mounts:
 ## Config Mode (Infrastructure Management)
 
 ### Purpose
+
 AI-assisted infrastructure configuration environment with write access to `.devcontainer`.
 
 ### Prerequisites
+
 - Requires Docker on host (to run the config container)
 - Requires DevContainer CLI (to build/launch the config container)
 
 ### Characteristics
+
 - **Container**: Config template with config-specific tooling
 - **.devcontainer**: Read-write bind mount (can modify infrastructure)
 - **Workspace**: Read-write bind mount (can edit everything)
@@ -124,6 +131,7 @@ AI-assisted infrastructure configuration environment with write access to `.devc
 - **Access**: No Docker socket mount - config container doesn't run other containers
 
 ### Use Cases
+
 - AI-assisted editing of `.devcontainer/devcontainer.json`
 - Modifying `Dockerfile` with AI help
 - Adding/configuring devcontainer features
@@ -131,6 +139,7 @@ AI-assisted infrastructure configuration environment with write access to `.devc
 - Infrastructure documentation changes
 
 ### Mount Configuration
+
 ```yaml
 Mounts:
   - source: ${localWorkspaceFolder}
@@ -147,6 +156,7 @@ Mounts:
 ## Security Model
 
 ### Threat Model
+
 **Problem**: AI agents could accidentally modify infrastructure (devcontainer config), breaking the development environment or introducing vulnerabilities.
 
 **Solution**: Separate work and configuration into different containers with different permission models.
@@ -175,7 +185,7 @@ graph LR
 
     subgraph "Layer 5: Application"
         AI[AI Agent]
-        HUMAN[Human User]
+        HUMAN[Agent + Human Review]
     end
 
     HOST --> DOCKER
@@ -192,15 +202,15 @@ graph LR
 
 ### Permission Matrix
 
-| Resource                    | Work Mode                  | Config Mode                     |
-|-----------------------------|----------------------------|---------------------------------|
-| Source code (workspace)     | Read-Write                 | Read-Write                      |
-| .devcontainer files         | Read-Only                  | Read-Write                      |
-| Docker socket               | Optional (⚠️)              | No Access                       |
-| DevContainer CLI            | No Access                  | No Access                       |
-| Workload/Config tools       | Workload-specific          | Config-specific (YAML, JSON)    |
-| Claude Code AI              | Available (code-focused)   | Available (config-focused)      |
-| Git operations              | Available                  | Available                       |
+| Resource                | Work Mode                | Config Mode                  |
+| ----------------------- | ------------------------ | ---------------------------- |
+| Source code (workspace) | Read-Write               | Read-Write                   |
+| .devcontainer files     | Read-Only                | Read-Write                   |
+| Docker socket           | Optional (⚠️)           | No Access                    |
+| DevContainer CLI        | No Access                | No Access                    |
+| Workload/Config tools   | Workload-specific        | Config-specific (YAML, JSON) |
+| Claude Code AI          | Available (code-focused) | Available (config-focused)   |
+| Git operations          | Available                | Available                    |
 
 **Note**: Docker socket access in work mode is optional and template-dependent. When enabled, uses rootless Docker-in-Docker with limited isolation (⚠️ security trade-off). See SPEC-02 section 2.3 for details.
 
@@ -242,12 +252,15 @@ sequenceDiagram
 ## Simultaneous Operation
 
 ### Both Modes Active
+
 Work and config mode containers **can run at the same time**:
+
 - Separate container instances
 - Shared workspace on host
 - No conflicts (different tmux sessions)
 
 ### Use Case
+
 1. **Terminal 1**: `bitbot work` - Coding with AI
 2. **Terminal 2**: `bitbot config` - Editing Dockerfile
 3. **Result**: Safe infrastructure changes without disrupting development
@@ -285,17 +298,20 @@ flowchart TD
 ## Design Decisions
 
 ### Why Two Separate Containers?
+
 - **Security**: AI cannot accidentally modify infrastructure
 - **Simplicity**: Clear separation of concerns
 - **Flexibility**: Can run both simultaneously
 - **Safety**: Infrastructure changes are intentional, not accidental
 
 ### Why Read-Only Mount?
+
 - **Protection**: Filesystem-level enforcement (not just convention)
 - **Reliability**: Cannot be bypassed by AI or user error
 - **Visibility**: Clear error messages if write attempted
 
 ### Why Not Runtime Mode Switching?
+
 - **Complexity**: Runtime switching adds state management
 - **Security**: Mode boundaries less clear
 - **Simplicity**: Separate containers = separate contexts

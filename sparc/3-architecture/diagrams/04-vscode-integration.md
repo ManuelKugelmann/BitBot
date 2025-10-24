@@ -30,11 +30,8 @@ sequenceDiagram
     end
 
     VSCode->>Container: Attach
-    Container-->>User: Opens ✓
+    Container-->>User: Opens
 
-    style BitBot fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
-    style VSCode fill:#4a9eff,stroke:#333,stroke-width:2px
-    style Container fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
 
 ## The Innovation
@@ -63,6 +60,7 @@ flowchart TD
 ```
 
 **Problems**:
+
 - ❌ Manual popup requires user interaction
 - ❌ VS Code restarts (disrupts workflow)
 - ❌ Extra steps every time
@@ -89,6 +87,7 @@ flowchart TD
 ```
 
 **Benefits**:
+
 - ✅ **No popup** - Opens directly in container
 - ✅ **No restart** - One-step process
 - ✅ **Automatic** - Works every time
@@ -120,6 +119,7 @@ path_to_hex() {
 ```
 
 **Why hex?**
+
 - Handles special characters (spaces, backslashes, etc.)
 - URL-safe encoding
 - VS Code's internal format
@@ -135,6 +135,7 @@ vscode-remote://dev-container+{HEX_ENCODED_PATH}{CONTAINER_PATH}
 ```
 
 **Example**:
+
 ```
 vscode-remote://dev-container+433a5c50726f6a656374735c4d794170/workspace
                               └────────────────┬────────────────┘ └───┬───┘
@@ -142,6 +143,7 @@ vscode-remote://dev-container+433a5c50726f6a656374735c4d794170/workspace
 ```
 
 **Components**:
+
 - `vscode-remote://` - VS Code's remote protocol
 - `dev-container+` - DevContainer plugin identifier
 - `{HEX}` - Workspace path in hexadecimal
@@ -195,6 +197,7 @@ graph TB
 ```
 
 **Windows (WSL) Example**:
+
 ```bash
 # WSL: Get Windows path
 WIN_USER=$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r')
@@ -212,6 +215,7 @@ code.exe --folder-uri="vscode-remote://dev-container+${HEX}/workspace"
 ```
 
 **macOS/Linux Example**:
+
 ```bash
 # Use path directly
 PATH_TO_OPEN="/Users/me/Projects/MyApp"
@@ -249,12 +253,15 @@ flowchart TD
 ```
 
 **Benefits**:
+
 - Fast reopening (no rebuild)
 - Preserves container state
 - Same container for CLI and VS Code
 
 **Container Matching**:
+
 VS Code matches containers by:
+
 1. Workspace path (hex encoded in URI)
 2. DevContainer configuration hash
 3. Image name and tags
@@ -279,6 +286,7 @@ code /path/to/workspace
 ```
 
 **Problems**:
+
 - ❌ Large dependency (Node.js + npm + package)
 - ❌ WSL path corruption issues
 - ❌ Still shows manual popup
@@ -297,6 +305,7 @@ bitbot vscode /path/to/workspace
 ```
 
 **Benefits**:
+
 - ✅ No DevContainer CLI needed
 - ✅ No WSL path corruption (hex encoding immune)
 - ✅ No popup (direct container opening)
@@ -376,6 +385,7 @@ bitbot vscode # Opens VS Code in config container
 ### Workflow Examples
 
 **Scenario 1: Start with CLI, switch to VS Code**
+
 ```bash
 $ bitbot work
 [Container] $ # Do some CLI work
@@ -384,6 +394,7 @@ $ bitbot vscode  # Open VS Code in same container
 ```
 
 **Scenario 2: Direct VS Code opening**
+
 ```bash
 $ cd /path/to/project
 $ bitbot vscode  # One command, direct container opening
@@ -424,17 +435,20 @@ flowchart TD
 ## Design Decisions
 
 ### Why Hex Encoding?
+
 - **URL-safe**: No special character escaping needed
 - **Reliable**: Works with spaces, backslashes, Unicode
 - **Standard**: VS Code's internal format
 
 ### Why Not DevContainer CLI?
+
 - **Size**: Saves ~200MB (Alpine stays ~8MB)
 - **Simplicity**: No Node.js/npm dependency
 - **Reliability**: No WSL path corruption issues
 - **Speed**: Direct opening is faster
 
 ### Why Container Path Hardcoded?
+
 - **Convention**: `/workspace` is DevContainer standard
 - **Simplicity**: No need for path mapping
 - **Compatibility**: Works with all devcontainers
