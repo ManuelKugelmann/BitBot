@@ -285,7 +285,7 @@ To add a new test script:
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BITBOT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+BITBOT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Colors
 RED='\033[0;31m'

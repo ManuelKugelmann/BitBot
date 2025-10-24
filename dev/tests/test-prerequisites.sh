@@ -6,7 +6,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BITBOT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+BITBOT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TEST_WORKSPACE="$SCRIPT_DIR/test-workspace"
 
 # Colors for output
