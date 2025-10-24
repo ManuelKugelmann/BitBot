@@ -3,12 +3,16 @@
 # Container BitBot Test Suite
 # Tests container-side BitBot scripts
 #
+# TODO: These scripts should be mounted in the devcontainer at a standard location
+#       (e.g., /usr/local/bitbot) so they're available inside the container.
+#       Update devcontainer.json templates to mount container/bitbot directory.
+#
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CONTAINER_BITBOT="${PROJECT_ROOT}/container/bitbot"
+BITBOT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+CONTAINER_BITBOT_ROOT="${BITBOT_ROOT}/container/bitbot"
 
 # Colors
 RED='\033[0;31m'
@@ -79,9 +83,9 @@ test_bash_syntax() {
 }
 
 # Check all bash scripts
-for script in "${CONTAINER_BITBOT}/bitbot" \
-              "${CONTAINER_BITBOT}/core/commands/"*.sh \
-              "${CONTAINER_BITBOT}/core/util/"*.sh; do
+for script in "${CONTAINER_BITBOT_ROOT}/bitbot" \
+              "${CONTAINER_BITBOT_ROOT}/core/commands/"*.sh \
+              "${CONTAINER_BITBOT_ROOT}/core/util/"*.sh; do
     if [[ -f "$script" ]]; then
         test_bash_syntax "$script"
     fi
@@ -98,7 +102,7 @@ echo ""
 
 # Test help command
 run_test "bitbot help"
-if output=$("${CONTAINER_BITBOT}/bitbot" help 2>&1); then
+if output=$("${CONTAINER_BITBOT_ROOT}/bitbot" help 2>&1); then
     if echo "$output" | grep -q "BitBot (Container)"; then
         test_passed "bitbot help - shows help"
     else
@@ -110,7 +114,7 @@ fi
 
 # Test invalid command
 run_test "bitbot invalid - error handling"
-output=$("${CONTAINER_BITBOT}/bitbot" invalid 2>&1 || true)
+output=$("${CONTAINER_BITBOT_ROOT}/bitbot" invalid 2>&1 || true)
 if echo "$output" | grep -q "Unknown command"; then
     test_passed "bitbot invalid - shows error"
 else
@@ -138,7 +142,7 @@ trap cleanup_workspace EXIT
 # Test analyze with empty workspace
 run_test "analyze - empty workspace"
 export WORKSPACE="$TEST_WORKSPACE"
-if output=$("${CONTAINER_BITBOT}/core/commands/analyze.sh" 2>&1); then
+if output=$("${CONTAINER_BITBOT_ROOT}/core/commands/analyze.sh" 2>&1); then
     if echo "$output" | grep -q "Analyzing workspace"; then
         test_passed "analyze - runs on empty workspace"
     else
@@ -151,7 +155,7 @@ fi
 # Test analyze with Node.js project
 run_test "analyze - Node.js detection"
 echo '{"name":"test"}' > "$TEST_WORKSPACE/package.json"
-if output=$("${CONTAINER_BITBOT}/core/commands/analyze.sh" 2>&1); then
+if output=$("${CONTAINER_BITBOT_ROOT}/core/commands/analyze.sh" 2>&1); then
     if echo "$output" | grep -q "Node.js project"; then
         test_passed "analyze - detects Node.js project"
     else
@@ -165,7 +169,7 @@ rm "$TEST_WORKSPACE/package.json"
 # Test analyze with Python project
 run_test "analyze - Python detection"
 echo "requests==2.28.0" > "$TEST_WORKSPACE/requirements.txt"
-if output=$("${CONTAINER_BITBOT}/core/commands/analyze.sh" 2>&1); then
+if output=$("${CONTAINER_BITBOT_ROOT}/core/commands/analyze.sh" 2>&1); then
     if echo "$output" | grep -q "Python project"; then
         test_passed "analyze - detects Python project"
     else
@@ -182,7 +186,7 @@ cd "$TEST_WORKSPACE"
 git init -q
 git config user.email "test@bitbot.test"
 git config user.name "Test User"
-if output=$("${CONTAINER_BITBOT}/core/commands/analyze.sh" 2>&1); then
+if output=$("${CONTAINER_BITBOT_ROOT}/core/commands/analyze.sh" 2>&1); then
     if echo "$output" | grep -q "Git Status"; then
         test_passed "analyze - detects git repository"
     else
@@ -202,7 +206,7 @@ echo -e "${BLUE}═══ Test 4: Status Command ═══${NC}"
 echo ""
 
 run_test "status - basic execution"
-if output=$("${CONTAINER_BITBOT}/core/commands/status.sh" 2>&1); then
+if output=$("${CONTAINER_BITBOT_ROOT}/core/commands/status.sh" 2>&1); then
     if echo "$output" | grep -q "Container Status"; then
         test_passed "status - shows container status"
     else
@@ -223,7 +227,7 @@ echo ""
 
 run_test "configure - basic execution"
 export BITBOT_MODE="config"
-if output=$("${CONTAINER_BITBOT}/core/commands/configure.sh" 2>&1); then
+if output=$("${CONTAINER_BITBOT_ROOT}/core/commands/configure.sh" 2>&1); then
     if echo "$output" | grep -q "DevContainer Configuration"; then
         test_passed "configure - shows help"
     else
@@ -245,7 +249,7 @@ echo ""
 
 # Source helpers
 run_test "helpers.sh - source"
-if source "${CONTAINER_BITBOT}/core/util/helpers.sh" 2>/dev/null; then
+if source "${CONTAINER_BITBOT_ROOT}/core/util/helpers.sh" 2>/dev/null; then
     test_passed "helpers.sh - can be sourced"
 else
     test_failed "helpers.sh - cannot be sourced"
@@ -301,7 +305,7 @@ echo -e "${BLUE}═══ Test 7: File Permissions ═══${NC}"
 echo ""
 
 run_test "bitbot - executable"
-if [[ -x "${CONTAINER_BITBOT}/bitbot" ]]; then
+if [[ -x "${CONTAINER_BITBOT_ROOT}/bitbot" ]]; then
     test_passed "bitbot - is executable"
 else
     test_failed "bitbot - not executable"
@@ -309,7 +313,7 @@ fi
 
 for cmd in analyze configure resume start status; do
     run_test "$cmd.sh - executable"
-    if [[ -x "${CONTAINER_BITBOT}/core/commands/${cmd}.sh" ]]; then
+    if [[ -x "${CONTAINER_BITBOT_ROOT}/core/commands/${cmd}.sh" ]]; then
         test_passed "$cmd.sh - is executable"
     else
         test_failed "$cmd.sh - not executable"
