@@ -96,8 +96,8 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 
 - [x] **Cleaned up project structure** - More logical organization
   - Moved `/lib` → `/core` (updated all docs)
-  - Moved `/src` → `sparc/5-completion/src/` (launcher source)
-  - Moved `/tests` → `sparc/5-completion/tests/` (test suites)
+  - Moved `/src` → `dev/src/` (launcher source)
+  - Moved `/tests` → `dev/tests/` (test suites)
   - Supporting materials now clearly separated from core implementation
 
 ### AI Agent Configuration

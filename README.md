@@ -301,7 +301,7 @@ BitBot uses a **two-mode container system** with separate DevContainers for diff
 Modes run in **separate containers** that can run simultaneously:
 
 - Work mode uses `<workspace>/.devcontainer/`
-- Config mode uses `<bitbot>/templates/bitbot/config/`
+- Config mode uses `<bitbot>/container/templates/config/`
 - Each mode has its own AI agent configuration
 
 ### VS Code Integration
@@ -433,8 +433,8 @@ For contribution guidelines, current priorities, and development setup, see [DEV
 **User Documentation:**
 
 - [README_EXTENDED.md](README_EXTENDED.md) - Detailed security analysis, performance tuning, DevPod integration
-- [templates/bitbot/workspace/README.md](templates/bitbot/workspace/README.md) - Workspace template (AI tools)
-- [templates/bitbot/config/README.md](templates/bitbot/config/README.md) - Config mode details
+- [container/templates/workspace/README.md](container/templates/workspace/README.md) - Workspace template (AI tools)
+- [container/templates/config/README.md](container/templates/config/README.md) - Config mode details
 - [templates/bitbot/base/README.md](templates/bitbot/base/README.md) - Base template documentation
 
 **Developer Documentation:**
