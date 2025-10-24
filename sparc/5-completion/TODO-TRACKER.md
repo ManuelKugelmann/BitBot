@@ -3,8 +3,11 @@
 Comprehensive tracking of all remaining tasks to reach production readiness.
 
 **Status**: Pre-Alpha → Alpha (v0.1.0)
-**Last Updated**: 2025-10-22
+**Last Updated**: 2025-10-24
+**Purpose**: Track implementation tasks, testing, and release management
+**For Specification Gaps**: See `SPEC-TODO.md`
 **Last Consistency Review**: 2025-10-22 (see CONSISTENCY_REVIEW.md)
+**Recent Progress**: Documentation cleanup, archived legacy MVP content
 
 ---
 
@@ -31,19 +34,78 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
   - **Priority**: P0 (Blocking)
   - **Status**: ✅ Fixed - Now uses templates/workspace/, template properly copied on init
 
-### 3. Documentation Updates (P1 - Not Blocking)
-- [ ] **Update SPEC-02 terminology and paths**
-  - Change "setup mode" → "config mode" consistently
-  - Change `~/.bitbot/setup-devcontainer/` → `templates/config/`
-  - Change `.bitbot/setup/` → `.bitbot/internal/`
+### 3. Documentation Updates
+- [x] **Reorganized template structure** ✅ DONE (2025-10-24)
+  - Moved templates into `templates/bitbot/` (base, config, dev, workspace)
+  - Created `templates/custom/` for future user templates
+  - Updated all documentation references
+  - Added SPARC process section to CLAUDE.md
+  - Moved `/src` and `/tests` to `sparc/5-completion/`
+  - Renamed `/lib` to `/core` throughout documentation
 
-- [ ] **Update MVP_SCOPE.md paths**
-  - Update architecture diagram with correct template paths
-  - Change `config-devcontainer/` → `templates/config/`
-  - Change `devcontainer-template/` → `templates/workspace/`
+- [x] **Update SPEC-02 terminology and paths** (P1) ✅ COMPLETE (2025-10-24)
+  - Applied all "setup mode" → "config mode" terminology updates
+  - Applied all path updates: `~/.bitbot/setup-devcontainer/` → `templates/bitbot/config/`
+  - Applied all path updates: `.bitbot/setup/` → `.bitbot/internal/`
+  - Updated in 20-line chunks to avoid tool limitations
+  - Reference guides created (can be removed): `02_SECURITY_MODE_SYSTEM_TERMINOLOGY.md`, `02_SECURITY_MODE_SYSTEM_PATHS.md`
 
-- [ ] **Update pseudocode paths**
-  - `core/workspace/init.md` line 121: Update template path reference
+- [x] **Update MVP_SCOPE.md paths** (P1) ✅ DONE (2025-10-24)
+  - Updated architecture diagram with correct template paths
+  - Changed `config-devcontainer/` → `templates/bitbot/config/`
+  - Changed `devcontainer-template/` → `templates/bitbot/workspace/`
+  - Changed `lib/` → `core/` throughout
+
+- [x] **Update pseudocode paths** (P1) ✅ DONE (2025-10-24)
+  - `core/workspace/init.md` line 121: Updated template path to `templates/bitbot/workspace`
+  - Updated config template path to `templates/bitbot/config/devcontainer.json`
+  - Updated all `lib/` → `core/` references
+
+---
+
+## Recent Accomplishments (2025-10-24)
+
+### Template Organization & Dogfooding
+- [x] **Created bitbot-dev template** - BitBot can now develop itself using its own workspace system
+  - Combines workspace features (Claude Code, shared configs) with MinGW cross-compiler
+  - Root `.devcontainer/` is exact copy of `templates/bitbot/dev/`
+  - Persistent AI config folders: `.devcontainer/home/.claude`, `.claude-flow`, `.opencode`
+  - Feature-based installs (Node.js, Claude Code) instead of manual npm
+
+- [x] **Reorganized template structure** - Clear separation of internal vs custom templates
+  ```
+  templates/
+  ├── bitbot/          # BitBot internal templates
+  │   ├── base/        # Shared foundation
+  │   ├── config/      # Config mode
+  │   ├── dev/         # BitBot development (dogfooding)
+  │   └── workspace/   # Work mode (AI tools)
+  ├── custom/          # Future user templates
+  └── shared/          # Shared scripts
+  ```
+
+- [x] **Standardized AI config paths** - Researched and aligned with industry standards
+  - Claude Code: `~/.claude/` (verified)
+  - Claude Flow: `~/.claude-flow/` (documented)
+  - Open Code: `~/.opencode/` (documented)
+  - Updated mount paths to match standards
+
+### Documentation & Organization
+- [x] **Added SPARC process to CLAUDE.md** - AI assistants now understand development methodology
+  - Clear guidelines for where to put research, specs, tests, code
+  - Explicit folder mapping for each SPARC phase
+
+- [x] **Cleaned up project structure** - More logical organization
+  - Moved `/lib` → `/core` (updated all docs)
+  - Moved `/src` → `sparc/5-completion/src/` (launcher source)
+  - Moved `/tests` → `sparc/5-completion/tests/` (test suites)
+  - Supporting materials now clearly separated from core implementation
+
+### AI Agent Configuration
+- [x] **Researched AI agent configuration standards** (see `sparc/0-research/AI_AGENT_CONFIGURATION_STANDARDS.md`)
+  - Global config locations for Claude Code, Claude Flow, Open Code
+  - AGENTS.md universal standard (emerging 2025)
+  - Configuration hierarchy and best practices
 
 ---
 
@@ -74,6 +136,71 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
   - [ ] WSL path handling
   - [ ] Alpine WSL integration
   - [ ] Path conversions (WSL ↔ Windows)
+
+- [ ] **WSL Mode VSCode Testing** ⚠️ **CRITICAL PATH VALIDATION**
+  - **Context**: VS Code can be started from WSL (`code` command) OR from Windows
+  - **Issue**: Different launch modes use different path formats affecting devcontainer labels
+  - **Impact**: Container discovery, path corruption, duplicate containers
+
+  **Test Scenarios**:
+  - [ ] **Scenario 1: VS Code started from WSL native terminal**
+    - Launch: `code .` from WSL bash (not via BitBot wrapper)
+    - Expected: Opens VS Code with WSL path context
+    - Test: Open dev container, check container labels
+    - Verify: Labels use correct path format (WSL or Windows?)
+    - Check: Does `bitbot work vscode` work from this VS Code terminal?
+
+  - [ ] **Scenario 2: VS Code started from Windows directly**
+    - Launch: `code.exe` from Windows (Start menu, taskbar)
+    - Open: WSL folder via File > Open Folder > `\\wsl$\Ubuntu\...`
+    - Expected: Opens VS Code with Windows path context
+    - Test: Open dev container from this VS Code instance
+    - Verify: Container labels format (should be Windows `C:\...`)
+    - Check: Does `bitbot work vscode` work from integrated terminal?
+
+  - [ ] **Scenario 3: BitBot `code.exe` wrapper from WSL**
+    - Launch: BitBot calls `code.exe` from WSL bash
+    - Current implementation: Uses `code.exe` with hex-encoded URI
+    - Expected: Opens VS Code with correct path context
+    - Test: Dev container opens without popup
+    - Verify: Container reuse works (no duplicates)
+    - Check: Path labels are Windows format (`C:\...`)
+
+  - [ ] **Scenario 4: BitBot from VS Code WSL terminal**
+    - Open: VS Code started from Windows, integrated terminal in WSL
+    - Run: `bitbot work vscode` from that terminal
+    - Expected: Reuses existing VS Code window or opens new correctly
+    - Test: No path corruption, no duplicate containers
+    - Verify: DevContainer labels match expected format
+
+  **Path Format Investigation**:
+  - [ ] Document which paths devcontainer CLI generates for each scenario:
+    - WSL native `code` → `/mnt/c/...` or `C:\...`?
+    - Windows `code.exe` → Always `C:\...`?
+    - WSL calling `code.exe` → Depends on path conversion?
+    - BitBot wrapper → Explicitly controlled format?
+
+  - [ ] Verify devcontainer.cmd requirement:
+    - Test: Does calling `devcontainer` (Node.js) from WSL cause `/mnt/c/...` labels?
+    - Test: Does calling `devcontainer.cmd` from WSL fix it to `C:\...` labels?
+    - Confirm: SPEC-05 claim that `.cmd` wrapper is required for correct labels
+
+  - [ ] Test container label inspection:
+    - Command: `docker inspect <container> --format '{{json .Config.Labels}}'`
+    - Check: `devcontainer.local_folder` label format
+    - Verify: VS Code uses this label for container discovery
+    - Document: Which format works for each VS Code launch mode?
+
+  **Documentation Needed**:
+  - [ ] Create platform flow diagram for WSL mode VSCode variants
+  - [ ] Document recommended launch method (which wrapper to use when)
+  - [ ] Add troubleshooting section for "VS Code not finding container"
+  - [ ] Explain path format requirements for different launch modes
+
+  **References**:
+  - SPEC-05 section 2.1: Windows Path Corruption Root Cause
+  - SPEC-06: VS Code DevContainer Integration
+  - sparc/4-refinement/poc-tests/archive/research/DOCKER-DESKTOP-CORRUPTION-ANALYSIS.md
 
 ### 2. Documentation
 **Priority**: P0 (Blocking)
@@ -122,7 +249,7 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 ### Security Enhancements
 **Priority**: P1 (High)
 
-- [ ] **Config Mode Warning** (Post-MVP)
+- [ ] **Config Mode Warning** (Post-Alpha)
   - [ ] Add comprehensive warning on config mode entry
   - [ ] Explain that config mode defines AI workspace
   - [ ] List critical files AI can modify:
@@ -377,12 +504,12 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 
 | Phase              | Status      | Progress | Notes |
 |--------------------|-------------|----------|-------|
-| 0. Research        | ✓ Complete  | 100%     | All research documents complete |
+| 0. Research        | ✓ Complete  | 100%     | All research complete + AI config standards |
 | 1. Specification   | ⚠ Review    | 95%      | Need terminology/path updates (P1) |
 | 2. Pseudocode      | ⚠ Review    | 95%      | Need path updates (P1) |
 | 3. Architecture    | ✓ Complete  | 100%     | Diagrams accurate to intent |
 | 4. Refinement      | ✓ Complete  | 100%     | Implementation solid |
-| 5. Completion      | In Progress | 75%      | Implementation 85% consistent, 2 P0 fixes needed |
+| 5. Completion      | In Progress | 85%      | Template reorg done, dogfooding ready, P0 fixes complete |
 
 ### Consistency Review Status
 
@@ -400,7 +527,7 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 **Key Findings**:
 - ✅ **Strong**: Git safety, devcontainer launch, platform detection, error handling, test suite
 - ⚠️  **Needs Improvement**: Naming consistency, path references, template usage
-- ❌ **Missing**: Read-only .devcontainer mount (P0), Config mode warning (P1/post-MVP)
+- ❌ **Missing**: Read-only .devcontainer mount (P0), Config mode warning (P1/post-alpha)
 
 ### Current Milestone: Alpha (v0.1.0)
 
