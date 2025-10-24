@@ -5,9 +5,8 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 **Status**: Pre-Alpha → Alpha (v0.1.0)
 **Last Updated**: 2025-10-24
 **Purpose**: Track implementation tasks, testing, and release management
-**For Specification Gaps**: See `SPEC-TODO.md`
 **Last Consistency Review**: 2025-10-22 (see CONSISTENCY_REVIEW.md)
-**Recent Progress**: Documentation cleanup, archived legacy MVP content
+**Recent Progress**: Core implementation complete, 7 automated tests passing, project structure reorganized
 
 ---
 
@@ -114,28 +113,39 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 ### 1. Testing & Validation
 **Priority**: P0 (Blocking)
 
-- [ ] **Manual Testing**
-  - [ ] Windows testing (WSL2 + Docker Desktop)
-  - [ ] macOS testing (native)
-  - [ ] Linux testing (native)
-  - [ ] VS Code integration testing (all platforms)
-  - [ ] Terminal mode testing (all platforms)
+- [x] **Core Implementation** ✅ COMPLETE
+  - [x] Global init flow (`bitbot` first run) - Implemented in `core/global/bitbot-init.sh`
+  - [x] Workspace init flow (`bitbot init`) - Implemented in `core/workspace/bitbot-init.sh`
+  - [x] Work mode launch - Implemented in `core/workspace/bitbot-work.sh`
+  - [x] Config mode launch - Implemented in `core/workspace/bitbot-config.sh`
+  - [x] Git safety warnings - Implemented in `core/util/git.sh`
+  - [x] Prerequisites validation - Implemented in `core/util/prerequisites.sh`
+  - [x] Version command - Implemented in `core/bitbot-version.sh`
+  - [x] Help command - Implemented in `core/workspace/bitbot-help.sh`
+  - [x] Platform detection - Implemented in `core/util/detect.sh`
 
-- [ ] **Core Functionality**
-  - [ ] Global init flow (`bitbot` first run)
-  - [ ] Workspace init flow (`bitbot init`)
-  - [ ] Work mode launch (terminal + VS Code)
-  - [ ] Config mode launch (terminal + VS Code)
-  - [ ] Git safety warnings
-  - [ ] Prerequisites validation
-  - [ ] Version command
+- [x] **Launchers** ✅ COMPLETE
+  - [x] Bash launcher (`bitbot`) - Main entry point
+  - [x] Windows executable (`bitbot.exe`) - Compiled C launcher in `dev/src/launcher_windows/`
+  - [x] CMD wrapper (`bitbot.cmd`) - Windows CMD launcher
+  - [x] PowerShell wrapper - Test launcher in refinement
 
-- [ ] **Cross-Platform**
-  - [ ] Windows launcher (bitbot.exe)
-  - [ ] CMD wrapper (bitbot.cmd)
-  - [ ] WSL path handling
-  - [ ] Alpine WSL integration
-  - [ ] Path conversions (WSL ↔ Windows)
+- [x] **Automated Tests** ✅ COMPLETE (7 test suites)
+  - [x] Prerequisites check - `dev/tests/test-prerequisites.sh`
+  - [x] Workspace initialization - `dev/tests/test-workspace-init.sh`
+  - [x] BitBot commands - `dev/tests/test-bitbot-commands.sh`
+  - [x] Platform detection - `dev/tests/test-platform-detection.sh`
+  - [x] Filesystem performance - `dev/tests/test-filesystem-performance.sh`
+  - [x] DevContainer functionality - `dev/tests/test-devcontainer-locations.sh`
+  - [x] Container BitBot - `dev/tests/test-container-bitbot.sh`
+  - [x] Test runner - `dev/tests/run-tests.sh` (orchestrates all tests)
+
+- [ ] **Manual End-to-End Testing** (REMAINING)
+  - [ ] Windows testing (WSL2 + Docker Desktop) - Fresh install test needed
+  - [ ] macOS testing (native) - Requires macOS environment
+  - [ ] Linux testing (native) - Requires Linux environment
+  - [ ] VS Code integration (all platforms) - Fresh workspace test
+  - [ ] Terminal mode (all platforms) - Verify all launchers work
 
 - [x] **WSL Mode VSCode Testing** ✅ **RESOLVED** (2025-10-24)
   - **Finding**: VS Code handles path formats correctly in both WSL and Windows modes
