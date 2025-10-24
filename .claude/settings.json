@@ -14,9 +14,9 @@
       }
     },
     {
-      "name": "check-bash-syntax",
-      "description": "Check bash script syntax without executing",
-      "command": ".claude/tools/check-bash-syntax.sh",
+      "name": "check-bash",
+      "description": "Check bash script syntax without executing or modifying",
+      "command": ".claude/tools/check-bash.sh",
       "autoApprove": true,
       "args": {
         "files": {
@@ -27,14 +27,32 @@
       }
     },
     {
-      "name": "fix-and-check-bash",
+      "name": "fix-line-endings-check-bash",
       "description": "Fix line endings and check syntax in one step (recommended)",
-      "command": ".claude/tools/fix-and-check-bash.sh",
+      "command": ".claude/tools/fix-line-endings-check-bash.sh",
       "autoApprove": true,
       "args": {
         "files": {
           "type": "array",
           "description": "Bash scripts to fix and verify",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "run-with-timeout",
+      "description": "Run commands with timeout to prevent hanging",
+      "command": ".claude/tools/run-with-timeout.sh",
+      "autoApprove": true,
+      "args": {
+        "timeout": {
+          "type": "number",
+          "description": "Timeout in seconds",
+          "required": true
+        },
+        "command": {
+          "type": "string",
+          "description": "Command to run",
           "required": true
         }
       }

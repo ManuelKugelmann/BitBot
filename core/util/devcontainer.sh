@@ -29,17 +29,16 @@ fi
 get_devcontainer_bin() {
     # Get the appropriate devcontainer binary for this platform
     # Returns: devcontainer command to use
+    #
+    # NOTE: Always use native 'devcontainer' for now
+    # devcontainer.cmd has corruption risks - needs testing first
+    # BITBOT_WINDOWS_MODE only affects VS Code launcher (code vs code.exe)
 
     local platform
     platform=$(detect_platform)
 
-    if [[ "$platform" == "wsl" ]]; then
-        # Windows/WSL: Use .cmd wrapper
-        echo "devcontainer.cmd"
-    else
-        # Linux/macOS: Use native binary
-        echo "devcontainer"
-    fi
+    # Always use native devcontainer for now
+    echo "devcontainer"
 }
 
 # ============================================================================

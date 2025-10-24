@@ -11,7 +11,7 @@
   "remoteUser": "root",
   "$comment": "BitBot Development template details - merged with templates/shared/base.devcontainer.json",
   "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
-  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/bitbot/dev",
+  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/bitbot-dev",
   "name": "BitBot Development",
   "dockerFile": "Dockerfile",
   "customizations": {

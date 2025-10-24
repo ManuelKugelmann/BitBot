@@ -2,17 +2,21 @@
 
 Development environment for BitBot with cross-compilation support.
 
+**This devcontainer is an exact copy of `templates/bitbot/dev/`** - BitBot dogfooding its own template system!
+
 ## What's Included
 
 - **Base:** Ubuntu 22.04 LTS
-- **Tools:**
-  - Git
-  - Curl
-  - Node.js LTS
-  - Claude Code CLI
-  - Build tools (gcc, make)
+- **Features:**
+  - Node.js LTS (via devcontainer feature)
+  - Git (via devcontainer feature)
+  - Claude Code (via official feature)
+  - Optional: Claude Flow, Open Code
+- **Build Tools:**
+  - gcc, make, curl, wget
   - **MinGW-w64** (Windows cross-compiler)
-  - Zip/Unzip utilities
+  - zip/unzip utilities
+- **Shared Configs:** Persistent AI tool configurations
 
 ## Windows Cross-Compilation
 
@@ -113,9 +117,8 @@ zip -r bitbot-release.zip \
   bitbot \
   bitbot.exe \
   bitbot.cmd \
-  lib/ \
+  core/ \
   templates/ \
-  config-devcontainer/ \
   README.md \
   LICENSE
 ```
@@ -146,8 +149,41 @@ dpkg -l | grep mingw
 # binutils-mingw-w64-x86-64
 ```
 
+## Shared Home Folders
+
+BitBot dev container includes persistent AI tool configurations:
+
+```
+.devcontainer/home/
+  .claude/       → mounted to /root/.claude
+  .claude-flow/  → mounted to /root/.claude-flow
+  .opencode/     → mounted to /root/.opencode
+```
+
+### Why Shared Folders?
+
+- ✅ **Persistent** - Survive container rebuilds
+- ✅ **Shared** - Common configs across BitBot dev sessions
+- ✅ **BitBot-scoped** - Specific to BitBot project
+- ✅ **Version-controlled** - Part of repository (optional)
+
+## Updating This DevContainer
+
+To sync with the latest template:
+
+```bash
+# Copy from template
+cp templates/bitbot/dev/Dockerfile .devcontainer/
+cp templates/bitbot/dev/devcontainer.json .devcontainer/
+
+# Rebuild container
+cmd.exe /c "cd /d C:\Projects\BitBot && devcontainer.cmd build --workspace-folder ."
+```
+
 ## See Also
 
+- [BitBot Dev Template](../templates/bitbot/dev/README.md) - Source template
+- [Workspace Template](../templates/bitbot/workspace/README.md) - For BitBot users
 - [MinGW-w64 Documentation](https://www.mingw-w64.org/)
 - [DevContainer Specification](https://containers.dev/)
 - [src/launcher_windows/README.md](../src/launcher_windows/README.md)

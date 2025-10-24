@@ -17,8 +17,8 @@
 
     "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
 
-    "source=${localWorkspaceFolder}/.devcontainer/home/claude,target=/home/bitbot/.claude,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder}/.devcontainer/home/claude-flow,target=/home/bitbot/.claude-flow,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder}/.devcontainer/home/opencode,target=/home/bitbot/.opencode,type=bind,consistency=cached"
+    "source=${localWorkspaceFolder}/.devcontainer/home/.claude,target=/home/bitbot/.claude,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer/home/.claude-flow,target=/home/bitbot/.claude-flow,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer/home/.opencode,target=/home/bitbot/.opencode,type=bind,consistency=cached"
   ]
 }

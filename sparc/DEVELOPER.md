@@ -71,8 +71,8 @@ BitBot follows the SPARC methodology (Specification, Pseudocode, Architecture, R
 
 **DevContainers:**
 - [.devcontainer/README.md](.devcontainer/README.md) - Development container setup
-- [templates/base/README.md](templates/base/README.md) - Base template documentation
-- [config-devcontainer/README.md](config-devcontainer/README.md) - Config mode details
+- [templates/bitbot/base/README.md](templates/bitbot/base/README.md) - Base template documentation
+- [templates/bitbot/config/README.md](templates/bitbot/config/README.md) - Config mode details
 
 **Container BitBot:**
 - [container-bitbot/README.md](container-bitbot/README.md) - Container-side BitBot implementation

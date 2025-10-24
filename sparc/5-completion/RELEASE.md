@@ -171,7 +171,7 @@ git clone https://github.com/ManuelKugelmann/BitBot.git
 **After (release default):**
 ```bash
 git clone https://github.com/ManuelKugelmann/BitBot.git
-# Gets: release with bitbot, lib/, templates/, LICENSE only
+# Gets: release with bitbot, core/, templates/, LICENSE only
 ```
 
 **Developers can still access trunk:**
@@ -206,9 +206,8 @@ git clone -b trunk https://github.com/ManuelKugelmann/BitBot.git
 - `bitbot` (main executable)
 - `bitbot.exe` (Windows launcher)
 - `bitbot.cmd` (Windows wrapper)
-- `lib/` (all scripts)
-- `templates/` (devcontainer templates)
-- `config-devcontainer/` (config mode)
+- `core/` (all scripts)
+- `templates/` (devcontainer templates, including config mode)
 - `README.md` (user docs)
 - `LICENSE` (MIT)
 
@@ -318,7 +317,7 @@ git pull
 # Create zip
 zip -r bitbot-v1.0.0.zip \
   bitbot bitbot.exe bitbot.cmd \
-  lib/ templates/ config-devcontainer/ \
+  core/ templates/ \
   README.md LICENSE
 
 # Generate checksum

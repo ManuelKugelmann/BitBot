@@ -137,70 +137,35 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
   - [ ] Alpine WSL integration
   - [ ] Path conversions (WSL ↔ Windows)
 
-- [ ] **WSL Mode VSCode Testing** ⚠️ **CRITICAL PATH VALIDATION**
-  - **Context**: VS Code can be started from WSL (`code` command) OR from Windows
-  - **Issue**: Different launch modes use different path formats affecting devcontainer labels
-  - **Impact**: Container discovery, path corruption, duplicate containers
+- [x] **WSL Mode VSCode Testing** ✅ **RESOLVED** (2025-10-24)
+  - **Finding**: VS Code handles path formats correctly in both WSL and Windows modes
+  - **Test completed**: VS Code launched from WSL with `code` command
+  - **Result**: Uses Windows UNC paths (`\\wsl.localhost\Ubuntu\...`) - correct format!
 
-  **Test Scenarios**:
-  - [ ] **Scenario 1: VS Code started from WSL native terminal**
-    - Launch: `code .` from WSL bash (not via BitBot wrapper)
-    - Expected: Opens VS Code with WSL path context
-    - Test: Open dev container, check container labels
-    - Verify: Labels use correct path format (WSL or Windows?)
-    - Check: Does `bitbot work vscode` work from this VS Code terminal?
+  **Test Results** (Scenario 1 completed):
+  - [x] **Scenario 1: VS Code started from WSL native terminal**
+    - Launch: `code .` from WSL bash
+    - Result: ✅ Opens VS Code in WSL mode (bottom-left shows `WSL: Ubuntu`)
+    - Container labels: `\\wsl.localhost\Ubuntu\tmp\vscode-wsl-test`
+    - Path format: **Windows UNC** (not `/mnt/c/...`, not corrupted)
+    - Conclusion: VS Code uses correct path format automatically
 
-  - [ ] **Scenario 2: VS Code started from Windows directly**
-    - Launch: `code.exe` from Windows (Start menu, taskbar)
-    - Open: WSL folder via File > Open Folder > `\\wsl$\Ubuntu\...`
-    - Expected: Opens VS Code with Windows path context
-    - Test: Open dev container from this VS Code instance
-    - Verify: Container labels format (should be Windows `C:\...`)
-    - Check: Does `bitbot work vscode` work from integrated terminal?
+  **Key Discovery**:
+  VS Code is smart about path formats:
+  - From WSL: Uses `\\wsl.localhost\<distro>\<path>` (UNC format)
+  - From Windows: Uses `C:\...` or `\\wsl$\...` (Windows format)
+  - Both work correctly - no path corruption
+  - No need for `windows` modifier or `code.exe` forcing
 
-  - [ ] **Scenario 3: BitBot `code.exe` wrapper from WSL**
-    - Launch: BitBot calls `code.exe` from WSL bash
-    - Current implementation: Uses `code.exe` with hex-encoded URI
-    - Expected: Opens VS Code with correct path context
-    - Test: Dev container opens without popup
-    - Verify: Container reuse works (no duplicates)
-    - Check: Path labels are Windows format (`C:\...`)
+  **Removed**:
+  - `windows` modifier implementation (unnecessary)
+  - `BITBOT_WINDOWS_MODE` environment variable (unnecessary)
+  - Explicit `code.exe` vs `code` selection logic (VS Code handles it)
 
-  - [ ] **Scenario 4: BitBot from VS Code WSL terminal**
-    - Open: VS Code started from Windows, integrated terminal in WSL
-    - Run: `bitbot work vscode` from that terminal
-    - Expected: Reuses existing VS Code window or opens new correctly
-    - Test: No path corruption, no duplicate containers
-    - Verify: DevContainer labels match expected format
+  **Documentation**:
+  - Full test results: `sparc/4-refinement/poc-tests/archive/research/VSCODE-WSL-MODE-TEST-RESULTS.md`
 
-  **Path Format Investigation**:
-  - [ ] Document which paths devcontainer CLI generates for each scenario:
-    - WSL native `code` → `/mnt/c/...` or `C:\...`?
-    - Windows `code.exe` → Always `C:\...`?
-    - WSL calling `code.exe` → Depends on path conversion?
-    - BitBot wrapper → Explicitly controlled format?
-
-  - [ ] Verify devcontainer.cmd requirement:
-    - Test: Does calling `devcontainer` (Node.js) from WSL cause `/mnt/c/...` labels?
-    - Test: Does calling `devcontainer.cmd` from WSL fix it to `C:\...` labels?
-    - Confirm: SPEC-05 claim that `.cmd` wrapper is required for correct labels
-
-  - [ ] Test container label inspection:
-    - Command: `docker inspect <container> --format '{{json .Config.Labels}}'`
-    - Check: `devcontainer.local_folder` label format
-    - Verify: VS Code uses this label for container discovery
-    - Document: Which format works for each VS Code launch mode?
-
-  **Documentation Needed**:
-  - [ ] Create platform flow diagram for WSL mode VSCode variants
-  - [ ] Document recommended launch method (which wrapper to use when)
-  - [ ] Add troubleshooting section for "VS Code not finding container"
-  - [ ] Explain path format requirements for different launch modes
-
-  **References**:
-  - SPEC-05 section 2.1: Windows Path Corruption Root Cause
-  - SPEC-06: VS Code DevContainer Integration
-  - sparc/4-refinement/poc-tests/archive/research/DOCKER-DESKTOP-CORRUPTION-ANALYSIS.md
+  **Conclusion**: BitBot can simply use `code` command - VS Code handles path formats correctly
 
 ### 2. Documentation
 **Priority**: P0 (Blocking)

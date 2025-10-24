@@ -1,7 +1,7 @@
 {
   "$comment": "Config template details - merged with templates/shared/base.devcontainer.json",
   "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
-  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/config",
+  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/bitbot-config",
 
   "name": "BitBot Config Mode",
   "dockerFile": "Dockerfile",
