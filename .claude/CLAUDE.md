@@ -81,16 +81,20 @@ Templates under `container/templates/`:
 | `config/`    | BitBot with configuration   | + Config tools, JSON editing      |
 | `bitbotdev/` | BitBot development          | + Build tools, shared home        |
 | `workspace/` | AI-powered workspaces       | + Claude Code, AI tools, MCP      |
-| `custom/`    | User custom templates       | User-defined workload containers  |
+| `custom/`    | User custom templates       | User-defined (uses workspace base)|
 | `shared/`    | Shared resources            | Scripts, configs used by all      |
 
 Each template contains:
 - `Dockerfile` - Container image definition
-- `devcontainer.json` - VS Code DevContainer config
+- `devcontainer.json` - VS Code DevContainer config (generated from base + details)
 - `details.devcontainer.json` - Template-specific settings
 - `README.md` - Template documentation
 
-Container runtime scripts are in `container/bitbot/` and get copied into all templates.
+**Template Merging**:
+- Templates are built by merging `shared/base.devcontainer.json` + `details.devcontainer.json`
+- Custom templates use `workspace/` as their base template
+- Container runtime scripts in `container/bitbot/` are mounted at `/usr/local/bitbot`
+- During `bitbot init`, scripts are copied to `.devcontainer/bitbot/` in user workspace
 
 ## SPARC Process
 

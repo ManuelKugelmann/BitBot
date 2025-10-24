@@ -3,9 +3,12 @@
 # Container BitBot Test Suite
 # Tests container-side BitBot scripts
 #
-# TODO: These scripts should be mounted in the devcontainer at a standard location
-#       (e.g., /usr/local/bitbot) so they're available inside the container.
-#       Update devcontainer.json templates to mount container/bitbot directory.
+# Container BitBot Mount Configuration:
+# - Base template (container/templates/shared/base.devcontainer.json) includes:
+#     "mounts": ["source=${localWorkspaceFolder}/.devcontainer/bitbot,target=/usr/local/bitbot,type=bind,readonly"]
+# - During 'bitbot init', container/bitbot/ is copied to user's .devcontainer/bitbot/
+# - Mount makes scripts available at /usr/local/bitbot in all containers
+# - See sparc/1-specification/01_CONTAINER_ORCHESTRATION_STRATEGY.md for details
 #
 
 set -euo pipefail

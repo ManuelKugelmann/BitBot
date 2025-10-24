@@ -5,5 +5,8 @@
       "version": "lts"
     }
   },
-  "remoteUser": "root"
+  "remoteUser": "root",
+  "mounts": [
+    "source=${localWorkspaceFolder}/.devcontainer/bitbot,target=/usr/local/bitbot,type=bind,readonly"
+  ]
 }

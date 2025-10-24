@@ -40,12 +40,22 @@ echo "  Output:  $OUTPUT_FILE"
 # Merge strategy:
 # - Deep recursive merge for objects
 # - Arrays are REPLACED (not merged) to avoid duplicates
+# - EXCEPT: "mounts" array is CONCATENATED (base + details)
 # - Details override base values
 #
-# jq merge formula: base * details
-# This does a recursive merge where details values override base values
+# jq merge formula:
+#   1. Merge base * details (arrays replaced)
+#   2. Special handling: concatenate mounts from both base and details
 
-jq -s '.[0] * .[1]' "$BASE_FILE" "$DETAILS_FILE" > "$OUTPUT_FILE"
+jq -s '
+  (.[0] * .[1]) as $merged |
+  # If both base and details have mounts, concatenate them
+  if (.[0].mounts and .[1].mounts) then
+    $merged | .mounts = (.[0].mounts + .[1].mounts)
+  else
+    $merged
+  end
+' "$BASE_FILE" "$DETAILS_FILE" > "$OUTPUT_FILE"
 
 if [ $? -eq 0 ]; then
     echo "✓ Successfully merged devcontainer.json"

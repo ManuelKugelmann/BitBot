@@ -81,6 +81,10 @@ BitBot uses `@devcontainers/cli` for work containers with Docker Compose fallbac
     }
   },
 
+  "mounts": [
+    "source=${localWorkspaceFolder}/.devcontainer/bitbot,target=/usr/local/bitbot,type=bind,readonly"
+  ],
+
   "customizations": {
     "vscode": {
       "extensions": [
@@ -93,6 +97,13 @@ BitBot uses `@devcontainers/cli` for work containers with Docker Compose fallbac
   "remoteUser": "root"
 }
 ```
+
+**Container BitBot Scripts**:
+- BitBot copies `container/bitbot/` to `.devcontainer/bitbot/` during `bitbot init`
+- Mounted at `/usr/local/bitbot` (read-only) inside all containers
+- Contains container-side commands: `bitbot`, `analyze.sh`, `configure.sh`, `status.sh`, etc.
+- `/usr/local/bitbot` must be added to container `$PATH` via Dockerfile or postCreateCommand
+- Example Dockerfile: `ENV PATH="/usr/local/bitbot:${PATH}"`
 
 ### 2.2 Work Container Compose
 
