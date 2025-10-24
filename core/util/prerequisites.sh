@@ -48,6 +48,9 @@ validate_prerequisites() {
             ;;
     esac
 
+    # Check project location (warning only, doesn't fail)
+    check_project_location
+
     # Check Docker
     if ! check_docker; then
         return 1
@@ -62,6 +65,55 @@ validate_prerequisites() {
             fi
             ;;
     esac
+
+    return 0
+}
+
+# ============================================================================
+# Project Location Checks
+# ============================================================================
+
+check_project_location() {
+    # Check if project is in Windows mount (/mnt/c, /mnt/d, etc.) on WSL
+    # Shows performance warning if detected
+    # Returns: always 0 (warning only, doesn't fail)
+
+    local platform
+    platform=$(detect_platform)
+
+    # Only check on WSL
+    if [[ "$platform" != "wsl" ]]; then
+        return 0
+    fi
+
+    # Get current directory
+    local current_dir
+    current_dir=$(pwd -P)
+
+    # Check if in Windows mount
+    if [[ "$current_dir" =~ ^/mnt/[a-z]/ ]]; then
+        print_warning "Project located on Windows filesystem"
+        echo ""
+        echo "Current location: $current_dir"
+        echo ""
+        echo "⚠️  Performance Impact:"
+        echo "  - DevContainers can be 3-4x slower on Windows mounts"
+        echo "  - File operations, git, and npm significantly impacted"
+        echo "  - See test results: ./tests/test-devcontainer-filesystem-performance.sh"
+        echo ""
+        echo "Recommendation:"
+        echo "  ✅ Move project to WSL filesystem: ~/projects/"
+        echo "  ⚠️  Keep only if you need Windows tool access"
+        echo ""
+        echo "To move your project:"
+        echo "  1. Create ~/projects: mkdir -p ~/projects"
+        echo "  2. Move project: mv \"$current_dir\" ~/projects/"
+        echo "  3. Update paths in your tools/IDE"
+        echo ""
+
+        # Give user a moment to read the warning
+        sleep 1
+    fi
 
     return 0
 }
@@ -83,6 +135,36 @@ check_docker() {
         echo "  https://www.docker.com/products/docker-desktop"
         echo ""
         return 1
+    fi
+
+    # On WSL/Linux, check docker group membership proactively
+    local platform
+    platform=$(detect_platform)
+    if [[ "$platform" == "wsl" ]] || [[ "$platform" == "linux" ]]; then
+        # Check if docker group exists and user is not in it
+        if getent group docker >/dev/null 2>&1; then
+            if ! groups | grep -q docker; then
+                print_warning "User not in 'docker' group"
+                echo ""
+                echo "You need to be added to the docker group for Docker access."
+                echo ""
+                echo "To fix this:"
+                echo "  1. Add your user to docker group:"
+                echo "     sudo usermod -aG docker \$USER"
+                echo ""
+                echo "  2. Log out and log back in (or restart WSL):"
+                if [[ "$platform" == "wsl" ]]; then
+                    echo "     wsl --shutdown  (run in PowerShell/CMD)"
+                else
+                    echo "     logout and login again"
+                fi
+                echo ""
+                echo "  3. Verify docker access:"
+                echo "     docker ps"
+                echo ""
+                return 1
+            fi
+        fi
     fi
 
     # Check if Docker is running
@@ -234,6 +316,26 @@ check_docker_wsl_integration() {
     # Check the error
     local error
     error=$(docker ps 2>&1)
+
+    # Check if it's a permission issue (user not in docker group)
+    if echo "$error" | grep -qi "permission denied"; then
+        echo ""
+        print_warning "Docker permission issue detected"
+        echo ""
+        echo "Your user needs to be added to the 'docker' group."
+        echo ""
+        echo "To fix this:"
+        echo "  1. Add your user to docker group:"
+        echo "     sudo usermod -aG docker \$USER"
+        echo ""
+        echo "  2. Log out and log back in (or restart WSL):"
+        echo "     wsl --shutdown  (run in PowerShell/CMD)"
+        echo ""
+        echo "  3. Verify docker access:"
+        echo "     docker ps"
+        echo ""
+        return 1
+    fi
 
     # Check if it's a WSL integration issue
     if echo "$error" | grep -q "Cannot connect to the Docker daemon"; then

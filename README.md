@@ -93,6 +93,13 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 - 🚧 WIP: VM-based template with full Docker for maximum isolation
 - 🚧 WIP: Agent steering templates for different workloads
 
+🌐 **Global AI Tool Configuration**
+- Single sign-on: Credentials shared across all BitBot workspaces
+- Global preferences: Your personal CLAUDE.md and settings apply everywhere
+- Workspace isolation: Session data (history, todos) stored per-workspace
+- Standard project config: `/workspace/.claude/` works like normal Claude Code
+- See `sparc/1-specification/GLOBAL_CLAUDE_CONFIG_SPEC.md` for architecture
+
 🛡️ **Git Safety**
 - Warnings for uncommitted changes
 - Prompts to review commits before pushing
@@ -268,7 +275,7 @@ BitBot uses a **two-mode container system** with separate DevContainers for diff
 
 Modes run in **separate containers** that can run simultaneously:
 - Work mode uses `<workspace>/.devcontainer/`
-- Config mode uses `<bitbot>/config-devcontainer/`
+- Config mode uses `<bitbot>/templates/bitbot/config/`
 - Each mode has its own AI agent configuration
 
 ### VS Code Integration
@@ -301,9 +308,14 @@ bitbot/
 │   ├── global/                # Global commands (first-run setup)
 │   ├── workspace/             # Workspace commands (work, config, init)
 │   └── util/                  # Utilities (detect, git, prerequisites)
-├── templates/                 # Workspace templates
-│   └── basic/                 # Ubuntu + Node.js + Claude Code
-├── config-devcontainer/       # Config mode DevContainer
+├── templates/                 # DevContainer templates
+│   ├── bitbot/                # BitBot internal templates
+│   │   ├── base/              # Base template
+│   │   ├── config/            # Config mode (infrastructure)
+│   │   ├── dev/               # BitBot development
+│   │   └── workspace/         # Work mode (AI tools)
+│   ├── custom/                # User custom templates
+│   └── shared/                # Shared scripts and configs
 ├── LICENSE                    # MIT License
 └── README.md                  # This file
 ```
@@ -408,8 +420,9 @@ For contribution guidelines, current priorities, and development setup, see [DEV
 
 **User Documentation:**
 - [README_EXTENDED.md](README_EXTENDED.md) - Detailed security analysis, performance tuning, DevPod integration
-- [templates/base/README.md](templates/base/README.md) - Base template documentation
-- [config-devcontainer/README.md](config-devcontainer/README.md) - Config mode details
+- [templates/bitbot/workspace/README.md](templates/bitbot/workspace/README.md) - Workspace template (AI tools)
+- [templates/bitbot/config/README.md](templates/bitbot/config/README.md) - Config mode details
+- [templates/bitbot/base/README.md](templates/bitbot/base/README.md) - Base template documentation
 
 **Developer Documentation:**
 - See [DEVELOPER.md](https://github.com/ManuelKugelmann/BitBot/blob/trunk/DEVELOPER.md) on trunk branch for architecture, specs, and contribution guidelines

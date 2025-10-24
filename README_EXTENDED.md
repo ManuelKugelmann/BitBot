@@ -221,24 +221,34 @@ Where you store your projects on Windows/WSL significantly affects development e
 
 ### Performance Test Results
 
-**Test 1: File Creation Speed**
-```bash
-# WSL filesystem
-time (for i in {1..1000}; do touch ~/test-wsl/file$i.txt; done)
-# Result: ~0.5 seconds
+BitBot includes a comprehensive devcontainer filesystem performance test that measures real-world I/O patterns inside containers. Run it yourself:
 
-# Windows filesystem
-time (for i in {1..1000}; do touch /mnt/c/test-win/file$i.txt; done)
-# Result: ~5-8 seconds (10-16x slower)
+```bash
+# Full test (compares WSL ~ and /mnt/c)
+./tests/test-devcontainer-filesystem-performance.sh
+
+# Quick test (WSL only)
+./tests/test-devcontainer-filesystem-performance.sh --quick
 ```
 
-**Test 2: Node.js npm install**
-- WSL filesystem: ~30 seconds
-- Windows filesystem: ~300 seconds (10x slower)
+#### Actual Test Results (DevContainer Filesystem Performance)
 
-**Test 3: Git Operations**
-- WSL: git status ~0.1s, git diff ~0.2s
-- Windows: git status ~1-2s, git diff ~2-5s (10-20x slower)
+**Environment:** Docker containers with bind mounts to WSL (~) and Windows (/mnt/c) locations
+
+| Test                   | WSL (~)      | Windows (/mnt/c) | Slowdown  |
+|------------------------|--------------|------------------|-----------|
+| **File Creation**      | 1.42s        | 4.60s            | **3.2x**  |
+| **Git Operations**     | 0.016s       | 0.045s           | **2.8x**  |
+| **Sequential I/O**     | 461 MB/s     | 121 MB/s         | **3.8x**  |
+
+**Test Details:**
+- File Creation: Creating 1000 files
+- Git Operations: git add + commit + status on 50 files
+- Sequential I/O: dd write with fdatasync (100MB)
+
+**Filesystem Types:**
+- WSL (~): ext4 (native Linux filesystem)
+- Windows (/mnt/c): 9p (network-based protocol)
 
 ### Profiling Tools
 
