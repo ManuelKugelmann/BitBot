@@ -103,14 +103,14 @@ BitBot follows the **SPARC** methodology for structured development:
 | **2. Pseudocode**       | `sparc/2-pseudocode/`    | Algorithm design, logic flows                |
 | **3. Architecture**     | `sparc/3-architecture/`  | System design, diagrams, component structure |
 | **4. Refinement**       | `sparc/4-refinement/`    | POCs, tests, iterations, optimizations       |
-| **5. Completion**       | `sparc/5-completion/`    | Supporting tools, helpers (NOT core code)    |
+| **5. Completion**       | `sparc/5-completion/`    | Completion metadata, TODOs, progress tracking |
 
 **Usage Guidelines**:
 - Research findings → `sparc/0-research/`
 - Specifications → `sparc/1-specification/`
 - Design docs → `sparc/3-architecture/`
 - POC tests → `sparc/4-refinement/poc-tests/`
-- Completion docs → `sparc/5-completion/`
+- Completion metadata → `sparc/5-completion/` (TODO-TRACKER.md, SPEC-TODO.md, progress docs)
 - Release scripts → `dev/scripts/`
 - Source code (e.g. launcher) → `dev/src/`
 - Test suites → `dev/tests/`
