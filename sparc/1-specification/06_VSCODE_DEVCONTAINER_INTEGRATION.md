@@ -299,8 +299,8 @@ open_vscode_devcontainer "C:\Projects\BitBot"
 
 **Platforms tested**:
 - ✅ Windows 11 + WSL2 (Ubuntu-22.04 default + BitBot-Alpine)
-- ⏳ macOS (TODO)
-- ⏳ Linux native (TODO)
+- ⏳ macOS (Testing pending - See TODO-TRACKER.md)
+- ⏳ Linux native (Testing pending - See TODO-TRACKER.md)
 
 ### 0.8 Implementation References
 

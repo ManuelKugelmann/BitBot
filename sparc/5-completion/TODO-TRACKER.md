@@ -227,7 +227,7 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
   - [ ] Show examples of what AI can modify
   - [ ] **Locations to update**:
     - [ ] Specification: `sparc/1-specification/02_SECURITY_MODE_SYSTEM.md` (Section 3.2)
-    - [ ] Pseudocode: `sparc/2-pseudocode/lib/workspace/config.md` (Main function)
+    - [ ] Pseudocode: `sparc/2-pseudocode/core/workspace/config.md` (Main function)
     - [ ] Flow: `sparc/2-pseudocode/FLOW_WORKSPACE_INIT.md` (Config launch section)
     - [ ] Implementation: `core/workspace/bitbot-config.sh`
 

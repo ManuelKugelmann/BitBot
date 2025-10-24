@@ -349,5 +349,5 @@ fi
 ## References
 
 - **SPEC-08**: Workspace Management specification
-- **Pseudocode**: `2-pseudocode/lib/util/detect.md`
+- **Pseudocode**: `2-pseudocode/core/util/detect.md`
 - **Implementation**: `/core/util/detect.sh`
