@@ -326,14 +326,7 @@ EXIT_LOCK_FAILED = 5       # Could not acquire lock
 
 ---
 
-## Implementation Notes (MVP Simplified)
-
-**MVP Scope**:
-- 6 commands only: work, config, vscode, init, help, version
-- No session management (single session per container)
-- No audit logging (future feature)
-- No non-interactive mode (future feature)
-- CWD-only workspace detection (no parent search)
+## Implementation Notes
 
 **Modular Script Implementation**:
 Main script (`bitbot` in install root) routes to global or workspace commands:
@@ -456,33 +449,14 @@ Script structure (bitbot in install root, organized under lib/):
   - First run (no config.json): Runs global init
   - Subsequent runs: Validates environment, shows usage
 - **Workspace context**: Running `bitbot` from project folder
-  - Uninitialized (.bitbot/ missing): Prompts to initialize (for bare `bitbot` or `bitbot work`)
-  - Initialized: Bare `bitbot` defaults to `bitbot work` (launches work mode)
-  - Other commands: Routes to workspace commands (config, vscode, init, help, version)
+  - Uninitialized (.bitbot/ missing): Prompts to initialize
+  - Initialized: Bare `bitbot` defaults to `bitbot work`
+  - Routes to workspace commands: work, config, vscode, init, help, version
 
-**Key Simplifications**:
-- Removed smart launch (default to `bitbot work`)
-- Removed session listing/stopping/kill
-- Removed config/mcp/agent/backup/doctor/metadata commands
-- Removed audit logging
-- CWD-only workspace (no parent directory search)
-- Prompt for init if no workspace in CWD
-
-**MVP Commands**:
-1. `bitbot` or `bitbot work` - Launch work mode (RO .devcontainer)
-2. `bitbot config` - Launch config mode (RW .devcontainer)
-3. `bitbot vscode` - Launch VS Code in work container
-4. `bitbot init` - Initialize workspace in CWD
+**Core Commands**:
+1. `bitbot` or `bitbot work` - Launch work mode (protected .devcontainer)
+2. `bitbot config` - Launch config mode (editable .devcontainer)
+3. `bitbot vscode` - Launch VS Code
+4. `bitbot init` - Initialize workspace
 5. `bitbot help` - Show help
 6. `bitbot version` - Show version
-
-**Key Insight**: Config mode is just another devcontainer with different:
-- Config location: Global `~/.bitbot/config-devcontainer/` (not workspace)
-- Workspace mount: `/workspace` (no RO .devcontainer mount = RW by default)
-- AI agent: Tuned for devcontainer configuration tasks
-- Can work on any workspace (parameterized via env var)
-
-**Next Steps**:
-- Simplify container entry (01B_cli-entry-container.md)
-- Simplify session management (05_session-management.md) ✓
-- Simplify first-run (06_first-run.md)

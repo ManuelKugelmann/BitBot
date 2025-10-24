@@ -234,19 +234,12 @@ END FUNCTION
 
 ---
 
-## Implementation Notes (MVP Simplified)
+## Implementation Notes
 
 **Key Behaviors**:
-1. Check CWD only (no parent directory search)
+1. Check CWD for .bitbot directory
 2. Workspace found → use it
 3. No workspace → return NULL (caller prompts for init)
-
-**Simplifications for MVP**:
-- CWD only (no parent search)
-- Removed non-interactive mode (future feature)
-- Removed `--workspace` flag (future feature)
-- Minimal `.bitbot/` structure (config.json only)
-- Init always launches config mode (no check for .devcontainer, config helps create it)
 
 **Edge Cases**:
 - Symlinks: Follow to canonical path
@@ -256,12 +249,3 @@ END FUNCTION
 **Error Handling**:
 - No .devcontainer during init → error + exit 4
 - Permission denied → error + exit 1
-
-**Future Features**:
-- Parent directory search with confirmation
-- `--workspace <path>` flag override
-- Template wizard during init
-
-**Next Steps**:
-- Container launch (03_container-launch.md)
-- First-run simplified (06_first-run.md)

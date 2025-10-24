@@ -153,11 +153,11 @@ Press ENTER to launch VS Code in your new workspace...
 
 ## Part B: Workspace Discovery
 
-### B0. Workspace Detection Algorithm (MVP Simplified)
+### B0. Workspace Detection Algorithm
 
 **Trigger**: Every `bitbot` command execution (except help/version)
 
-**Logic** (CWD only for MVP):
+**Logic**:
 ```
 1. Check current directory (CWD) for .bitbot/
    ↓ Found → Use CWD as workspace
@@ -167,10 +167,7 @@ Press ENTER to launch VS Code in your new workspace...
    → Prompt to initialize new workspace (see B0.1)
 ```
 
-**MVP Simplification**: No parent directory search
-- Future: Add parent directory walk-up with confirmation prompt
-
-### B0.1 No Workspace Found (MVP)
+### B0.1 No Workspace Found
 
 **Prompt** (interactive mode):
 ```
@@ -183,16 +180,16 @@ Initialize workspace in current directory?
 ```
 
 **User responses**:
-- `Y` or Enter → Run `bitbot init` (creates .bitbot/, launches setup)
+- `Y` or Enter → Run `bitbot init` (creates .bitbot/, launches config)
 - `n` → Exit with code 4
 
 **Alternative** (user runs init explicitly):
 ```bash
 bitbot init
-# Creates .bitbot/config.json, always launches setup mode
+# Creates .bitbot/config.json, always launches config mode
 ```
 
-### B0.2 Edge Cases (MVP)
+### B0.2 Edge Cases
 
 **Symlinks in path**:
 - Follow symlinks (use resolved path for workspace detection)
@@ -202,11 +199,6 @@ bitbot init
 
 **Different filesystem/mount**:
 - Allow (no special handling)
-
-**Future Features** (not in MVP):
-- Parent directory search with confirmation prompt
-- `--workspace <path>` flag to override detection
-- Multiple .bitbot/ resolution in hierarchy
 
 ---
 
@@ -219,25 +211,24 @@ bitbot init
 **Auditable**: All actions logged to `.bitbot/audit.log`
 **Clear contracts**: Documented inputs, outputs, side-effects, exit codes
 
-### C2. Top-Level Commands (MVP: 6 Commands)
+### C2. Top-Level Commands
 
-**MVP Commands**:
+**Core Commands**:
 ```bash
 bitbot               # Default: launch work mode
 bitbot work          # Start/attach work mode
-bitbot setup         # Start setup mode (simplified, no approval)
+bitbot config        # Start config mode
 bitbot vscode        # Launch VS Code in work container
-bitbot init          # Initialize workspace (creates .bitbot/, launches setup)
+bitbot init          # Initialize workspace (creates .bitbot/, launches config)
 bitbot help          # Show help
 bitbot version       # Show version
 ```
 
-**Future Commands** (Post-MVP):
+**Planned Commands**:
 ```bash
 bitbot list          # List sessions and containers
 bitbot stop          # Stop current session
 bitbot kill          # Stop all BitBot containers
-bitbot config        # Interactive configuration wizard
 bitbot mcp           # Manage MCP services
 bitbot agent         # Manage AI agents
 bitbot doctor        # Run diagnostics
@@ -257,11 +248,11 @@ bitbot backup        # Backup management
 
 ---
 
-#### `bitbot` (MVP: default to work mode)
+#### `bitbot`
 
-**Inputs**: None (MVP)
+**Inputs**: None
 
-**Behavior** (MVP simplified):
+**Behavior**:
 - Detect workspace (CWD only)
 - If no workspace: prompt for init
 - If workspace exists: launch work mode (same as `bitbot work`)
@@ -270,9 +261,7 @@ bitbot backup        # Backup management
 
 **Side-effects**:
 - May launch work container
-- Updates `config.json` last_accessed (future)
-
-**Audit**: None (MVP - no audit logging)
+- Updates `config.json` last_accessed
 
 **Exit codes**: 0=success, 4=workspace not initialized, 1=error
 
@@ -283,28 +272,24 @@ bitbot
 # → [+] Container launched successfully
 ```
 
-**Future**: Smart-launch with session resumption
-
 ---
 
-#### `bitbot work` (MVP)
+#### `bitbot work`
 
-**Inputs**: None (MVP)
+**Inputs**: None
 
-**Behavior** (MVP simplified):
+**Behavior**:
 - Validate workspace exists (.bitbot/config.json)
 - Git warning if uncommitted changes (non-blocking)
 - Launch/attach to work container via devcontainer CLI
 - Uses workspace's .devcontainer/devcontainer.json
-- Attach to tmux session (single session, auto-named)
+- Attach to tmux session
 
 **Outputs**: Container name
 
 **Side-effects**:
 - Starts/attaches to Docker container
 - Creates tmux session inside container
-
-**Audit**: None (MVP - no audit logging)
 
 **Exit codes**: 0=success, 4=not initialized, 1=error
 
@@ -316,51 +301,37 @@ bitbot work
 # → [attached to tmux session]
 ```
 
-**Future Features** (Post-MVP):
-- `--session <name>` for named sessions
-- `--agent <name>` for AI agent selection
-- Session management and resumption
-
 ---
 
-#### `bitbot setup` (MVP Simplified)
+#### `bitbot config`
 
-**Inputs**: None (MVP - no flags required)
+**Inputs**: None
 
-**Behavior** (MVP simplified):
+**Behavior**:
 - Validate workspace exists (.bitbot/config.json)
 - Git warning if uncommitted changes (non-blocking)
-- Launch setup container using global ~/.bitbot/setup-devcontainer/
-- Create .bitbot/setup/devcontainer.json if first time
+- Launch config container using BitBot's templates/bitbot/config/
 - Workspace mounted at /workspace (RW access to .devcontainer)
 - Attach to tmux session
 
 **Outputs**: Container name
 
 **Side-effects**:
-- Starts/attaches to setup container
-- Creates .bitbot/setup/devcontainer.json (first time)
-
-**Audit**: None (MVP - no audit logging)
+- Starts/attaches to config container
 
 **Exit codes**: 0=success, 4=not initialized, 1=error
 
 **Example**:
 ```bash
-bitbot setup
+bitbot config
 # → [!] Uncommitted changes detected (non-blocking warning)
-# → [>] Launching setup mode...
+# → [>] Launching config mode...
 # → [+] Container launched successfully
 ```
 
-**Future Features** (Post-MVP):
-- `--allow-socket` and `--reason` flags for approval flow
-- Approval tracking and audit logging
-- Blocking git checks
-
 ---
 
-#### `bitbot vscode` (MVP)
+#### `bitbot vscode`
 
 **Inputs**: None
 
@@ -375,8 +346,6 @@ bitbot setup
 - Launches VS Code application
 - VS Code starts/attaches to work container automatically
 
-**Audit**: None (MVP)
-
 **Exit codes**: 0=success, 4=not initialized, 1=error
 
 **Example**:
@@ -388,7 +357,7 @@ bitbot vscode
 
 ---
 
-#### `bitbot init` (MVP)
+#### `bitbot init`
 
 **Inputs**: None
 
@@ -396,17 +365,15 @@ bitbot vscode
 - Check if .bitbot/ already exists (error if so)
 - Create .bitbot/ directory structure
 - Create config.json with workspace name
-- Always launch setup mode to configure .devcontainer
+- Always launch config mode to configure .devcontainer
 
 **Outputs**: Confirmation message
 
 **Side-effects**:
 - Creates .bitbot/ directory
-- Creates .bitbot/state/ directory
+- Creates .bitbot/internal/global/.claude/ directory
 - Creates .bitbot/config.json
-- Launches setup mode
-
-**Audit**: None (MVP)
+- Launches config mode
 
 **Exit codes**: 0=success, 1=already initialized or error
 
@@ -416,45 +383,41 @@ bitbot init
 # → [>] Initializing BitBot workspace: /home/user/project
 # → [+] Workspace initialized
 # →
-# → Launching setup mode to configure workspace...
-# → (Use setup mode to create/modify .devcontainer for bitbot)
+# → Launching config mode to configure workspace...
+# → (Use config mode to create/modify .devcontainer for bitbot)
 ```
 
 ---
 
-#### `bitbot help` (MVP)
+#### `bitbot help`
 
 **Inputs**: None
 
-**Behavior**: Display help text with MVP commands
+**Behavior**: Display help text
 
 **Outputs**: Help text
 
 **Side-effects**: None
 
-**Audit**: None
-
 **Exit codes**: 0=success
 
 ---
 
-#### `bitbot version` (MVP)
+#### `bitbot version`
 
 **Inputs**: None
 
 **Behavior**: Display version
 
-**Outputs**: Version string (e.g., "BitBot MVP v0.1.0")
+**Outputs**: Version string (e.g., "BitBot v0.1.0")
 
 **Side-effects**: None
-
-**Audit**: None
 
 **Exit codes**: 0=success
 
 ---
 
-## Future Commands (Post-MVP)
+## Planned Commands
 
 #### `bitbot list`
 

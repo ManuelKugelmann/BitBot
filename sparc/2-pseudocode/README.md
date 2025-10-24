@@ -1,15 +1,15 @@
-# BitBot Pseudocode (MVP)
+# BitBot Pseudocode
 
 **Status**: Phase 2 (Pseudocode) - Complete
 **Created**: 2025-10-20
-**Updated**: 2025-10-21
+**Updated**: 2025-10-24
 **SPARC Phase**: 2 of 5
 
 ---
 
 ## Overview
 
-Comprehensive pseudocode for BitBot MVP implementation. Files are organized to mirror the final script structure, providing a 1:1 mapping between pseudocode and implementation.
+Comprehensive pseudocode for BitBot implementation. Files are organized to mirror the final script structure, providing a 1:1 mapping between pseudocode and implementation.
 
 **Purpose**: Bridge specification and implementation with clear, implementation-ready algorithms
 **Platform**: Linux, macOS, Windows (via WSL)
@@ -38,8 +38,6 @@ pseudocode/
 │   │   ├── git.md              → scripts/lib/util/git.sh
 │   │   └── helpers.md          → scripts/lib/util/helpers.sh
 │   └── version.md              → scripts/lib/bitbot-version.sh
-├── MVP_SCOPE.md                # MVP features and scope
-├── FUTURE_FEATURES.md          # Post-MVP features
 └── README.md                   # This file
 ```
 
