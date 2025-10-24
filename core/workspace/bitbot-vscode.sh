@@ -7,7 +7,7 @@
 
 set -e
 
-# Get script directory (lib/workspace/)
+# Get script directory (core/workspace/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BITBOT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 

@@ -59,8 +59,8 @@ echo "[Test 1] Detect uninitialized workspace..."
 cd "$TEST_WORKSPACE"
 
 # Source detection utilities
-source "${BITBOT_ROOT}/lib/util/helpers.sh"
-source "${BITBOT_ROOT}/lib/util/detect.sh"
+source "${BITBOT_ROOT}/core/util/helpers.sh"
+source "${BITBOT_ROOT}/core/util/detect.sh"
 
 if is_workspace_initialized "$TEST_WORKSPACE"; then
     test_fail "Workspace incorrectly detected as initialized"

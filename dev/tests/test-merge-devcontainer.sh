@@ -228,28 +228,28 @@ fi
 print_section "Test 3: Real Template Tests"
 
 run_test "Test workspace template merge"
-if bash "$MERGE_SCRIPT" "$PROJECT_ROOT/templates/workspace" &> /dev/null; then
+if bash "$MERGE_SCRIPT" "$PROJECT_ROOT/container/templates/workspace" &> /dev/null; then
     test_passed
 else
     test_failed "Workspace template merge failed"
 fi
 
 run_test "Verify workspace devcontainer.json created"
-if [ -f "$PROJECT_ROOT/templates/workspace/devcontainer.json" ]; then
+if [ -f "$PROJECT_ROOT/container/templates/workspace/devcontainer.json" ]; then
     test_passed
 else
     test_failed "Workspace devcontainer.json not created"
 fi
 
 run_test "Test config template merge"
-if bash "$MERGE_SCRIPT" "$PROJECT_ROOT/templates/config" &> /dev/null; then
+if bash "$MERGE_SCRIPT" "$PROJECT_ROOT/container/templates/config" &> /dev/null; then
     test_passed
 else
     test_failed "Config template merge failed"
 fi
 
 run_test "Verify config devcontainer.json created"
-if [ -f "$PROJECT_ROOT/templates/config/devcontainer.json" ]; then
+if [ -f "$PROJECT_ROOT/container/templates/config/devcontainer.json" ]; then
     test_passed
 else
     test_failed "Config devcontainer.json not created"

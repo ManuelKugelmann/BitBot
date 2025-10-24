@@ -10,7 +10,7 @@ BITBOT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Source the prerequisites file to get detect_platform function
 export BITBOT_HOME="$BITBOT_ROOT"
-source "${BITBOT_ROOT}/lib/util/prerequisites.sh"
+source "${BITBOT_ROOT}/core/util/prerequisites.sh"
 
 # Colors for output
 RED='\033[0;31m'

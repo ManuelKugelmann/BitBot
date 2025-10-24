@@ -175,7 +175,7 @@ setup_devcontainer() {
 
         local bitbot_install
         bitbot_install=$(get_bitbot_install_dir)
-        local template_path="${bitbot_install}/templates/workspace"
+        local template_path="${bitbot_install}/container/templates/workspace"
 
         if [[ -d "$template_path" ]]; then
             cp -r "$template_path" "$devcontainer_path"
