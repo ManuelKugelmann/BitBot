@@ -336,15 +336,20 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 
 ### Technical Debt
 
-- [ ] Line ending handling (CRLF/LF conversions)
-  - Current: Git handles conversion
-  - Future: Consistent tooling
+- [x] Line ending handling (CRLF/LF conversions) ✅ SOLVED
+  - Solution: `.gitattributes` enforces line endings per file type
+  - Bash scripts: `eol=lf` (enforced)
+  - Windows scripts: `eol=crlf` (enforced)
+  - Everything else: stored as-is
+  - Git config: `core.autocrlf = false`
 - [ ] Windows launcher optimization
   - Current: 38KB C executable
   - Future: Consider smaller alternatives
-- [ ] Test coverage
-  - Current: Manual testing only
-  - Future: Automated test suite
+- [x] Test coverage ✅ DONE
+  - Solution: 7 automated test suites implemented
+  - Test runner: `dev/tests/run-tests.sh`
+  - Coverage: Prerequisites, workspace init, commands, platform detection, performance, devcontainer, container BitBot
+  - Future: Expand coverage for edge cases
 - [ ] Error handling
   - Current: Basic error messages
   - Future: Comprehensive error handling with recovery
