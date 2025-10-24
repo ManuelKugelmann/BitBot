@@ -177,22 +177,7 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 
   **Conclusion**: BitBot can simply use `code` command - VS Code handles path formats correctly
 
-### 2. Documentation
-**Priority**: P0 (Blocking)
-
-- [ ] **User Documentation**
-  - [ ] Installation guide (Windows/macOS/Linux)
-  - [ ] Quick start guide
-  - [ ] Basic troubleshooting
-  - [ ] FAQ (common questions)
-
-- [ ] **Developer Documentation**
-  - [ ] CONTRIBUTING.md (how to contribute)
-  - [ ] Development setup guide
-  - [ ] Testing guide
-  - [ ] Code structure overview
-
-### 3. Release Preparation
+### 2. Release Preparation
 **Priority**: P0 (Blocking)
 
 - [ ] **Release Branch**
@@ -209,7 +194,7 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
   - [ ] Test PATH setup (all platforms)
   - [ ] Validate first-run experience
 
-### 4. Config Agent Preparation
+### 3. Config Agent Preparation
 **Priority**: P1 (Important)
 
 - [ ] **Prepare template documentation for config agent**
@@ -220,7 +205,7 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
   - [ ] Agent should use these docs to help users customize templates
   - [ ] Agent should understand template merge process (shared scripts)
 
-### 5. Bug Fixes
+### 4. Bug Fixes
 **Priority**: P0 (Blocking)
 
 - [ ] **Known Issues**
@@ -329,55 +314,6 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 
 ---
 
-## Documentation Roadmap
-
-### Deployment Documentation
-
-- [ ] **Installation Guides**
-  - [ ] `installation-guide.md` - Complete installation instructions
-  - [ ] Windows (WSL2) installation
-  - [ ] macOS installation
-  - [ ] Linux installation
-  - [ ] Prerequisites validation
-  - [ ] First-run experience
-
-- [ ] **Upgrade & Maintenance**
-  - [ ] `upgrade-guide.md` - Upgrading between versions
-  - [ ] `uninstall-guide.md` - Clean removal
-  - [ ] `troubleshooting.md` - Common issues and solutions
-  - [ ] `configuration.md` - Advanced configuration
-
-### Production Documentation
-
-- [ ] **Readiness Validation**
-  - [ ] `readiness-checklist.md` - Pre-release validation
-  - [ ] `smoke-tests.md` - Post-installation validation
-  - [ ] `acceptance-criteria.md` - Production acceptance
-
-- [ ] **Operations**
-  - [ ] `monitoring.md` - Health monitoring
-  - [ ] `maintenance.md` - Ongoing maintenance
-
-### Handoff Documentation
-
-- [ ] **For Maintainers**
-  - [ ] `maintainer-guide.md` - Comprehensive maintainer documentation
-  - [ ] `architecture-summary.md` - Quick architecture reference
-
-- [ ] **For Contributors**
-  - [ ] `contribution-guide.md` - How to contribute
-  - [ ] `development-workflow.md` - Developer workflow
-
-### Retrospective Documentation
-
-- [ ] **Project Summary**
-  - [ ] `project-summary.md` - Complete development journey
-  - [ ] `lessons-learned.md` - What we learned
-  - [ ] `future-roadmap.md` - Post-1.0 plans
-  - [ ] `technical-debt.md` - Known technical debt
-
----
-
 ## Release Checklist
 
 ### Pre-Release Validation
@@ -389,12 +325,6 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
   - [ ] Terminal mode tested
   - [ ] Git safety features tested
 
-- [ ] **Documentation**
-  - [ ] Documentation complete and accurate
-  - [ ] README up to date
-  - [ ] Installation guide tested
-  - [ ] CHANGELOG.md updated
-  - [ ] Release notes prepared
 
 - [ ] **Security**
   - [ ] Security review completed
