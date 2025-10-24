@@ -203,10 +203,10 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 **Priority**: P1 (Important)
 
 - [ ] **Prepare template documentation for config agent**
-  - [ ] Reference BASE_TEMPLATE.md - explains base template structure
-  - [ ] Reference SHARED_RESOURCES.md - documents shared scripts/configs
-  - [ ] Reference CONTAINER_BITBOT.md - explains container-side BitBot runtime
-  - [ ] Reference BITBOTDEV_TEMPLATE.md - BitBot development template
+  - [ ] Reference TEMPLATES.md - explains base template structure
+  - [ ] Reference TEMPLATES.md - documents shared scripts/configs
+  - [ ] Reference TEMPLATES.md - explains container-side BitBot runtime
+  - [ ] Reference TEMPLATES.md - BitBot development template
   - [ ] Agent should use these docs to help users customize templates
   - [ ] Agent should understand template merge process (shared scripts)
 
@@ -585,3 +585,38 @@ Comprehensive tracking of all remaining tasks to reach production readiness.
 
 **Last Updated**: 2025-10-22 by Claude Code
 **Next Review**: After manual testing completion
+
+---
+
+## Specification Gaps (Future Enhancements)
+
+### Medium Priority Gaps
+**Priority**: P2 (Post-v1.0)
+
+- [ ] **Template Contribution & Sharing** (SPEC-08)
+  - Template discovery/installation (`bitbot template add <url>`)
+  - Template validation and security
+  - Community template repository
+
+- [ ] **Backup & Restore** (SPEC-08)
+  - Backup/restore flow for `.bitbot/` and containers
+  - Backup formats and triggers
+  - Incremental vs full backups
+
+- [ ] **Multi-User Workspaces** (SPEC-04)
+  - Document single-user assumption
+  - Concurrent session handling
+  - Multi-user collaboration scenarios
+
+- [ ] **Resource Limits & Quotas** (SPEC-01)
+  - Default CPU/memory/disk limits
+  - Per-mode resource constraints
+  - Resource monitoring and alerts
+
+### Low Priority Gaps
+**Priority**: P3 (v2.0+)
+
+- [ ] **Windows Native** (non-WSL) - Pure Windows containers
+- [ ] **Plugin System** - Extensibility framework
+- [ ] **Network Isolation** - Container network policies
+- [ ] **Audit Logging** - Comprehensive activity logs
