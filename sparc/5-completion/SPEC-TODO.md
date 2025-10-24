@@ -242,7 +242,7 @@ All specifications consolidated from Claude/Copilot/Gemini sources:
 
 ### Remaining Documentation Tasks
 - [x] Archive preliminary specification directories - **DONE 2025-10-24**
-- [ ] Update `README.md` in root to point to consolidated specs
+- [x] Update `README.md` in root to point to consolidated specs - **DONE 2025-10-24**
 - [ ] Generate API documentation (if applicable)
 - [ ] Create quick-start guide from SPEC-09
 - [ ] Create developer contribution guide

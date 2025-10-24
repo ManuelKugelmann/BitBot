@@ -439,7 +439,9 @@ For contribution guidelines, current priorities, and development setup, see [DEV
 
 **Developer Documentation:**
 
-- See [DEVELOPER.md](https://github.com/ManuelKugelmann/BitBot/blob/trunk/DEVELOPER.md) on trunk branch for architecture, specs, and contribution guidelines
+- [DEVELOPER.md](https://github.com/ManuelKugelmann/BitBot/blob/trunk/DEVELOPER.md) - Development setup and contribution guidelines (trunk branch)
+- [sparc/1-specification/](sparc/1-specification/) - Complete system specifications (authoritative design docs)
+- [sparc/1-specification/README.md](sparc/1-specification/README.md) - Specification overview and index
 
 ---
 
