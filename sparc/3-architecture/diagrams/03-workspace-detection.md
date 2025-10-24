@@ -6,17 +6,14 @@ BitBot's intelligent workspace detection algorithm for finding or initializing B
 flowchart TD
     START[bitbot work/config/init]
 
-    CWD_CHECK{CWD has<br/>.devcontainer?}
+    CWD_CHECK{CWD has<br/>.bitbot?}
     CWD_FOUND[✓ Found in CWD]
-
-    PARENT_CHECK{Parent has<br/>.devcontainer?}
-    PARENT_FOUND[✓ Found in parent]
 
     NO_WORKSPACE[No workspace]
     PROMPT{Initialize<br/>here?}
 
     INIT_YES[Run bitbot init]
-    INIT_NO[Exit]
+    END1[Exit]
 
     VALIDATE{Valid<br/>config?}
     VALID[✓ Valid]
@@ -28,20 +25,15 @@ flowchart TD
     START --> CWD_CHECK
 
     CWD_CHECK -->|Yes| CWD_FOUND
-    CWD_CHECK -->|No| PARENT_CHECK
-
-    PARENT_CHECK -->|Yes| PARENT_FOUND
-    PARENT_CHECK -->|No| NO_WORKSPACE
+    CWD_CHECK -->|No| NO_WORKSPACE
 
     CWD_FOUND --> VALIDATE
-    PARENT_FOUND --> VALIDATE
 
     NO_WORKSPACE --> PROMPT
     PROMPT -->|Yes| INIT_YES
-    PROMPT -->|No| INIT_NO
+    PROMPT -->|No| END1
 
     INIT_YES --> VALIDATE
-    INIT_NO --> END1[Exit]
 
     VALIDATE -->|Yes| VALID
     VALIDATE -->|No| INVALID
@@ -67,23 +59,23 @@ flowchart TD
 ### Step 1: Check Current Working Directory (CWD)
 
 ```bash
-# Check if CWD has .devcontainer/devcontainer.json
-if [ -f "$PWD/.devcontainer/devcontainer.json" ]; then
+# Check if CWD has .bitbot directory
+if [ -d "$PWD/.bitbot" ]; then
     WORKSPACE_PATH="$PWD"
     return 0
 fi
 ```
 
-**Rationale**: Most common case - user is already in workspace directory
+**Rationale**: Most common case - user is already in workspace directory. The `.bitbot` directory is created during workspace initialization and marks a BitBot workspace.
 
 ---
 
 ### Step 2: Check Parent Directory
 
 ```bash
-# Check if parent has .devcontainer/devcontainer.json
+# Check if parent has .bitbot directory
 PARENT_DIR="$(dirname "$PWD")"
-if [ -f "$PARENT_DIR/.devcontainer/devcontainer.json" ]; then
+if [ -d "$PARENT_DIR/.bitbot" ]; then
     # Prompt user for confirmation
     echo "Found workspace in parent directory: $PARENT_DIR"
     read -p "Use this workspace? (y/n) " CONFIRM
@@ -94,7 +86,7 @@ if [ -f "$PARENT_DIR/.devcontainer/devcontainer.json" ]; then
 fi
 ```
 
-**Rationale**: User might be in subdirectory (e.g., `src/`, `tests/`)
+**Rationale**: User might be in subdirectory (e.g., `src/`, `tests/`). The `.bitbot` directory contains BitBot-specific data like session history and internal configuration.
 
 ---
 
@@ -187,8 +179,8 @@ fi
 
 ```bash
 $ cd /home/user/myproject
-$ ls -la .devcontainer/
-devcontainer.json  Dockerfile
+$ ls -la
+.bitbot/  .devcontainer/  src/  README.md
 
 $ bitbot work
 ✓ Workspace detected: /home/user/myproject
@@ -256,18 +248,23 @@ $ bitbot work
 ## Design Decisions
 
 ### Why Check CWD First?
+
 **Most common case** - users typically navigate to project root
 
 ### Why Check Parent?
+
 **Developer workflow** - common to be in `src/`, `tests/`, etc.
 
 ### Why Not Check All Parents?
+
 **Simplicity** - one level up covers 95% of use cases without complexity
 
 ### Why Prompt for Initialization?
+
 **User intent** - don't automatically create files without permission
 
 ### Why Not Global Workspace Registry?
+
 **Simplicity** - no global state, all configuration in workspace
 
 ---
@@ -335,14 +332,17 @@ done
 bitbot work --workspace /path/to/workspace
 ```
 
-### .bitbot Marker File (Post-MVP)
+### .bitbot Directory (Implemented)
 
 ```bash
-# Optional marker for explicit workspace identification
-if [ -f .bitbot ]; then
+# .bitbot directory marks a BitBot workspace
+if [ -d .bitbot ]; then
     # This is definitely a workspace
+    # Contains session data and internal configuration
 fi
 ```
+
+**Note:** The `.bitbot` directory is now the primary workspace marker, replacing the previous `.devcontainer` check.
 
 ---
 
