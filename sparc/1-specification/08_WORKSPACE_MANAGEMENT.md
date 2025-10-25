@@ -412,6 +412,25 @@ VS Code opens directly in container
 
 ### C2. GitHub Codespaces Integration
 
+**Overview**:
+
+BitBot workspaces work in GitHub Codespaces in two scenarios:
+
+1. **BitBot Development**: Open the BitBot repository itself in Codespaces to develop BitBot features
+2. **User Projects**: After `bitbot init`, users can open their own projects in Codespaces with BitBot environment
+
+**Use Case Flow**:
+```
+Developer on their project:
+1. cd ~/Projects/MyApp
+2. bitbot init                    # Creates .devcontainer/ with BitBot
+3. git add .devcontainer/ && git commit && git push
+4. Open MyApp repo in GitHub Codespaces
+5. Codespaces builds devcontainer → Developer is inside BitBot workspace
+6. BitBot scripts available at /usr/local/bitbot
+7. Start coding!
+```
+
 **GitHub Remote Detection**:
 
 When `bitbot init` detects a GitHub remote repository, it provides a Codespaces link:
@@ -472,11 +491,11 @@ User workspace templates should include `postAttachCommand` for better UX:
 - Shows BitBot is available without running full tests
 - User-friendly for shared workspaces
 
-**Limitations**:
-- Docker-in-Docker not available in Codespaces
-- `bitbot work` and `bitbot config` won't work (require nested containers)
-- Use Codespaces for: code review, script testing, CLI validation
-- Use local environment or GitHub Actions for: full container workflows
+**Codespaces Limitations**:
+- Docker-in-Docker not available in Codespaces (GitHub security policy)
+- Only affects custom devcontainers that explicitly configured Docker-in-Docker
+- BitBot standard workspace templates work perfectly in Codespaces
+- Most development workflows don't need Docker-in-Docker
 
 **See Also**:
 - `sparc/0-research/GITHUB_CODESPACES_TESTING.md` for research

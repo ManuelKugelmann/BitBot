@@ -279,20 +279,40 @@ bitbot work            # Start coding!
 
 ### GitHub Codespaces Support
 
-BitBot workspaces created with `bitbot init` work seamlessly in GitHub Codespaces!
+BitBot workspaces work seamlessly in GitHub Codespaces - both for BitBot development and your own projects!
+
+**Two Ways to Use Codespaces:**
+
+**1. Try BitBot Development** (this repository):
+- Click the badge at the top to open BitBot's codebase in Codespaces
+- Test and develop BitBot features
+- Automatic test suite runs on creation
+
+**2. Use BitBot in Your Projects**:
+After running `bitbot init` in your project:
+
+```bash
+# In your local project
+cd ~/Projects/MyApp
+bitbot init              # Creates .devcontainer/
+git add .devcontainer/
+git commit -m "Add BitBot workspace"
+git push
+```
+
+Then open **your project** in Codespaces:
+- Your project's `.devcontainer` configuration works in Codespaces
+- Container bitbot scripts available at `/usr/local/bitbot`
+- Develop from anywhere (no local Docker needed)
+- Share workspace with team via Codespaces link
 
 **Benefits:**
-- ✅ Your `.devcontainer` configuration works in Codespaces
-- ✅ Container bitbot scripts available at `/usr/local/bitbot`
-- ✅ Test and develop from anywhere (no local Docker needed)
-- ✅ Share workspace with team via Codespaces link
+- ✅ You're already inside the container - just start coding!
+- ✅ Same environment on Codespaces, local VS Code, or CLI
+- ✅ BitBot scripts fully functional in the container
+- ✅ Team members can open same environment with one click
 
-**After `bitbot init`:**
-1. Push your project to GitHub (including `.devcontainer/`)
-2. Open in Codespaces from GitHub UI or use direct link
-3. BitBot environment loads automatically - you're inside the container!
-
-> **Note**: In Codespaces, you're already running inside your workspace container. No need to run `bitbot work` - just start coding! Container bitbot scripts are available at `/usr/local/bitbot`.
+> **Note**: Codespaces doesn't support Docker-in-Docker (GitHub security policy). This only affects custom devcontainers that explicitly configured Docker-in-Docker. BitBot's standard workspace templates work perfectly.
 
 See `dev/tests/CODESPACES-TESTING.md` for details.
 

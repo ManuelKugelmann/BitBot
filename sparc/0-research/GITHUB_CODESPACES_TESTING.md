@@ -70,17 +70,42 @@ When opening a repository in Codespaces:
 | **Prerequisites Check** | ✅ Works | Reports missing Docker (expected) |
 | **Claude Code Integration** | ✅ Works | AI assistant available |
 
-### ❌ What Doesn't Work in Codespaces
+### 🔄 Codespaces Context: User Projects vs BitBot Development
 
-| Feature | Status | Reason |
-|---------|--------|--------|
-| **`bitbot work`** | ❌ Blocked | Requires creating nested containers |
-| **`bitbot config`** | ❌ Blocked | Requires Docker-in-Docker |
-| **`bitbot vscode`** | ❌ Blocked | Requires launching VS Code + containers |
-| **DevContainer Builds** | ❌ Blocked | No Docker socket access |
-| **Full Integration Tests** | ❌ Blocked | Needs real container orchestration |
+**Important**: There are two different Codespaces scenarios:
 
-**Why**: GitHub Codespaces doesn't expose the Docker socket for security reasons. Nested containers (Docker-in-Docker) are not supported in the standard Codespaces environment.
+**1. User Projects (after `bitbot init`)**:
+- User opens **their own project** in Codespaces
+- Codespaces builds the devcontainer created by `bitbot init`
+- User is **already inside** the BitBot workspace container
+- Container bitbot scripts fully functional at `/usr/local/bitbot`
+- ✅ This is the **primary use case** and works perfectly!
+- No need to run `bitbot work` - you're already in the workspace
+
+**2. BitBot Development (this repository)**:
+- Developer opens **BitBot's source code** in Codespaces
+- Used to develop BitBot itself
+- Can test CLI commands and container bitbot scripts
+- Cannot test container orchestration (`bitbot work`, `bitbot config`)
+
+### ⚠️ Docker-in-Docker Limitation
+
+GitHub Codespaces doesn't support Docker-in-Docker (security policy).
+
+**Who is affected:**
+- Only users who explicitly configured Docker-in-Docker in their devcontainer
+- Very rare use case (building container images inside containers)
+
+**Who is NOT affected:**
+- ✅ BitBot standard workspace templates work perfectly
+- ✅ Most development workflows don't need Docker-in-Docker
+- ✅ Container bitbot scripts fully functional
+- ✅ AI-assisted development works great
+
+**For BitBot Development:**
+- Host-side commands (`bitbot work`, `bitbot config`) don't work in Codespaces
+- These create containers from the host, not from inside a container
+- Use GitHub Actions or local environment for testing container orchestration
 
 ---
 
