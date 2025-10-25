@@ -34,5 +34,5 @@
     "source=${localWorkspaceFolder}/.devcontainer/home/.claude-flow,target=/root/.claude-flow,type=bind,consistency=cached",
     "source=${localWorkspaceFolder}/.devcontainer/home/.opencode,target=/root/.opencode,type=bind,consistency=cached"
   ],
-  "postCreateCommand": "echo '✓ MinGW cross-compiler installed:' && x86_64-w64-mingw32-gcc --version"
+  "postCreateCommand": "echo '✓ MinGW cross-compiler installed:' && x86_64-w64-mingw32-gcc --version && echo '' && echo '🚀 Running Codespaces quick test...' && dev/tests/test-codespaces.sh || echo '⚠ Some tests failed (expected if Docker unavailable)'"
 }

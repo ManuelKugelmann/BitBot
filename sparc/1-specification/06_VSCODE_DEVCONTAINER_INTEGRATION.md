@@ -1254,6 +1254,89 @@ docker-compose -f .bitbot/mcp/docker-compose.yml up -d
 
 ---
 
+## 14. GitHub Codespaces Testing
+
+**Status**: ✅ **Implemented and Validated**
+
+### 14.1 Overview
+
+GitHub Codespaces automatically uses the `.devcontainer` configuration to create cloud-based development environments. BitBot's repository includes Codespaces support for testing container bitbot scripts without Docker-in-Docker.
+
+### 14.2 What Codespaces Tests
+
+**Test Scope** (`dev/tests/test-codespaces.sh`):
+
+```bash
+# Automatically runs on Codespace creation
+postCreateCommand: "dev/tests/test-codespaces.sh"
+```
+
+**Validated Features**:
+- ✅ Container bitbot scripts (`container/bitbot/*`)
+- ✅ CLI commands (help, version)
+- ✅ Bash syntax validation
+- ✅ Helper utilities
+- ✅ Platform detection
+- ✅ Unit tests (non-Docker)
+
+**Not Tested** (requires Docker-in-Docker):
+- ❌ `bitbot work` (container creation)
+- ❌ `bitbot config` (container creation)
+- ❌ Full integration tests
+
+### 14.3 DevContainer Configuration
+
+BitBot's `.devcontainer/devcontainer.json`:
+
+```json
+{
+  "name": "BitBot Development",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "lts" },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": { "version": "latest" }
+  },
+  "postCreateCommand": "dev/tests/test-codespaces.sh"
+}
+```
+
+### 14.4 Opening in Codespaces
+
+**Badge** (add to README.md):
+```markdown
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ManuelKugelmann/BitBot?quickstart=1)
+```
+
+**Direct URL**:
+```
+https://codespaces.new/ManuelKugelmann/BitBot?quickstart=1
+```
+
+**gh CLI**:
+```bash
+gh codespace create --repo ManuelKugelmann/BitBot
+gh codespace code  # Opens in VS Code
+```
+
+### 14.5 Testing Strategy
+
+| Environment | Purpose | Docker Support |
+|-------------|---------|----------------|
+| **Codespaces** | Quick validation | ❌ No (by design) |
+| **GitHub Actions** | Full CI/CD | ✅ Yes |
+| **Local WSL/Linux** | Development | ✅ Yes |
+
+**Recommendation**: Use Codespaces for code review and script validation. Use GitHub Actions or local environment for full integration testing.
+
+### 14.6 Limitations
+
+**Docker-in-Docker**: Not available in Codespaces for security reasons.
+
+**Workaround**: Container bitbot scripts are tested directly without creating actual containers. This validates script logic, bash syntax, and command structure.
+
+**See Also**: `sparc/0-research/GITHUB_CODESPACES_TESTING.md` for detailed research findings.
+
+---
+
 ## 15. References
 
 **Related Specifications**:
