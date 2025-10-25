@@ -22,8 +22,14 @@ source "${BITBOT_CONTAINER_HOME}/core/util/helpers.sh" 2>/dev/null || true
 
 # Main command router
 main() {
-    local command="${1:-help}"
-    shift || true
+    # Check if no arguments provided
+    if [[ $# -eq 0 ]]; then
+        "${BITBOT_CONTAINER_HOME}/core/commands/default.sh"
+        return
+    fi
+
+    local command="$1"
+    shift
 
     case "$command" in
         start)
@@ -58,18 +64,22 @@ show_help() {
 BitBot (Container) - AI Agent Assistant
 
 Usage:
-  bitbot <command> [options]
+  bitbot [command] [options]
 
 Commands:
-  start         Start Claude Code in tmux session
-  resume [name] Resume tmux session (or choose from list)
+  (default)     Smart launcher: detect sessions, choose launch mode
+  start         Always start fresh Claude in new tmux session
+  resume [name] Resume existing tmux session (or choose from list)
   analyze       Analyze workspace tech stack and structure
   status        Show container environment status
   configure     Configure devcontainer (config mode only)
   help          Show this help message
 
 Examples:
-  # Start Claude Code (with launch mode choice)
+  # Smart launcher (detects sessions, offers resume/new + launch mode)
+  bitbot
+
+  # Always start fresh session with fresh Claude
   bitbot start
 
   # Resume existing session

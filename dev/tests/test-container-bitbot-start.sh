@@ -57,6 +57,20 @@ echo "=========================================="
 setup
 
 # Test 1: Check bash syntax
+run_test "Bash syntax check for main bitbot"
+if bash -n container/bitbot/bitbot; then
+    test_passed
+else
+    test_failed "Syntax errors in bitbot"
+fi
+
+run_test "Bash syntax check for default.sh"
+if bash -n container/bitbot/core/commands/default.sh; then
+    test_passed
+else
+    test_failed "Syntax errors in default.sh"
+fi
+
 run_test "Bash syntax check for start.sh"
 if bash -n container/bitbot/core/commands/start.sh; then
     test_passed
@@ -217,6 +231,35 @@ if grep -q "COPY ../shared/configs/tmux.conf /etc/tmux.conf" container/templates
     test_passed
 else
     test_failed "Config Dockerfile not using shared tmux config"
+fi
+
+# Test 9: Check command behavior
+run_test "Default command (no args) routes to default.sh"
+if grep -q 'core/commands/default.sh' container/bitbot/bitbot; then
+    test_passed
+else
+    test_failed "Default command doesn't route to default.sh"
+fi
+
+run_test "default.sh has smart session detection"
+if grep -q "prompt_resume_or_new\|show_launch_mode_choice" container/bitbot/core/commands/default.sh; then
+    test_passed
+else
+    test_failed "default.sh missing resume/launch mode prompts"
+fi
+
+run_test "Start command creates fresh session (no prompts)"
+if ! grep -q "prompt_resume_or_new\|show_launch_mode_choice" container/bitbot/core/commands/start.sh; then
+    test_passed
+else
+    test_failed "start.sh still contains resume/launch mode prompts"
+fi
+
+run_test "default.sh is executable"
+if [[ -x container/bitbot/core/commands/default.sh ]]; then
+    test_passed
+else
+    test_failed "default.sh is not executable"
 fi
 
 # Summary

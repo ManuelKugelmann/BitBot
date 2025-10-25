@@ -64,11 +64,20 @@ END FUNCTION
 
 ## Session Management
 
-### Start Claude Session
+Container BitBot provides three commands for session management:
+
+| Command             | Behavior                                              |
+| ------------------- | ----------------------------------------------------- |
+| `bitbot` (no args)  | Smart default: detect sessions, choose resume/launch mode |
+| `bitbot start`      | Always create fresh tmux with fresh Claude (no prompts)   |
+| `bitbot resume`     | Resume existing session or choose from list              |
+
+### Default Command (No Arguments)
 
 ```pseudocode
-FUNCTION start_claude_session(args):
-    # Launch Claude Code in tmux session with choice
+FUNCTION default_command(args):
+    # Smart session launcher with detection and choice
+    # Called when: bitbot (no arguments)
 
     PRINT "BitBot - Claude Code Launcher"
     PRINT ""
@@ -92,8 +101,23 @@ FUNCTION start_claude_session(args):
         END IF
     END IF
 
-    # No existing sessions or user wants new session
-    CALL create_new_claude_session(args)
+    # No existing sessions or user wants new session with launch mode choice
+    CALL create_new_claude_session_with_choice(args)
+END FUNCTION
+```
+
+### Start Command (Fresh Session)
+
+```pseudocode
+FUNCTION start_command(args):
+    # Always create fresh tmux with fresh Claude (no prompts)
+    # Called when: bitbot start
+
+    PRINT "BitBot - Claude Code Launcher"
+    PRINT ""
+
+    # Always create fresh session (skip detection, skip prompts)
+    CALL create_fresh_claude_session(args)
 END FUNCTION
 ```
 
@@ -138,11 +162,12 @@ FUNCTION resume_tmux_session(session_name):
 END FUNCTION
 ```
 
-### Create New Claude Session
+### Create Session Functions
 
 ```pseudocode
-FUNCTION create_new_claude_session(args):
-    # Create new tmux session with Claude Code
+FUNCTION create_new_claude_session_with_choice(args):
+    # Create new tmux session with launch mode choice
+    # Used by default command (bitbot with no args)
 
     SET session_name = "claude-" + get_timestamp()
     SET mode = get_bitbot_mode()  # "work" or "config"
@@ -176,6 +201,38 @@ FUNCTION create_new_claude_session(args):
 
     # Show workspace info
     PRINT ""
+    PRINT "Workspace: /workspace"
+    PRINT "Mode: " + mode
+    PRINT "Session: " + session_name
+    PRINT ""
+
+    # Create tmux session and launch Claude
+    EXECUTE "tmux new-session -s " + session_name + " -d"
+    EXECUTE "tmux send-keys -t " + session_name + " '" + claude_cmd + "' C-m"
+
+    # Wait a moment for session to start
+    SLEEP 1
+
+    # Attach to session
+    EXECUTE "tmux attach-session -t " + session_name
+END FUNCTION
+```
+
+```pseudocode
+FUNCTION create_fresh_claude_session(args):
+    # Create fresh tmux session with fresh Claude (no prompts)
+    # Used by start command (bitbot start)
+
+    SET session_name = "claude-" + get_timestamp()
+    SET mode = get_bitbot_mode()  # "work" or "config"
+
+    PRINT "Creating fresh Claude Code session..."
+    PRINT ""
+
+    # Always use fresh interactive Claude (no --resume)
+    SET claude_cmd = "claude"
+
+    # Show workspace info
     PRINT "Workspace: /workspace"
     PRINT "Mode: " + mode
     PRINT "Session: " + session_name
