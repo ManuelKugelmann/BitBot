@@ -40,9 +40,9 @@ function show_codespaces_info():
     print("  " + codespaces_url)
     print("")
     print("  Your BitBot workspace works in Codespaces!")
-    print("  ✓ Container bitbot scripts at /usr/local/bitbot")
+    print("  ✓ Container bitbot scripts fully functional at /usr/local/bitbot")
     print("  ✓ Same devcontainer configuration")
-    print("  ⚠ Docker-in-Docker not available (use for testing only)")
+    print("  ✓ You're already inside the container - just start coding!")
     print("")
 
     # 6. Offer to add badge to workspace README (optional)

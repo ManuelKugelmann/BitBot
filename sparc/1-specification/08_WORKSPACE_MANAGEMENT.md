@@ -432,9 +432,9 @@ $ bitbot init
   https://codespaces.new/username/repo?quickstart=1
 
   Your BitBot workspace works in Codespaces!
-  ✓ Container bitbot scripts at /usr/local/bitbot
+  ✓ Container bitbot scripts fully functional at /usr/local/bitbot
   ✓ Same devcontainer configuration
-  ⚠ Docker-in-Docker not available (use for testing only)
+  ✓ You're already inside the container - just start coding!
 
   💡 Tip: Add Codespaces badge to your README.md:
      [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/username/repo?quickstart=1)

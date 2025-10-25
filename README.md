@@ -290,9 +290,9 @@ BitBot workspaces created with `bitbot init` work seamlessly in GitHub Codespace
 **After `bitbot init`:**
 1. Push your project to GitHub (including `.devcontainer/`)
 2. Open in Codespaces from GitHub UI or use direct link
-3. BitBot environment loads automatically!
+3. BitBot environment loads automatically - you're inside the container!
 
-> **Note**: Codespaces has Docker-in-Docker limitations. Use for testing container bitbot scripts and CLI functionality. For full container orchestration (`bitbot work`, `bitbot config`), use local environment or GitHub Actions CI.
+> **Note**: In Codespaces, you're already running inside your workspace container. No need to run `bitbot work` - just start coding! Container bitbot scripts are available at `/usr/local/bitbot`.
 
 See `dev/tests/CODESPACES-TESTING.md` for details.
 
