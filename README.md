@@ -298,7 +298,7 @@ Then open **your project** in Codespaces (via GitHub web UI):
 - ✅ Same environment across local and cloud
 - ✅ Share workspace link with team members
 
-> **For Contributors**: Want to develop BitBot itself? See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup including Codespaces.
+> **For Contributors**: Want to develop BitBot itself? See [DEVELOPMENT.md](DEVELOPMENT.md) for development setup including Codespaces.
 
 See `dev/tests/CODESPACES-TESTING.md` for details.
 
