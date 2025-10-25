@@ -8,13 +8,7 @@
 
 **Secure Development Environments for AI-Assisted Coding**
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ManuelKugelmann/BitBot?quickstart=1)
-
 BitBot is a cross-platform CLI tool that sandboxes AI coding assistants in isolated container environments, reducing risk when working with AI agents. It enables AI assistants to work freely on your code while protecting critical infrastructure files from accidental modification.
-
-> 💡 **Try BitBot instantly**: Click the badge above to open BitBot in GitHub Codespaces - no local setup required!
->
-> ⚠️ **Note**: This badge is for BitBot development only (trunk branch). When you run `bitbot init` in your own projects, you can add a similar badge for your workspace.
 
 ---
 
@@ -279,17 +273,9 @@ bitbot work            # Start coding!
 
 ### GitHub Codespaces Support
 
-BitBot workspaces work seamlessly in GitHub Codespaces - both for BitBot development and your own projects!
+BitBot workspaces work seamlessly in GitHub Codespaces!
 
-**Two Ways to Use Codespaces:**
-
-**1. Try BitBot Development** (this repository):
-- Click the badge at the top to open BitBot's codebase in Codespaces
-- Test and develop BitBot features
-- Automatic test suite runs on creation
-
-**2. Use BitBot in Your Projects**:
-After running `bitbot init` in your project:
+**Workflow:**
 
 ```bash
 # In your local project
@@ -300,19 +286,19 @@ git commit -m "Add BitBot workspace"
 git push
 ```
 
-Then open **your project** in Codespaces:
-- Your project's `.devcontainer` configuration works in Codespaces
+Then open **your project** in Codespaces (via GitHub web UI):
+- Your `.devcontainer` configuration loads automatically
+- You're already inside the BitBot workspace container!
 - Container bitbot scripts available at `/usr/local/bitbot`
-- Develop from anywhere (no local Docker needed)
-- Share workspace with team via Codespaces link
+- Start coding immediately - no `bitbot work` needed
 
 **Benefits:**
-- ✅ You're already inside the container - just start coding!
-- ✅ Same environment on Codespaces, local VS Code, or CLI
-- ✅ BitBot scripts fully functional in the container
-- ✅ Team members can open same environment with one click
+- ✅ Develop from anywhere (browser or VS Code)
+- ✅ No local Docker setup required
+- ✅ Same environment across local and cloud
+- ✅ Share workspace link with team members
 
-> **Note**: Codespaces doesn't support Docker-in-Docker (GitHub security policy). This only affects custom devcontainers that explicitly configured Docker-in-Docker. BitBot's standard workspace templates work perfectly.
+> **For Contributors**: Want to develop BitBot itself? See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup including Codespaces.
 
 See `dev/tests/CODESPACES-TESTING.md` for details.
 
