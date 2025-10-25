@@ -175,6 +175,147 @@ BitBot follows the **SPARC** methodology for structured development:
 - Workspace templates include shared home folders for AI tool configs
 - See `container/templates/workspace/README.md` for workspace template docs
 
+## Git Worktree Workflow for Multi-Agent Development
+
+**IMPORTANT**: Each Claude Code instance should work in its own isolated git worktree to prevent conflicts when multiple agents work simultaneously.
+
+### Why Worktrees?
+
+| Problem | Solution with Worktrees |
+|---------|-------------------------|
+| Multiple Claude instances conflict | Each has isolated directory |
+| Branch switching loses context | Each worktree has dedicated branch |
+| Parallel feature development | Work on multiple tasks simultaneously |
+| Merge conflicts between agents | Clean separation, sync when ready |
+
+### Quick Start
+
+```bash
+# Create new worktree for this Claude instance
+.claude/tools/worktree-manager.sh create
+
+# Sync with main branch (get latest changes from other agents)
+.claude/tools/worktree-manager.sh sync
+
+# Check status of all worktrees
+.claude/tools/worktree-manager.sh status
+
+# Clean up finished work
+.claude/tools/worktree-manager.sh clean
+```
+
+### Recommended Workflow
+
+**1. Create Isolated Worktree**
+```bash
+# Auto-generated timestamped branch (claude-YYYYMMDD-HHMMSS)
+.claude/tools/worktree-manager.sh create
+
+# Or named feature branch (becomes claude-feature-name)
+.claude/tools/worktree-manager.sh create feature-name
+```
+
+**2. Work in Worktree**
+```bash
+# Switch to your worktree
+cd ~/.bitbot-worktrees/claude-20251025-214500
+
+# Do your work, make commits
+git add .
+git commit -m "Add feature"
+```
+
+**3. Sync Regularly**
+```bash
+# Pull latest changes from main branch (trunk)
+.claude/tools/worktree-manager.sh sync
+
+# Resolve any conflicts if they occur
+```
+
+**4. Create PR or Merge**
+```bash
+# Push your branch
+git push -u origin claude-20251025-214500
+
+# Create PR via gh CLI or web interface
+gh pr create --title "Feature description" --body "Details..."
+```
+
+**5. Clean Up After Merge**
+```bash
+# Remove worktree and branch after PR is merged
+.claude/tools/worktree-manager.sh clean
+```
+
+### Worktree Manager Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `create [name]` | Create new worktree with timestamped branch | `.claude/tools/worktree-manager.sh create` |
+| `list` | List all worktrees | `.claude/tools/worktree-manager.sh list` |
+| `sync` | Sync current worktree with main branch | `.claude/tools/worktree-manager.sh sync` |
+| `status` | Show status of all worktrees | `.claude/tools/worktree-manager.sh status` |
+| `remove <name>` | Remove specific worktree | `.claude/tools/worktree-manager.sh remove claude-xxx` |
+| `clean` | Remove merged worktrees | `.claude/tools/worktree-manager.sh clean` |
+
+### Configuration
+
+Environment variables (optional):
+
+```bash
+# Base directory for worktrees (default: ~/.bitbot-worktrees)
+export WORKTREE_BASE="$HOME/projects/bitbot-work"
+
+# Branch name prefix (default: claude)
+export BRANCH_PREFIX="agent"
+
+# Main branch to sync with (default: trunk)
+export MAIN_BRANCH="main"
+```
+
+### Best Practices
+
+**DO:**
+- ✓ Create new worktree for each Claude instance/task
+- ✓ Sync regularly with main branch (multiple times per session)
+- ✓ Use timestamped branches for automatic naming
+- ✓ Clean up merged worktrees to save space
+- ✓ Commit frequently within your worktree
+
+**DON'T:**
+- ✗ Work directly in main project directory with multiple instances
+- ✗ Share worktrees between Claude instances
+- ✗ Forget to sync before starting major work
+- ✗ Leave worktrees around after merging
+
+### Troubleshooting
+
+**Merge conflicts during sync:**
+```bash
+# After running sync, if conflicts occur:
+# 1. Fix conflicts in files
+# 2. Stage resolved files
+git add <resolved-files>
+# 3. Complete merge
+git commit
+```
+
+**Can't remove worktree (files in use):**
+```bash
+# Force remove
+git worktree remove <path> --force
+```
+
+**Lost track of worktrees:**
+```bash
+# List all worktrees
+.claude/tools/worktree-manager.sh list
+
+# Show detailed status
+.claude/tools/worktree-manager.sh status
+```
+
 ## Available Tools
 
 **IMPORTANT**: ALWAYS use these tools instead of raw `dos2unix` or `sed` commands. These are auto-approved and don't require user confirmation.
@@ -206,6 +347,15 @@ BitBot follows the **SPARC** methodology for structured development:
 - Use for potentially long-running test commands
 - Example: `.claude/tools/run-with-timeout 30 ./test-script.sh`
 - Auto-approved
+
+**worktree-manager** ⭐ (multi-agent workflow)
+
+- Manages git worktrees for isolated Claude instances
+- Creates timestamped branches automatically
+- Syncs with main branch to get updates from other agents
+- Example: `.claude/tools/worktree-manager.sh create`
+- Auto-approved for all operations
+- See "Git Worktree Workflow" section above for full guide
 
 **DO NOT USE**: `dos2unix file.sh` or `sed -i 's/\r$//' file.sh` directly - use tools above instead!
 
