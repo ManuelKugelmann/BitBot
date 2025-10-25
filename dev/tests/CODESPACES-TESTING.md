@@ -2,6 +2,11 @@
 
 This guide explains how to test BitBot functionality in GitHub Codespaces.
 
+## Two Scenarios
+
+1. **BitBot Development** (this repository): Uses `postCreateCommand` to test on container creation
+2. **BitBot User Workspaces** (after `bitbot init`): Can use `postAttachCommand` for validation on editor attach
+
 ## Quick Start
 
 ### Option 1: Open in Codespaces (Web)
@@ -244,13 +249,50 @@ When reporting Codespaces-related issues:
 
 ---
 
+## User Workspace Codespaces Support
+
+When you run `bitbot init` in your project, BitBot creates a `.devcontainer` configuration that also works in GitHub Codespaces!
+
+### Recommended Setup for User Workspaces
+
+Add to your `.devcontainer/devcontainer.json`:
+
+```json
+{
+  "postAttachCommand": ".devcontainer/bitbot/bitbot help || echo 'BitBot commands available at /usr/local/bitbot'"
+}
+```
+
+**Why `postAttachCommand`?**
+- Runs when editor attaches (not on every container restart)
+- Less intrusive than `postCreateCommand`
+- Shows BitBot is available without running full test suite
+- User-friendly for workspaces
+
+### Opening Your Workspace in Codespaces
+
+If your project has a GitHub remote:
+
+```bash
+# Get Codespaces URL (shown by bitbot init)
+https://codespaces.new/YOUR-USERNAME/YOUR-REPO?quickstart=1
+```
+
+Or manually:
+1. Push your workspace to GitHub (with `.devcontainer` folder)
+2. Open repository on GitHub
+3. Click **Code** → **Codespaces** → **Create codespace**
+4. BitBot will be available at `/usr/local/bitbot`
+
+---
+
 ## Next Steps
 
 After verifying BitBot works in Codespaces:
 
-- [ ] Add Codespaces badge to README.md
-- [ ] Document Docker-in-Docker limitations
-- [ ] Consider Codespaces-specific test suite
-- [ ] Add postCreateCommand to run quick validation
+- [x] Add Codespaces badge to README.md (documented)
+- [x] Document Docker-in-Docker limitations (complete)
+- [x] Codespaces-specific test suite (implemented)
+- [x] Add postCreateCommand for BitBot dev (implemented)
 
 See `sparc/1-specification/08_WORKSPACE_MANAGEMENT.md` for workspace architecture.

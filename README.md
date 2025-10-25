@@ -8,7 +8,13 @@
 
 **Secure Development Environments for AI-Assisted Coding**
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ManuelKugelmann/BitBot?quickstart=1)
+
 BitBot is a cross-platform CLI tool that sandboxes AI coding assistants in isolated container environments, reducing risk when working with AI agents. It enables AI assistants to work freely on your code while protecting critical infrastructure files from accidental modification.
+
+> 💡 **Try BitBot instantly**: Click the badge above to open BitBot in GitHub Codespaces - no local setup required!
+>
+> ⚠️ **Note**: This badge is for BitBot development only (trunk branch). When you run `bitbot init` in your own projects, you can add a similar badge for your workspace.
 
 ---
 
@@ -270,6 +276,25 @@ cd ~/Projects/NewProject
 bitbot init            # Creates .devcontainer/ with template
 bitbot work            # Start coding!
 ```
+
+### GitHub Codespaces Support
+
+BitBot workspaces created with `bitbot init` work seamlessly in GitHub Codespaces!
+
+**Benefits:**
+- ✅ Your `.devcontainer` configuration works in Codespaces
+- ✅ Container bitbot scripts available at `/usr/local/bitbot`
+- ✅ Test and develop from anywhere (no local Docker needed)
+- ✅ Share workspace with team via Codespaces link
+
+**After `bitbot init`:**
+1. Push your project to GitHub (including `.devcontainer/`)
+2. Open in Codespaces from GitHub UI or use direct link
+3. BitBot environment loads automatically!
+
+> **Note**: Codespaces has Docker-in-Docker limitations. Use for testing container bitbot scripts and CLI functionality. For full container orchestration (`bitbot work`, `bitbot config`), use local environment or GitHub Actions CI.
+
+See `dev/tests/CODESPACES-TESTING.md` for details.
 
 ---
 

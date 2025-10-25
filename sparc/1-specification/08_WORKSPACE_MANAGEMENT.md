@@ -410,7 +410,80 @@ User: bitbot work vscode
 VS Code opens directly in container 
 ```
 
-### C2. Session Lifecycle
+### C2. GitHub Codespaces Integration
+
+**GitHub Remote Detection**:
+
+When `bitbot init` detects a GitHub remote repository, it provides a Codespaces link:
+
+```bash
+$ bitbot init
+...
+✓ Workspace initialized successfully!
+
+📦 DevContainer Configuration:
+  Location: .devcontainer/
+  Template: workspace (AI-powered development)
+
+🌐 GitHub Codespaces:
+  Remote detected: github.com/username/repo
+
+  Open in Codespaces:
+  https://codespaces.new/username/repo?quickstart=1
+
+  Your BitBot workspace works in Codespaces!
+  ✓ Container bitbot scripts at /usr/local/bitbot
+  ✓ Same devcontainer configuration
+  ⚠ Docker-in-Docker not available (use for testing only)
+
+  💡 Tip: Add Codespaces badge to your README.md:
+     [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/username/repo?quickstart=1)
+```
+
+**Detection Logic**:
+```bash
+# Check for GitHub remote
+git remote -v | grep -q "github.com"
+
+# Extract user/repo
+REMOTE_URL=$(git config --get remote.origin.url)
+# Parse: git@github.com:user/repo.git → user/repo
+# Or:    https://github.com/user/repo.git → user/repo
+```
+
+**Codespaces URL Format**:
+```
+https://codespaces.new/{user}/{repo}?quickstart=1
+```
+
+**Template Configuration**:
+
+User workspace templates should include `postAttachCommand` for better UX:
+
+```json
+{
+  "postAttachCommand": ".devcontainer/bitbot/bitbot help || echo 'BitBot available at /usr/local/bitbot'"
+}
+```
+
+**Why `postAttachCommand`?**
+- Runs when editor attaches (not on every restart)
+- Less intrusive than `postCreateCommand`
+- Shows BitBot is available without running full tests
+- User-friendly for shared workspaces
+
+**Limitations**:
+- Docker-in-Docker not available in Codespaces
+- `bitbot work` and `bitbot config` won't work (require nested containers)
+- Use Codespaces for: code review, script testing, CLI validation
+- Use local environment or GitHub Actions for: full container workflows
+
+**See Also**:
+- `sparc/0-research/GITHUB_CODESPACES_TESTING.md` for research
+- `dev/tests/CODESPACES-TESTING.md` for testing guide
+- `sparc/1-specification/06_VSCODE_DEVCONTAINER_INTEGRATION.md` section 14
+
+### C3. Session Lifecycle
 
 **Session creation**:
 ```bash
@@ -439,7 +512,7 @@ bitbot session list
 # 🕒 work-bugfix   (alice, 2 days ago, ended)
 ```
 
-### C3. Mode Switching with State
+### C4. Mode Switching with State
 
 ```bash
 # Current: work mode
