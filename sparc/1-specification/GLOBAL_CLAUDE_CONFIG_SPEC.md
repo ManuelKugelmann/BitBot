@@ -48,6 +48,7 @@ BitBot/
     .config/
       ccstatusline/
         settings.json    # ccstatusline configuration (RW, persisted)
+    .tmux.conf           # tmux global configuration (RO, shared)
 
   templates/
     workspace/
@@ -103,6 +104,9 @@ Container filesystem:
   /home/bitbot/.config/  # User tools config
     ccstatusline/
       settings.json      → mounted from [BITBOT_PATH]/global/.config/ccstatusline/settings.json (RW)
+
+  /home/bitbot/.tmux.conf  # tmux global configuration
+    → mounted from [BITBOT_PATH]/global/.tmux.conf (RO)
 ```
 
 ---
@@ -141,7 +145,10 @@ Container filesystem:
     "source=/path/to/BitBot/global/.claude/.credentials.json,target=/home/bitbot/.claude/.credentials.json,type=bind,consistency=cached",
 
     // ccstatusline config (RW, persisted globally)
-    "source=/path/to/BitBot/global/.config/ccstatusline/settings.json,target=/home/bitbot/.config/ccstatusline/settings.json,type=bind,consistency=cached"
+    "source=/path/to/BitBot/global/.config/ccstatusline/settings.json,target=/home/bitbot/.config/ccstatusline/settings.json,type=bind,consistency=cached",
+
+    // tmux global config (RO, shared)
+    "source=/path/to/BitBot/global/.tmux.conf,target=/home/bitbot/.tmux.conf,type=bind,readonly"
   ],
 
   "postCreateCommand": "/workspace/.devcontainer/scripts/setup-claude-config.sh"
