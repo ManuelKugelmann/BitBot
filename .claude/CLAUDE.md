@@ -156,6 +156,46 @@ BitBot follows the **SPARC** methodology for structured development:
 - **DO** ask the user for manual execution of any commands requiring `sudo`. `sudo`does not work in claude code TUI.
 - **DO NOT** use bash echo to output instructions to the user, just directly use claude code text output.
 
+## Context Management
+
+**When to Ask About Context Compaction/Clearing:**
+
+After completing a significant implementation phase, proactively ask the user:
+
+> "This implementation phase is complete. Would you like me to compact or clear the context?
+> - **Compact** - Summarize recent work, free up tokens (recommended after each phase)
+> - **Clear** - Start fresh, clear all history (use between major phases only)"
+
+**Indicators that a phase is complete:**
+- All tests passing for a feature
+- Documentation updated and committed
+- User says "done", "finished", "that's it", or similar
+- Task list fully completed
+- Natural break point in work
+
+**Workflow:**
+1. Ask the user which option they prefer (compact or clear)
+2. Wait for user response
+3. If user confirms:
+   - Run `.claude/tools/compact-context` for compaction
+   - Run `.claude/tools/clear-context` for clearing
+
+**DO NOT:**
+- Automatically compact/clear without asking first
+- Wait for user to ask - be proactive
+- Skip asking after completing implementation phases
+
+**DO:**
+- Ask after each implementation phase
+- Explain the difference between compact and clear
+- Recommend compact for routine cleanup
+- Suggest clear only between major phases
+- Run the appropriate tool after user confirms
+
+**Available Tools:**
+- `.claude/tools/compact-context` - Execute /compact command
+- `.claude/tools/clear-context` - Execute /clear command
+
 ## DevContainer Context
 
 **IMPORTANT**: BitBot has two separate devcontainer contexts - do NOT confuse them!
@@ -174,150 +214,6 @@ BitBot follows the **SPARC** methodology for structured development:
 - Do NOT modify root `/.devcontainer/` unless working on BitBot itself
 - Workspace templates include shared home folders for AI tool configs
 - See `container/templates/workspace/README.md` for workspace template docs
-
-## Git Worktree Workflow for Multi-Agent Development
-
-**IMPORTANT**: Each Claude Code instance should work in its own isolated git worktree to prevent conflicts when multiple agents work simultaneously.
-
-### Why Worktrees?
-
-| Problem | Solution with Worktrees |
-|---------|-------------------------|
-| Multiple Claude instances conflict | Each has isolated directory |
-| Branch switching loses context | Each worktree has dedicated branch |
-| Parallel feature development | Work on multiple tasks simultaneously |
-| Merge conflicts between agents | Clean separation, sync when ready |
-
-### Quick Start
-
-```bash
-# Create new worktree for this Claude instance
-.claude/tools/worktree-manager.sh create
-
-# Sync with main branch (get latest changes from other agents)
-.claude/tools/worktree-manager.sh sync
-
-# Check status of all worktrees
-.claude/tools/worktree-manager.sh status
-
-# Clean up finished work
-.claude/tools/worktree-manager.sh clean
-```
-
-### Recommended Workflow
-
-**1. Create Isolated Worktree**
-```bash
-# Auto-generated timestamped branch (claude-YYYYMMDD-HHMMSS)
-.claude/tools/worktree-manager.sh create
-
-# Or named feature branch (becomes claude-feature-name)
-.claude/tools/worktree-manager.sh create feature-name
-```
-
-**2. Work in Worktree**
-```bash
-# Switch to your worktree
-cd .worktrees/claude-20251025-214500
-
-# Do your work, make commits
-git add .
-git commit -m "Add feature"
-```
-
-**3. Sync Regularly**
-```bash
-# Pull latest changes from main branch (trunk)
-.claude/tools/worktree-manager.sh sync
-
-# Resolve any conflicts if they occur
-```
-
-**4. Create PR or Merge**
-```bash
-# Push your branch
-git push -u origin claude-20251025-214500
-
-# Create PR via gh CLI or web interface
-gh pr create --title "Feature description" --body "Details..."
-```
-
-**5. Clean Up After Merge**
-```bash
-# Remove worktree and branch after PR is merged
-.claude/tools/worktree-manager.sh clean
-```
-
-### Worktree Manager Commands
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `create [name]` | Create new worktree with timestamped branch | `.claude/tools/worktree-manager.sh create` |
-| `list` | List all worktrees | `.claude/tools/worktree-manager.sh list` |
-| `sync` | Sync current worktree with main branch | `.claude/tools/worktree-manager.sh sync` |
-| `status` | Show status of all worktrees | `.claude/tools/worktree-manager.sh status` |
-| `remove <name>` | Remove specific worktree | `.claude/tools/worktree-manager.sh remove claude-xxx` |
-| `clean` | Remove merged worktrees | `.claude/tools/worktree-manager.sh clean` |
-
-### Configuration
-
-Environment variables (optional):
-
-```bash
-# Base directory for worktrees (default: [project]/.worktrees)
-export WORKTREE_BASE=".worktrees"  # Relative to project root
-
-# Alternative: centralized location
-export WORKTREE_BASE="$HOME/.worktrees"
-
-# Branch name prefix (default: claude)
-export BRANCH_PREFIX="agent"
-
-# Main branch to sync with (default: trunk)
-export MAIN_BRANCH="main"
-```
-
-### Best Practices
-
-**DO:**
-- ✓ Create new worktree for each Claude instance/task
-- ✓ Sync regularly with main branch (multiple times per session)
-- ✓ Use timestamped branches for automatic naming
-- ✓ Clean up merged worktrees to save space
-- ✓ Commit frequently within your worktree
-
-**DON'T:**
-- ✗ Work directly in main project directory with multiple instances
-- ✗ Share worktrees between Claude instances
-- ✗ Forget to sync before starting major work
-- ✗ Leave worktrees around after merging
-
-### Troubleshooting
-
-**Merge conflicts during sync:**
-```bash
-# After running sync, if conflicts occur:
-# 1. Fix conflicts in files
-# 2. Stage resolved files
-git add <resolved-files>
-# 3. Complete merge
-git commit
-```
-
-**Can't remove worktree (files in use):**
-```bash
-# Force remove
-git worktree remove <path> --force
-```
-
-**Lost track of worktrees:**
-```bash
-# List all worktrees
-.claude/tools/worktree-manager.sh list
-
-# Show detailed status
-.claude/tools/worktree-manager.sh status
-```
 
 ## Available Tools
 
@@ -359,6 +255,30 @@ git worktree remove <path> --force
 - Example: `.claude/tools/worktree-manager.sh create`
 - Auto-approved for all operations
 - See "Git Worktree Workflow" section above for full guide
+
+**compact-context**
+
+- Executes `/compact` command to summarize conversation history
+- Claude runs this after asking user permission
+- Use: After completing implementation phases
+- Example: `.claude/tools/compact-context`
+- Auto-approved
+
+**clear-context**
+
+- Executes `/clear` command to completely reset conversation
+- Claude runs this after asking user permission
+- Use: Between major phases only (destructive operation)
+- Example: `.claude/tools/clear-context`
+- Auto-approved
+
+**exit**
+
+- Executes `/exit` command to close Claude Code session
+- Claude runs this after asking user permission
+- Use: When user wants to end the session
+- Example: `.claude/tools/exit`
+- Auto-approved
 
 **DO NOT USE**: `dos2unix file.sh` or `sed -i 's/\r$//' file.sh` directly - use tools above instead!
 

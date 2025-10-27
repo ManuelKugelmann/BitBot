@@ -245,19 +245,6 @@ bitbot config          # Opens config mode
 # New extension available!
 ```
 
-**Multi-Agent Development (Advanced):**
-
-```bash
-# Each Claude instance gets isolated worktree
-.claude/tools/worktree-manager.sh create
-cd .worktrees/claude-20251027-HHMMSS
-# Work independently, sync regularly
-
-# See worktree status in statusline with ccstatusline
-bunx ccstatusline@latest  # Setup with Git Worktree widget
-# See: sparc/0-research/CCSTATUSLINE_SETUP.md
-```
-
 **Starting a new project:**
 
 ```bash

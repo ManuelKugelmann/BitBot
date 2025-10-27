@@ -59,6 +59,20 @@
   - DevContainer templates (shell configuration)
   - Workspace init (copy shell preference to workspace)
 
+**Git Worktree Multi-Agent Support**
+- **Status**: Removed from implementation (2025-10-27)
+- **Use case**: Multiple Claude instances working in isolated git worktrees
+- **Reason for removal**: May integrate with ccmanager or similar third-party tool instead
+- **Features considered**:
+  - Timestamped worktree creation (`claude-YYYYMMDD-HHMMSS`)
+  - Branch management for isolated workspaces
+  - Sync commands to merge changes from main branch
+  - Status tracking across worktrees
+  - Automatic cleanup after PR merge
+- **Alternative approach**: Use native git worktree commands or integrate with external tools like ccmanager
+- **Priority**: Medium (useful for advanced multi-agent workflows)
+- **Note**: ccstatusline integration with Git Worktree widget still supported for manual worktree usage
+
 ### Phase 2b: Session Management (Post-MVP)
 
 **Multi-Session Support**
