@@ -1,6 +1,7 @@
 # BitBot TODO Tracker
 
 **Status**: Pre-Alpha → Alpha (v0.1.0)
+
 **Last Updated**: 2025-10-24
 
 ---
@@ -92,18 +93,21 @@
 ## Success Criteria
 
 ### Alpha
+
 - [ ] Successfully tested on all three platforms
 - [ ] Installation works without manual intervention
 - [ ] Core workflows (init, work, config) functional
 - [ ] At least 5 external users can install and use
 
 ### Beta
+
 - [ ] No critical bugs in issue tracker
 - [ ] At least 20 external users
 - [ ] Positive user feedback
 - [ ] Community contributions
 
 ### v1.0
+
 - [ ] Production readiness checklist satisfied
 - [ ] Full test coverage (>80%)
 - [ ] Active community
@@ -120,16 +124,19 @@
 ## Timeline
 
 **This Week**:
+
 1. Manual testing on Windows
 2. Document known issues
 3. Fix critical bugs
 
 **Next 2 Weeks**:
+
 1. macOS testing
 2. Linux testing
 3. Prepare alpha release
 
 **Next Month**:
+
 1. Create release (v0.1.0-alpha)
 2. Gather user feedback
 3. Iterate based on feedback
@@ -138,3 +145,12 @@
 ---
 
 **Last Updated**: 2025-10-24
+
+Urgent:
+
+- [ ] test dev container rebuild after config (terminal, vscode, new start / while in use)
+- [ ] where do global files live for codespaces ?
+- [ ] mermaid in readme
+- [ ] update folder structure in readme
+- [ ] less duplicate info in readme
+- [ ] update todos in readme
