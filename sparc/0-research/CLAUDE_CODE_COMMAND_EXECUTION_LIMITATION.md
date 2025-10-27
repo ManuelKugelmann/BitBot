@@ -85,6 +85,13 @@ Standard terminal control sequences:
 
 All of these are **character data**, not keyboard events. Claude Code interprets them as Shift+Enter.
 
+**Terminal Driver Translation (icrnl):**
+On Unix systems, the terminal driver automatically translates incoming CR (0x0D) to LF (0x0A) via the `icrnl` flag. This means:
+- Physical Return key: sends CR → terminal converts to LF → app receives LF
+- Programmatic `\r`: sends CR → terminal converts to LF → app receives LF
+
+Both produce identical character sequences at the application level, yet Claude Code still distinguishes between them. This suggests the distinction happens at a different layer (possibly application-level input state tracking).
+
 ## Workaround
 
 **Text Injection Only:**
