@@ -69,7 +69,7 @@ export CLAUDE_CONFIG_DIR=/custom/path/to/.claude
 
 ## Worktree Widget Display
 
-When using `.claude/tools/worktree-manager.sh`:
+When using git worktrees:
 
 **Main Worktree**:
 ```
@@ -79,46 +79,14 @@ Indicates main repository with 2 linked worktrees
 
 **Linked Worktree**:
 ```
-🌿 claude-20251025-214500
+🌿 feature-branch
 ```
-Shows you're in an isolated worktree with timestamp
+Shows you're in an isolated worktree
 
 **No Worktrees**:
 ```
 (widget not shown)
 ```
-
-## Integration with BitBot Worktree Workflow
-
-### Workflow Example
-
-1. **Create isolated worktree**:
-   ```bash
-   .claude/tools/worktree-manager.sh create
-   cd .worktrees/claude-20251025-214500
-   ```
-
-2. **Start Claude Code** - statusline shows:
-   ```
-   trunk 🌿 claude-20251025-214500 │ Sonnet │ ~/bitbot-work/... │ $0.023
-   ```
-
-3. **Always know your context**:
-   - Which branch you're on
-   - Which worktree (isolated workspace)
-   - Which model you're using
-   - Current cost of session
-
-4. **Sync with main branch**:
-   ```bash
-   .claude/tools/worktree-manager.sh sync
-   ```
-
-5. **Create PR and clean up**:
-   ```bash
-   git push && gh pr create
-   .claude/tools/worktree-manager.sh clean
-   ```
 
 ## Recommended Widget Configuration
 
@@ -235,7 +203,6 @@ cat ~/.config/ccstatusline/settings.json
 
 - Check current worktree: `git worktree list`
 - Verify you're in correct directory: `pwd`
-- Switch worktrees if needed: `cd .worktrees/<worktree-name>`
 
 ## Configuration File Location
 
@@ -302,5 +269,3 @@ For BitBot container templates (workspace mode):
 
 - [ccstatusline GitHub](https://github.com/sirmalloc/ccstatusline)
 - [Claude Code Statusline Docs](https://docs.claude.com/en/docs/claude-code/statusline)
-- [BitBot Worktree Manager](/.claude/tools/worktree-manager.sh)
-- [BitBot Worktree Workflow](/.claude/CLAUDE.md#git-worktree-workflow)

@@ -156,6 +156,37 @@ BitBot follows the **SPARC** methodology for structured development:
 - **DO** ask the user for manual execution of any commands requiring `sudo`. `sudo`does not work in claude code TUI.
 - **DO NOT** use bash echo to output instructions to the user, just directly use claude code text output.
 
+## Stop Hook Automation
+
+**DONOTSTOP Hook (Enabled by Default):**
+
+BitBot includes a Stop hook that automatically continues work after Claude finishes responding. This enables automated workflows without manual prompting.
+
+**How it works:**
+- Hook reads `.bitbot/DONOTSTOP.txt` for continuation instructions
+- When file exists, Claude continues with the specified reason
+- When file is removed, Claude stops normally
+
+**Default behavior:**
+- Enabled: "Continue working. Check TODO list and implement the next pending task."
+- Claude automatically continues to next task after completing current work
+- Prevents need for repeated prompting
+
+**Control:**
+- `.claude/tools/donotstop-off` - Disable (allow normal stops)
+- `.claude/tools/donotstop-on [reason]` - Enable with custom reason
+- Edit `.bitbot/DONOTSTOP.txt` - Change continuation message
+
+**Use cases:**
+- Multi-phase implementations (implement tasks from TODO-TRACKER.md)
+- Test-fix-commit loops (run tests, fix failures, repeat)
+- Documentation generation (create docs for all modules)
+
+**Safety:**
+- Prevents infinite loops with `stop_hook_active` check
+- 5 second timeout on hook execution
+- User can disable anytime with `donotstop-off`
+
 ## Context Management
 
 **When to Ask About Context Compaction/Clearing:**
@@ -247,15 +278,6 @@ After completing a significant implementation phase, proactively ask the user:
 - Example: `.claude/tools/run-with-timeout 30 ./test-script.sh`
 - Auto-approved
 
-**worktree-manager** ⭐ (multi-agent workflow)
-
-- Manages git worktrees for isolated Claude instances
-- Creates timestamped branches automatically
-- Syncs with main branch to get updates from other agents
-- Example: `.claude/tools/worktree-manager.sh create`
-- Auto-approved for all operations
-- See "Git Worktree Workflow" section above for full guide
-
 **compact-context**
 
 - Executes `/compact` command to summarize conversation history
@@ -280,17 +302,32 @@ After completing a significant implementation phase, proactively ask the user:
 - Example: `.claude/tools/exit`
 - Auto-approved
 
+**donotstop-on**
+
+- Enables Stop hook automation (blocks completion and continues work)
+- Reads continuation reason from `.bitbot/DONOTSTOP.txt`
+- Default reason: "Continue working. Check TODO list and implement the next pending task."
+- Example: `.claude/tools/donotstop-on "Custom reason here"`
+- Auto-approved
+- **Enabled by default in BitBot**
+
+**donotstop-off**
+
+- Disables Stop hook automation (allows normal completion)
+- Removes `.bitbot/DONOTSTOP.txt` file
+- Use when you want Claude to stop after finishing
+- Example: `.claude/tools/donotstop-off`
+- Auto-approved
+
 **DO NOT USE**: `dos2unix file.sh` or `sed -i 's/\r$//' file.sh` directly - use tools above instead!
 
 ## Statusline (Optional)
 
-**Recommended**: Use [ccstatusline](https://github.com/sirmalloc/ccstatusline) to display worktree and context info.
+**Recommended**: Use [ccstatusline](https://github.com/sirmalloc/ccstatusline) to display git branch, model, cost, and context info.
 
 ```bash
 bunx ccstatusline@latest  # Interactive TUI setup
 ```
-
-**Key widget for multi-agent work**: Git Worktree (shows which isolated workspace you're in)
 
 See `sparc/0-research/CCSTATUSLINE_SETUP.md` for full setup guide.
 
