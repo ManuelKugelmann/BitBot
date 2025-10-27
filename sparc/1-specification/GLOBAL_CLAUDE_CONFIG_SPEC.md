@@ -135,26 +135,30 @@ Container filesystem:
 
   "containerEnv": {
     "BITBOT_PROJECT_PATH": "${localWorkspaceFolder}",
-    "BITBOT_PROJECT_NAME": "${localWorkspaceFolderBasename}"
+    "BITBOT_PROJECT_NAME": "${localWorkspaceFolderBasename}",
+    "BITBOT_HOME": "${localEnv:BITBOT_HOME}"
   },
 
   "mounts": [
     // Workspace (includes .claude/ project config)
     "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
 
+    // Container BitBot runtime
+    "source=${localWorkspaceFolder}/.devcontainer/bitbot,target=/usr/local/bitbot,type=bind,readonly",
+
     // User config directory - session data from workspace
     "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude,target=/home/bitbot/.claude,type=bind,consistency=cached",
 
     // BitBot global - Individual files override specific files in ~/.claude/
-    "source=/path/to/BitBot/global/.claude/CLAUDE.md,target=/home/bitbot/.claude/CLAUDE.md,type=bind,consistency=cached",
-    "source=/path/to/BitBot/global/.claude/settings.json,target=/home/bitbot/.claude/settings.json,type=bind,readonly",
-    "source=/path/to/BitBot/global/.claude/.credentials.json,target=/home/bitbot/.claude/.credentials.json,type=bind,consistency=cached",
+    "source=${localEnv:BITBOT_HOME}/global/.claude/CLAUDE.md,target=/home/bitbot/.claude/CLAUDE.md,type=bind,consistency=cached",
+    "source=${localEnv:BITBOT_HOME}/global/.claude/settings.json,target=/home/bitbot/.claude/settings.json,type=bind,readonly",
+    "source=${localEnv:BITBOT_HOME}/global/.claude/.credentials.json,target=/home/bitbot/.claude/.credentials.json,type=bind,consistency=cached",
 
     // ccstatusline config (RW, persisted globally)
-    "source=/path/to/BitBot/global/.config/ccstatusline/settings.json,target=/home/bitbot/.config/ccstatusline/settings.json,type=bind,consistency=cached",
+    "source=${localEnv:BITBOT_HOME}/global/.config/ccstatusline/settings.json,target=/home/bitbot/.config/ccstatusline/settings.json,type=bind,consistency=cached",
 
     // tmux global config (RO, shared)
-    "source=/path/to/BitBot/global/.tmux.conf,target=/home/bitbot/.tmux.conf,type=bind,readonly"
+    "source=${localEnv:BITBOT_HOME}/global/.tmux.conf,target=/home/bitbot/.tmux.conf,type=bind,readonly"
   ],
 
   "postCreateCommand": "/workspace/.devcontainer/scripts/setup-claude-config.sh"
@@ -164,9 +168,16 @@ Container filesystem:
 **Notes:**
 
 **Environment Variables:**
+- `BITBOT_HOME`: BitBot installation path (e.g., `/mnt/c/Projects/BitBot`)
+  - Set by user in shell profile (~/.bashrc, ~/.zshrc)
+  - Used to mount global config files from BitBot installation
+  - Makes workspace folder portable (relative to BitBot installation)
 - `BITBOT_PROJECT_PATH`: Full host workspace path (e.g., `/mnt/c/Projects/MyProject`)
+  - Set automatically by VS Code (${localWorkspaceFolder})
+  - Available for tmux status bar showing host path
 - `BITBOT_PROJECT_NAME`: Workspace folder name only (e.g., `MyProject`)
-- These are available for tmux status bar, prompts, and scripts
+  - Set automatically by VS Code (${localWorkspaceFolderBasename})
+  - Available for prompts and scripts
 
 **Mounts:**
 - `~/.claude/` is mounted to `/workspace/.bitbot/internal/global/.claude/` (session data)
