@@ -95,7 +95,7 @@ Shows you're in an isolated worktree with timestamp
 1. **Create isolated worktree**:
    ```bash
    .claude/tools/worktree-manager.sh create
-   cd ~/.bitbot-worktrees/claude-20251025-214500
+   cd .worktrees/claude-20251025-214500
    ```
 
 2. **Start Claude Code** - statusline shows:
@@ -235,7 +235,7 @@ cat ~/.config/ccstatusline/settings.json
 
 - Check current worktree: `git worktree list`
 - Verify you're in correct directory: `pwd`
-- Switch worktrees if needed: `cd ~/.bitbot-worktrees/<worktree-name>`
+- Switch worktrees if needed: `cd .worktrees/<worktree-name>`
 
 ## Configuration File Location
 

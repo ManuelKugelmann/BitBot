@@ -250,7 +250,7 @@ bitbot config          # Opens config mode
 ```bash
 # Each Claude instance gets isolated worktree
 .claude/tools/worktree-manager.sh create
-cd ~/.bitbot-worktrees/claude-20251027-HHMMSS
+cd .worktrees/claude-20251027-HHMMSS
 # Work independently, sync regularly
 
 # See worktree status in statusline with ccstatusline

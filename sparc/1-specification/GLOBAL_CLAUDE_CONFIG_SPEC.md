@@ -45,6 +45,9 @@ BitBot/
       CLAUDE.md          # Global user instructions (shared across all workspaces)
       settings.json      # Global user settings (shared across all workspaces)
       .credentials.json  # Auth tokens (gitignored)
+    .config/
+      ccstatusline/
+        settings.json    # ccstatusline configuration (RW, persisted)
 
   templates/
     workspace/
@@ -96,6 +99,10 @@ Container filesystem:
     history.jsonl        → in /workspace/.bitbot/internal/global/.claude/ (RW)
     todos/               → in /workspace/.bitbot/internal/global/.claude/ (RW)
     # Other session files from .bitbot/internal/global/.claude/
+
+  /home/bitbot/.config/  # User tools config
+    ccstatusline/
+      settings.json      → mounted from [BITBOT_PATH]/global/.config/ccstatusline/settings.json (RW)
 ```
 
 ---
@@ -131,7 +138,10 @@ Container filesystem:
     // BitBot global - Individual files override specific files in ~/.claude/
     "source=/path/to/BitBot/global/.claude/CLAUDE.md,target=/home/bitbot/.claude/CLAUDE.md,type=bind,consistency=cached",
     "source=/path/to/BitBot/global/.claude/settings.json,target=/home/bitbot/.claude/settings.json,type=bind,readonly",
-    "source=/path/to/BitBot/global/.claude/.credentials.json,target=/home/bitbot/.claude/.credentials.json,type=bind,consistency=cached"
+    "source=/path/to/BitBot/global/.claude/.credentials.json,target=/home/bitbot/.claude/.credentials.json,type=bind,consistency=cached",
+
+    // ccstatusline config (RW, persisted globally)
+    "source=/path/to/BitBot/global/.config/ccstatusline/settings.json,target=/home/bitbot/.config/ccstatusline/settings.json,type=bind,consistency=cached"
   ],
 
   "postCreateCommand": "/workspace/.devcontainer/scripts/setup-claude-config.sh"
@@ -143,6 +153,7 @@ Container filesystem:
 - **CLAUDE.md**: File mount from BitBot global - read-write (global memory)
 - **settings.json**: File mount from BitBot global - read-only (protected)
 - **.credentials.json**: File mount from BitBot global - read-write (login)
+- **ccstatusline**: File mount from BitBot global - read-write (persists across workspaces)
 - Session files (history.jsonl, todos/, etc.) live in `.bitbot/internal/global/.claude/`
 - `/workspace/.claude/` is standard project config (no special handling)
 

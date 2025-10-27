@@ -14,7 +14,19 @@ GREY='\033[0;90m'
 RESET='\033[0m'
 
 # Configuration
-WORKTREE_BASE="${WORKTREE_BASE:-$HOME/.bitbot-worktrees}"
+# Default to .worktrees/ in project root (git feature, not BitBot-specific)
+# Can override with WORKTREE_BASE environment variable
+get_default_worktree_base() {
+    local git_root
+    git_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [[ -n "$git_root" ]]; then
+        echo "${git_root}/.worktrees"
+    else
+        echo "$HOME/.worktrees"
+    fi
+}
+
+WORKTREE_BASE="${WORKTREE_BASE:-$(get_default_worktree_base)}"
 BRANCH_PREFIX="${BRANCH_PREFIX:-claude}"
 MAIN_BRANCH="${MAIN_BRANCH:-trunk}"
 
@@ -67,7 +79,7 @@ ${YELLOW}Examples:${RESET}
   worktree-manager remove claude-20251025-140530
 
 ${YELLOW}Environment Variables:${RESET}
-  WORKTREE_BASE     Base directory for worktrees (default: ~/.bitbot-worktrees)
+  WORKTREE_BASE     Base directory for worktrees (default: [project]/.worktrees)
   BRANCH_PREFIX     Branch name prefix (default: claude)
   MAIN_BRANCH       Main branch to sync with (default: trunk)
 

@@ -1,3 +1,6 @@
+# Git worktrees (used for multi-agent development)
+.worktrees/
+
 # Build outputs
 build/
 dist/

@@ -218,7 +218,7 @@ BitBot follows the **SPARC** methodology for structured development:
 **2. Work in Worktree**
 ```bash
 # Switch to your worktree
-cd ~/.bitbot-worktrees/claude-20251025-214500
+cd .worktrees/claude-20251025-214500
 
 # Do your work, make commits
 git add .
@@ -264,8 +264,11 @@ gh pr create --title "Feature description" --body "Details..."
 Environment variables (optional):
 
 ```bash
-# Base directory for worktrees (default: ~/.bitbot-worktrees)
-export WORKTREE_BASE="$HOME/projects/bitbot-work"
+# Base directory for worktrees (default: [project]/.worktrees)
+export WORKTREE_BASE=".worktrees"  # Relative to project root
+
+# Alternative: centralized location
+export WORKTREE_BASE="$HOME/.worktrees"
 
 # Branch name prefix (default: claude)
 export BRANCH_PREFIX="agent"
