@@ -189,13 +189,13 @@ BitBot includes a Stop hook that automatically continues work after Claude finis
 
 ## Context Management
 
-**When to Ask About Context Compaction/Clearing:**
+**When to Recommend Context Compaction/Clearing:**
 
-After completing a significant implementation phase, proactively ask the user:
+After completing a significant implementation phase, proactively remind the user:
 
-> "This implementation phase is complete. Would you like me to compact or clear the context?
-> - **Compact** - Summarize recent work, free up tokens (recommended after each phase)
-> - **Clear** - Start fresh, clear all history (use between major phases only)"
+> "This implementation phase is complete. Consider managing context:
+> - **`/compact`** - Summarize recent work, free up tokens (recommended after each phase)
+> - **`/clear`** - Start fresh, clear all history (use between major phases only)"
 
 **Indicators that a phase is complete:**
 - All tests passing for a feature
@@ -204,28 +204,13 @@ After completing a significant implementation phase, proactively ask the user:
 - Task list fully completed
 - Natural break point in work
 
-**Workflow:**
-1. Ask the user which option they prefer (compact or clear)
-2. Wait for user response
-3. If user confirms:
-   - Run `.claude/tools/compact-context` for compaction
-   - Run `.claude/tools/clear-context` for clearing
+**Important:**
+- **DO** proactively remind users about context management
+- **DO** explain when to use `/compact` vs `/clear`
+- **DO NOT** attempt to execute these commands programmatically
+- User must manually type `/compact` or `/clear` commands
 
-**DO NOT:**
-- Automatically compact/clear without asking first
-- Wait for user to ask - be proactive
-- Skip asking after completing implementation phases
-
-**DO:**
-- Ask after each implementation phase
-- Explain the difference between compact and clear
-- Recommend compact for routine cleanup
-- Suggest clear only between major phases
-- Run the appropriate tool after user confirms
-
-**Available Tools:**
-- `.claude/tools/compact-context` - Execute /compact command
-- `.claude/tools/clear-context` - Execute /clear command
+**Note:** Claude Code's TUI requires physical keyboard input to execute commands. Programmatic execution via tmux or other automation is not possible.
 
 ## DevContainer Context
 
@@ -278,29 +263,6 @@ After completing a significant implementation phase, proactively ask the user:
 - Example: `.claude/tools/run-with-timeout 30 ./test-script.sh`
 - Auto-approved
 
-**compact-context**
-
-- Executes `/compact` command to summarize conversation history
-- Claude runs this after asking user permission
-- Use: After completing implementation phases
-- Example: `.claude/tools/compact-context`
-- Auto-approved
-
-**clear-context**
-
-- Executes `/clear` command to completely reset conversation
-- Claude runs this after asking user permission
-- Use: Between major phases only (destructive operation)
-- Example: `.claude/tools/clear-context`
-- Auto-approved
-
-**exit**
-
-- Executes `/exit` command to close Claude Code session
-- Claude runs this after asking user permission
-- Use: When user wants to end the session
-- Example: `.claude/tools/exit`
-- Auto-approved
 
 **donotstop-on**
 
