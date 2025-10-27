@@ -167,27 +167,34 @@ expect {
 
 ## Recommendations
 
-### Priority 1: Test expect
+### Test Results: expect (COMPLETED)
 
-**Hypothesis:** expect's output-aware interaction might succeed where tmux failed.
+**Status:** ✅ Tested, ❌ Unreliable
 
-**Test Plan:**
-1. Write expect script to send `/cost` command
-2. Check for command execution by pattern matching output
-3. If successful, try `/compact` and other slash commands
-4. Document whether expect can distinguish execution vs text appearance
+**Findings:**
+- expect script uses `exec tmux send-keys` internally (same mechanism as tmux)
+- Cross-session testing showed inconsistent behavior:
+  - First attempt: `/cost` executed ✅
+  - Second attempt: `/cost` appeared as text ❌
+  - Active sessions: All attempts failed ❌
+- expect's output-awareness doesn't help - the issue is command execution, not output detection
 
-### Priority 2: Document findings
+**Conclusion:** expect provides no advantage over tmux send-keys. Both suffer from the same unreliability:
+- Timing-dependent
+- State-dependent (active vs inactive)
+- Inconsistent execution
 
-If expect works:
-- Create `.claude/tools/expect-compact` and related tools
-- Update CLAUDE.md with expect-based automation
-- Enable programmatic context management
+### Final Recommendation
 
-If expect fails:
-- Confirms that no terminal automation works
-- DONOTSTOP hook remains the only solution
-- Update research with comprehensive negative results
+**No terminal automation tool can reliably execute Claude Code commands.**
+
+All tested approaches (tmux, expect) failed to provide consistent execution:
+- ❌ tmux send-keys: Unreliable cross-session execution
+- ❌ expect: No advantage (uses tmux internally)
+- ❌ screen: Would have same issues as tmux
+- ❌ script/chat: Not applicable
+
+**DONOTSTOP Stop hook is the only reliable automation solution for BitBot.**
 
 ## Implementation Notes
 

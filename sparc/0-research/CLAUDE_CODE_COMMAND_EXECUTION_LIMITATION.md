@@ -179,10 +179,10 @@ tmux send-keys -t <pane> "message text" Enter
 ```
 
 **Key Finding After Extensive Testing:**
-- ❌ **Regular messages DON'T execute**: `tmux send-keys "message" Enter` - text appears but doesn't trigger Claude to process
-- ❌ **Slash commands DON'T execute**: `tmux send-keys "/compact" Enter` - text appears but command doesn't run
-- ✅ **Text injection works**: Commands/messages appear in input buffer
-- ❌ **No execution method found**: Neither Enter, Tab completion, nor any escape sequence triggers execution
+- ✅ **Regular messages CAN be entered reliably**: `tmux send-keys "message" Enter` - messages can be sent to Claude
+- ❌ **Slash commands DON'T execute reliably**: `tmux send-keys "/compact" Enter` - unreliable, inconsistent behavior
+- ✅ **Text injection works**: Messages/commands appear in input buffer
+- ⚠️ **Slash command execution unreliable**: Works occasionally cross-session, but timing/state-dependent
 
 **Root Cause:**
 Claude Code's TUI distinguishes between:
@@ -191,22 +191,38 @@ Claude Code's TUI distinguishes between:
 
 This is likely intentional security/design - the TUI only responds to actual user interaction, not programmatic input injection.
 
-**Note:** Issue #2929's "workaround" may refer to older Claude Code versions, external automation tools, or a misunderstanding of what "works". Current testing confirms no execution via tmux send-keys.
+**Cross-Session Testing Results:**
+Tested sending commands from one tmux session to another Claude Code instance:
+- **First attempt (session 5)**: `/cost` executed successfully ✅
+- **Second attempt (session 5)**: `/cost` appeared as text only ❌
+- **Active session (session 8)**: All attempts failed ❌
+- **Self-send (session 7)**: Failed ❌
+
+**Conclusion on Cross-Session Control:** Even cross-session command execution is **unreliable**:
+- Timing-dependent behavior
+- State-dependent (active vs inactive session)
+- Inconsistent results (works once, fails next time)
+- No guarantee of execution
+
+**Note:** Issue #2929's "workaround" may work occasionally for cross-session control, but is not reliable enough for production automation. The inconsistent behavior makes it unsuitable for BitBot's automation needs.
 
 ## Conclusion
 
-**Programmatic execution of Claude Code commands (both messages and slash commands) is not possible** via tmux or any terminal automation method. Claude Code's TUI requires actual physical keyboard interaction and will not process programmatically injected input.
+**Regular messages can be reliably sent via tmux**, enabling cross-instance communication (one Claude coordinating another). However, **slash commands cannot be reliably executed** - they work occasionally cross-session but with timing/state-dependent behavior unsuitable for automation.
+
+For BitBot's automation needs (specifically `/compact` and `/clear` execution), tmux-based approaches are not viable.
 
 **What Works:**
 - ✅ **Stop hooks with block decision** - DONOTSTOP pattern for automated workflows
 - ✅ **Text injection for convenience** - Places text in input buffer (user must press Enter)
 - ✅ **Proactive reminders** - Claude reminds users to run `/compact` or `/clear` manually
+- ✅ **Regular message injection** - Can reliably send messages to Claude instances via tmux
+- ✅ **Cross-instance messaging** - One Claude can send tasks to another Claude (using regular messages, not slash commands)
 
 **What Doesn't Work:**
-- ❌ **Command execution via tmux** - No method to trigger processing
-- ❌ **Slash command automation** - Commands appear but don't execute
-- ❌ **Message automation** - Messages appear but Claude doesn't process them
-- ❌ **Inter-instance messaging** - Cannot send executable commands between instances
+- ❌ **Slash command automation** - Unreliable execution even cross-session
+- ❌ **Slash command cross-session** - Works occasionally but timing/state-dependent, not suitable for automation
+- ❌ **Self-execution** - Cannot send commands to own session programmatically
 
 **Recommendation:** The DONOTSTOP Stop hook is the correct and only automation solution for BitBot. It works at the protocol level without requiring input simulation.
 

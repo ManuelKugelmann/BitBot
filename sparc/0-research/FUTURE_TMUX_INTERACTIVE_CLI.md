@@ -74,14 +74,19 @@ If this approach works:
 
 ## Current Status
 
-**Not tested yet** - Current research (October 2025) focused on slash command execution, which definitively doesn't work. However, the interactive command testing approach was not explored.
+**TESTED (October 2025)** - Results:
+- ✅ **Regular messages work reliably** - Can send messages to Claude instances via tmux
+- ❌ **Slash commands unreliable** - Work occasionally but timing/state-dependent
+- ✅ **Cross-instance communication viable** - One Claude can coordinate others using regular messages
+- ❌ **Slash command automation not viable** - Too unreliable for production use
 
-## Differences from Slash Commands
+## Key Findings
 
-Slash commands (`/compact`, `/clear`, etc.) have additional validation and don't execute programmatically. However:
-- **Regular messages** might behave differently
-- **Interactive commands** might reveal whether messages actually process
-- **State changes** (like "waiting for input") could be detectable
+**Regular messages vs Slash commands:**
+- **Regular messages**: Reliably entered and processed ✅
+- **Slash commands**: Unreliable execution (timing/state-dependent) ❌
+- **Interactive commands**: Not separately tested, but regular message approach works
+- **State changes**: Can be detected via tmux capture-pane polling
 
 ## Future Work
 
