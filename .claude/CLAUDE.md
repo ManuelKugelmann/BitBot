@@ -359,6 +359,18 @@ git worktree remove <path> --force
 
 **DO NOT USE**: `dos2unix file.sh` or `sed -i 's/\r$//' file.sh` directly - use tools above instead!
 
+## Statusline (Optional)
+
+**Recommended**: Use [ccstatusline](https://github.com/sirmalloc/ccstatusline) to display worktree and context info.
+
+```bash
+bunx ccstatusline@latest  # Interactive TUI setup
+```
+
+**Key widget for multi-agent work**: Git Worktree (shows which isolated workspace you're in)
+
+See `sparc/0-research/CCSTATUSLINE_SETUP.md` for full setup guide.
+
 ## PowerShell/CMD from WSL
 
 **PowerShell commands**:

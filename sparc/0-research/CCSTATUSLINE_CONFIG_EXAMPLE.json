@@ -1,0 +1,118 @@
+{
+  "version": 3,
+  "lines": [
+    [
+      {
+        "id": "branch-1",
+        "type": "git-branch",
+        "color": "blue"
+      },
+      {
+        "id": "sep-1",
+        "type": "separator",
+        "character": "|"
+      },
+      {
+        "id": "worktree-1",
+        "type": "git-worktree",
+        "color": "magenta"
+      },
+      {
+        "id": "sep-2",
+        "type": "separator",
+        "character": "|"
+      },
+      {
+        "id": "model-1",
+        "type": "model",
+        "color": "cyan"
+      },
+      {
+        "id": "sep-3",
+        "type": "separator",
+        "character": "|"
+      },
+      {
+        "id": "cwd-1",
+        "type": "cwd",
+        "color": "green"
+      },
+      {
+        "id": "sep-4",
+        "type": "separator",
+        "character": "|"
+      },
+      {
+        "id": "cost-1",
+        "type": "session-cost",
+        "color": "yellow"
+      }
+    ],
+    [
+      {
+        "id": "context-1",
+        "type": "context-length",
+        "color": "brightBlack"
+      },
+      {
+        "id": "sep-5",
+        "type": "separator",
+        "character": "|"
+      },
+      {
+        "id": "tokens-in-1",
+        "type": "tokens-input",
+        "color": "magenta"
+      },
+      {
+        "id": "sep-6",
+        "type": "separator",
+        "character": "|"
+      },
+      {
+        "id": "tokens-out-1",
+        "type": "tokens-output",
+        "color": "yellow"
+      },
+      {
+        "id": "sep-7",
+        "type": "separator",
+        "character": "|"
+      },
+      {
+        "id": "tokens-cached-1",
+        "type": "tokens-cached",
+        "color": "cyan"
+      },
+      {
+        "id": "sep-8",
+        "type": "separator",
+        "character": "|"
+      },
+      {
+        "id": "context-pct-1",
+        "type": "context-percentage",
+        "rawValue": false,
+        "color": "green"
+      }
+    ],
+    []
+  ],
+  "flexMode": "full-minus-40",
+  "compactThreshold": 60,
+  "colorLevel": 2,
+  "inheritSeparatorColors": false,
+  "globalBold": false,
+  "powerline": {
+    "enabled": false,
+    "separators": [
+      ""
+    ],
+    "separatorInvertBackground": [
+      false
+    ],
+    "startCaps": [],
+    "endCaps": [],
+    "autoAlign": false
+  }
+}

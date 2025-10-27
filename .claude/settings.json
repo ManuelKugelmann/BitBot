@@ -56,12 +56,31 @@
           "required": true
         }
       }
+    },
+    {
+      "name": "worktree-manager",
+      "description": "Manage git worktrees for multi-agent Claude workflows",
+      "command": ".claude/tools/worktree-manager.sh",
+      "autoApprove": true,
+      "args": {
+        "command": {
+          "type": "string",
+          "description": "Command: create, list, sync, status, remove, clean",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "description": "Worktree/branch name (for create/remove)",
+          "required": false
+        }
+      }
     }
   ],
 
   "permissions": {
     "allow": [
-      ".claude/tools/**"
+      ".claude/tools/**",
+      "Bash(.claude/tools/worktree-manager.sh:*)"
     ]
   }
 }

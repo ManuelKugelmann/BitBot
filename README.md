@@ -1,7 +1,7 @@
 ```
-◆━╮╭╲●═●╱╮ ╭⬡    BitBot v0.1.0-dev
-○┳┻▲▌╲━╱━╲▐┳┻■     Secure AI Development Environment
- ╰◇╰▄╱━╲▄╯╰○━□
+ ◆╮╭╲●═●╱╮ ╭⬡    BitBot v0.1.0-dev
+○┳┻-▌-━━-▐┳┻■     Secure AI Development Environment
+ ╰◇╰▄-━-▄╯╰○━□
 ```
 
 # BitBot
@@ -25,10 +25,10 @@ When working with AI coding assistants like Claude Code, you want them to:
 
 But **not** accidentally:
 
-- ❌ Modify critical infrastructure files (`.devcontainer`, `.github`, `.gitignore`, secrets, Docker configs)
-- ❌ Write files outside the project directory
-- ❌ Access or modify other projects on your machine
+- ❌ Modify critical files and folders
+- ❌ Write or read files outside the project directory
 - ❌ Install system-wide packages that affect other projects
+- ❌ Wreck your machine
 
 ### Why DevContainers?
 
@@ -41,26 +41,24 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 - ✅ **Isolation**: AI changes stay in container, host protected, no dependency conflicts
 - ✅ **Reproducible**: Same environment across Windows/macOS/Linux for all developers
 - ✅ **Safe**: Reset/rebuild without affecting host, try risky changes safely
-- ✅ **Current**: Docker containerization provides reasonable isolation
-- 🚧 **WIP**: Full VM sandboxing for maximum security
+- ✅ Docker containerization provides reasonable isolation
+- 🚧 WIP: Full VM sandboxing for maximum security
 
 ### BitBot's Two-Mode Solution
 
 ### 💚 Work Mode (Default)
 
 - AI can freely modify application code
-- `.devcontainer/` files are **read-only** (protected)
+- `.devcontainer/` and optionally other files or folders are **read-only** (protected)
 - Git safety warnings for uncommitted changes
-- Optional rootless Docker (template-dependent)
-- Optional full VM sandboxing for enhanced isolation
 - Perfect for daily development
 
 ### 🔧 Config Mode
 
-- **Read-write** access to `.devcontainer/`
+- **Read-write** access to `.devcontainer/` and whole workspace
 - AI agent optimized for infrastructure tasks
 - Use when you need to modify container configuration
-- No Docker access (infrastructure editing only)
+- Human review advised. Git push is denied to agents.
 
 ---
 
@@ -81,35 +79,26 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 
 🚀 **Cross-Platform**
 
-- **Windows**: Launcher → isolated WSL bash environment
+- **Windows**: Launcher → WSL bash or WSL bash directly
 - **macOS**: Native bash
 - **Linux**: Native bash
 
 🎯 **VS Code Integration**
 
 - Direct dev container opening (no popup!)
-- Container reuse across CLI and VS Code
-- Hex-encoded URI protocol for seamless workflow
+- Container reuse across terminal and VS Code
 
-📦 **Flexible Templates**
+📦 **Preconfigured AI Agent Workspace**
 
-- **Workspace template**: Ubuntu + AI tools (Claude Code, Claude Flow, Open Code)
-    - Hybrid installation: Official devcontainer features + fallback scripts
-    - Shared home folders for persistent AI tool configs (version-controlled)
-    - See `templates/workspace/README.md` for details
-- Base template: Ubuntu + basic dev environment
-- Config template: For managing devcontainer configurations
-- 🚧 WIP: Rootless Docker template for Docker-in-Docker workflows
-- 🚧 WIP: VM-based template with full Docker for maximum isolation
+- Ubuntu + AI tools (Claude Code, Claude Flow, Open Code)
 - 🚧 WIP: Agent steering templates for different workloads
 
 🌐 **Global AI Tool Configuration**
 
 - Single sign-on: Credentials shared across all BitBot workspaces
-- Global preferences: Your personal CLAUDE.md and settings apply everywhere
+- Global preferences: global CLAUDE.md and settings apply everywhere
 - Workspace isolation: Session data (history, todos) stored per-workspace
-- Standard project config: `/workspace/.claude/` works like normal Claude Code
-- See `sparc/1-specification/GLOBAL_CLAUDE_CONFIG_SPEC.md` for architecture
+- Per project config: `/workspace/.claude/` works like usually
 
 🛡️ **Git Safety**
 
@@ -129,7 +118,7 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 
 ## ⚠️ Security Considerations
 
-BitBot provides Docker containerization by default (reasonable isolation). For projects requiring Docker-in-Docker, optional rootless Docker is available with limited isolation.
+BitBot provides Docker containerization by default (reasonable isolation). For projects requiring Docker-in-Docker, rootless Docker is possible, but with limited isolation.
 
 **📖 For security analysis, isolation levels, attack vectors:**
 
@@ -143,17 +132,17 @@ BitBot provides Docker containerization by default (reasonable isolation). For p
 
 **All Platforms:**
 
-- Docker Desktop
+- Docker / Docker Desktop
 - VS Code with Dev Containers extension
 - Git
 
 **Windows Only:**
 
-- WSL2 enabled
+- WSL2
 
 ### Installation
 
-**💡 BitBot is Portable**: Install anywhere! No system-wide installation needed. Just clone/extract and add to PATH.
+**💡 BitBot is Portable**: Install anywhere! No system-wide installation needed. Just clone/extract and run uonce to add it to PATH.
 
 **Recommended: Clone Release Branch (Easy Updates)**
 
@@ -161,11 +150,6 @@ BitBot provides Docker containerization by default (reasonable isolation). For p
 # Clone release branch for easy updates via git pull
 # Replace [INSTALLFOLDER] with your preferred location (e.g., ~/tools/bitbot, /opt/bitbot, etc.)
 git clone -b release https://github.com/ManuelKugelmann/BitBot.git [INSTALLFOLDER]/bitbot
-cd [INSTALLFOLDER]/bitbot
-
-# Add to PATH (bash) - adjust path to match your chosen location
-echo 'export PATH="[INSTALLFOLDER]/bitbot:$PATH"' >> ~/.bashrc
-source ~/.bashrc
 
 # Update later with:
 # cd [INSTALLFOLDER]/bitbot && git pull
@@ -179,10 +163,6 @@ wget https://github.com/ManuelKugelmann/BitBot/releases/latest/download/bitbot-v
 
 # Extract to your chosen location
 unzip bitbot-v1.0.0.zip -d [INSTALLFOLDER]/bitbot
-
-# Add to PATH
-echo 'export PATH="[INSTALLFOLDER]/bitbot:$PATH"' >> ~/.bashrc
-source ~/.bashrc
 ```
 
 **Example Locations**:
@@ -201,21 +181,22 @@ source ~/.bashrc
    bitbot
    ```
 
-   This runs the first-time setup wizard to configure BitBot preferences.
-1. **Initialize your workspace:**
+   This runs the first-time setup wizard to configure BitBot preferences and add it to PATH.
+
+2. **Initialize your workspace:**
 
    ```bash
    cd ~/Projects/MyApp
    bitbot init
    ```
 
-   This creates a `.devcontainer/` folder with the base Ubuntu template.
-1. **Start working:**
+   This reuses an existing `.devcontainer/` or creates one with the base bitbot devcontainer. Then it launches into configuration.
 
-   ```bash
-   bitbot work          # Default mode (terminal or VS Code based on setup)
-   bitbot work vscode   # Explicitly launch in VS Code
-   ```
+3. **Start working:***
+
+    ```bash
+    bitbot                # Defaults to Work mode (terminal or VS Code based on setup)
+    ```
 
 ---
 
@@ -225,15 +206,17 @@ source ~/.bashrc
 
 ```bash
 # Launch work mode (AI can code, infrastructure protected)
+bitbot
 bitbot work
-bitbot                 # Same as "bitbot work"
 
-# Launch in VS Code
+# Launch work mode in VS Code
 bitbot vscode
 bitbot work vscode
 
 # Edit container configuration
 bitbot config
+bitbot config vscode
+bitbot config terminal
 
 # Initialize new workspace
 bitbot init
@@ -258,8 +241,21 @@ bitbot work            # Protected mode, code freely with AI
 bitbot config          # Opens config mode
 # Edit .devcontainer/devcontainer.json
 # Add extension to "extensions" array
-# Exit and rebuild
-bitbot work            # New extension available!
+# Rebuild dev container
+# New extension available!
+```
+
+**Multi-Agent Development (Advanced):**
+
+```bash
+# Each Claude instance gets isolated worktree
+.claude/tools/worktree-manager.sh create
+cd ~/.bitbot-worktrees/claude-20251027-HHMMSS
+# Work independently, sync regularly
+
+# See worktree status in statusline with ccstatusline
+bunx ccstatusline@latest  # Setup with Git Worktree widget
+# See: sparc/0-research/CCSTATUSLINE_SETUP.md
 ```
 
 **Starting a new project:**
@@ -287,12 +283,14 @@ git push
 ```
 
 Then open **your project** in Codespaces (via GitHub web UI):
+
 - Your `.devcontainer` configuration loads automatically
 - You're already inside the BitBot workspace container!
 - Container bitbot scripts available at `/usr/local/bitbot`
 - Start coding immediately - no `bitbot work` needed
 
 **Benefits:**
+
 - ✅ Develop from anywhere (browser or VS Code)
 - ✅ No local Docker setup required
 - ✅ Same environment across local and cloud
@@ -435,12 +433,14 @@ bitbot/
 **⚠️ IMPORTANT: Project Location**
 
 Store projects in **WSL filesystem** (`~/projects`), not Windows (`/mnt/c/`):
+
 - WSL: Native ext4 (fast ⭐⭐⭐⭐⭐)
 - Windows mount: 9P protocol (10-40x slower ⚠️)
 
 **Quick check:** `pwd` should show `/home/username/...`, not `/mnt/c/...`
 
 **📖 See [Extended Documentation](README_EXTENDED.md#windowswsl-filesystem-performance-analysis) for:**
+
 - Detailed performance analysis and benchmarks
 - Windows access to WSL files (junction setup)
 - Profiling tools and optimization tips
@@ -455,7 +455,7 @@ Native bash execution, no virtualization layer needed.
 
 Contributions welcome! This project is under active development.
 
-For contribution guidelines, current priorities, and development setup, see [DEVELOPER.md](DEVELOPER.md).
+For contribution guidelines, current priorities, and development setup, see [DEVELOPMENT.md](https://github.com/ManuelKugelmann/BitBot/blob/trunk/DEVELOPMENT.md).
 
 ---
 
@@ -470,7 +470,7 @@ For contribution guidelines, current priorities, and development setup, see [DEV
 
 **Developer Documentation:**
 
-- [DEVELOPER.md](https://github.com/ManuelKugelmann/BitBot/blob/trunk/DEVELOPER.md) - Development setup and contribution guidelines (trunk branch)
+- [DEVELOPMENT.md](https://github.com/ManuelKugelmann/BitBot/blob/trunk/DEVELOPMENT.md) - Development setup and contribution guidelines (trunk branch)
 - [sparc/1-specification/](sparc/1-specification/) - Complete system specifications (authoritative design docs)
 - [sparc/1-specification/README.md](sparc/1-specification/README.md) - Specification overview and index
 
