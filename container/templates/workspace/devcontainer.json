@@ -1,11 +1,5 @@
 {
   "workspaceFolder": "/workspace",
-
-  "containerEnv": {
-    "BITBOT_PROJECT_PATH": "${localWorkspaceFolder}",
-    "BITBOT_PROJECT_NAME": "${localWorkspaceFolderBasename}"
-  },
-
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts"
@@ -26,5 +20,7 @@
     "source=${localWorkspaceFolder}/.devcontainer/home/.claude,target=/home/bitbot/.claude,type=bind,consistency=cached",
     "source=${localWorkspaceFolder}/.devcontainer/home/.claude-flow,target=/home/bitbot/.claude-flow,type=bind,consistency=cached",
     "source=${localWorkspaceFolder}/.devcontainer/home/.opencode,target=/home/bitbot/.opencode,type=bind,consistency=cached"
-  ]
+  ],
+  "$comment_global_mounts": "Global BitBot config mounts (populated by bitbot init):",
+  "$comment_global_mounts_example": "source=<BITBOT_HOME>/global/.tmux.conf,target=/home/bitbot/.tmux.conf,type=bind,readonly"
 }

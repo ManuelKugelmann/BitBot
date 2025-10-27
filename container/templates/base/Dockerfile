@@ -14,9 +14,6 @@ RUN apt-get update && apt-get install -y \
 # Install Claude Code
 RUN npm install -g @anthropic-ai/claude-code
 
-# Configure tmux (shared configuration)
-COPY ../shared/configs/tmux.conf /etc/tmux.conf
-
 # Create workspace
 RUN mkdir -p /workspace
 WORKDIR /workspace

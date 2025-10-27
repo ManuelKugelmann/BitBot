@@ -201,36 +201,37 @@ else
     test_failed "Required helper functions not defined"
 fi
 
-# Test 7: Check tmux config file exists
-run_test "Shared tmux config exists"
-if [[ -f container/templates/shared/configs/tmux.conf ]]; then
+# Test 7: Check global tmux config exists
+run_test "Global tmux config exists"
+if [[ -f global/.tmux.conf ]]; then
     test_passed
 else
-    test_failed "tmux.conf not found in shared configs"
+    test_failed "tmux.conf not found in global/"
 fi
 
-run_test "Shared tmux config has required settings"
-if grep -q "set -g mouse on" container/templates/shared/configs/tmux.conf && \
-   grep -q "set -g status off" container/templates/shared/configs/tmux.conf && \
-   grep -q "set -g history-limit 10000" container/templates/shared/configs/tmux.conf; then
+run_test "Global tmux config has required settings"
+if grep -q "set -g mouse on" global/.tmux.conf && \
+   grep -q "set -g status on" global/.tmux.conf && \
+   grep -q "set -g history-limit 10000" global/.tmux.conf && \
+   grep -q "BITBOT_PROJECT_PATH" global/.tmux.conf; then
     test_passed
 else
-    test_failed "tmux.conf missing required settings"
+    test_failed "global/.tmux.conf missing required settings"
 fi
 
-# Test 8: Check Dockerfiles reference shared config
-run_test "Base Dockerfile uses shared tmux config"
-if grep -q "COPY ../shared/configs/tmux.conf /etc/tmux.conf" container/templates/base/Dockerfile; then
+# Test 8: Check Dockerfiles DON'T bake tmux config (uses global mount instead)
+run_test "Base Dockerfile doesn't bake tmux config"
+if ! grep -q "tmux.conf" container/templates/base/Dockerfile; then
     test_passed
 else
-    test_failed "Base Dockerfile not using shared tmux config"
+    test_failed "Base Dockerfile shouldn't bake tmux.conf (uses global mount)"
 fi
 
-run_test "Config Dockerfile uses shared tmux config"
-if grep -q "COPY ../shared/configs/tmux.conf /etc/tmux.conf" container/templates/config/Dockerfile; then
+run_test "Config Dockerfile doesn't bake tmux config"
+if ! grep -q "tmux.conf" container/templates/config/Dockerfile; then
     test_passed
 else
-    test_failed "Config Dockerfile not using shared tmux config"
+    test_failed "Config Dockerfile shouldn't bake tmux.conf (uses global mount)"
 fi
 
 # Test 9: Check command behavior

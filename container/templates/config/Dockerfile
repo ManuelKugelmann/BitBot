@@ -18,9 +18,6 @@ RUN npm install -g @anthropic-ai/claude-code
 # Install DevContainer CLI
 RUN npm install -g @devcontainers/cli
 
-# Configure tmux (shared configuration)
-COPY ../shared/configs/tmux.conf /etc/tmux.conf
-
 # Create workspace
 RUN mkdir -p /workspace
 WORKDIR /workspace
