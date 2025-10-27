@@ -132,6 +132,12 @@ Container filesystem:
 ```json
 {
   "name": "BitBot Workspace",
+
+  "containerEnv": {
+    "BITBOT_PROJECT_PATH": "${localWorkspaceFolder}",
+    "BITBOT_PROJECT_NAME": "${localWorkspaceFolderBasename}"
+  },
+
   "mounts": [
     // Workspace (includes .claude/ project config)
     "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
@@ -156,11 +162,19 @@ Container filesystem:
 ```
 
 **Notes:**
+
+**Environment Variables:**
+- `BITBOT_PROJECT_PATH`: Full host workspace path (e.g., `/mnt/c/Projects/MyProject`)
+- `BITBOT_PROJECT_NAME`: Workspace folder name only (e.g., `MyProject`)
+- These are available for tmux status bar, prompts, and scripts
+
+**Mounts:**
 - `~/.claude/` is mounted to `/workspace/.bitbot/internal/global/.claude/` (session data)
 - **CLAUDE.md**: File mount from BitBot global - read-write (global memory)
 - **settings.json**: File mount from BitBot global - read-only (protected)
 - **.credentials.json**: File mount from BitBot global - read-write (login)
 - **ccstatusline**: File mount from BitBot global - read-write (persists across workspaces)
+- **tmux.conf**: File mount from BitBot global - read-only (shared config)
 - Session files (history.jsonl, todos/, etc.) live in `.bitbot/internal/global/.claude/`
 - `/workspace/.claude/` is standard project config (no special handling)
 

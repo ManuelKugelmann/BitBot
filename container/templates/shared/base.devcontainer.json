@@ -1,5 +1,11 @@
 {
   "workspaceFolder": "/workspace",
+
+  "containerEnv": {
+    "BITBOT_PROJECT_PATH": "${localWorkspaceFolder}",
+    "BITBOT_PROJECT_NAME": "${localWorkspaceFolderBasename}"
+  },
+
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts"
