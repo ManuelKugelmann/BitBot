@@ -166,19 +166,55 @@ This approach:
 
 **Verdict:** ⏳ Future possibility, not current solution
 
+## Workaround for Regular Messages (Not Slash Commands)
+
+**GitHub Issue #2929** documents a working approach for **inter-instance communication**:
+
+```bash
+# Send regular message to Claude Code instance
+tmux send-keys -t <pane> "message text" Enter
+
+# Poll for completion by checking "esc to interrupt" indicator
+# Capture output with tmux capture-pane
+```
+
+**Key Finding After Extensive Testing:**
+- ❌ **Regular messages DON'T execute**: `tmux send-keys "message" Enter` - text appears but doesn't trigger Claude to process
+- ❌ **Slash commands DON'T execute**: `tmux send-keys "/compact" Enter` - text appears but command doesn't run
+- ✅ **Text injection works**: Commands/messages appear in input buffer
+- ❌ **No execution method found**: Neither Enter, Tab completion, nor any escape sequence triggers execution
+
+**Root Cause:**
+Claude Code's TUI distinguishes between:
+- **Physical keyboard input** → Processes and executes
+- **Programmatic injection via tmux** → Displays text only, no processing
+
+This is likely intentional security/design - the TUI only responds to actual user interaction, not programmatic input injection.
+
+**Note:** Issue #2929's "workaround" may refer to older Claude Code versions, external automation tools, or a misunderstanding of what "works". Current testing confirms no execution via tmux send-keys.
+
 ## Conclusion
 
-**Programmatic execution of Claude Code slash commands is not possible** with current architecture. The TUI's raw keyboard input mode is a deliberate design choice that prevents automation while enabling rich multiline input handling.
+**Programmatic execution of Claude Code commands (both messages and slash commands) is not possible** via tmux or any terminal automation method. Claude Code's TUI requires actual physical keyboard interaction and will not process programmatically injected input.
 
-**Recommendation:** Focus on automation patterns that work within this constraint:
-- ✓ Stop hooks with block decision
-- ✓ Proactive reminders to users
-- ✓ Text injection for convenience
-- ✗ Full command execution automation
+**What Works:**
+- ✅ **Stop hooks with block decision** - DONOTSTOP pattern for automated workflows
+- ✅ **Text injection for convenience** - Places text in input buffer (user must press Enter)
+- ✅ **Proactive reminders** - Claude reminds users to run `/compact` or `/clear` manually
+
+**What Doesn't Work:**
+- ❌ **Command execution via tmux** - No method to trigger processing
+- ❌ **Slash command automation** - Commands appear but don't execute
+- ❌ **Message automation** - Messages appear but Claude doesn't process them
+- ❌ **Inter-instance messaging** - Cannot send executable commands between instances
+
+**Recommendation:** The DONOTSTOP Stop hook is the correct and only automation solution for BitBot. It works at the protocol level without requiring input simulation.
 
 ## References
 
 - [Claude Code Terminal Config](https://docs.claude.com/en/docs/claude-code/terminal-config.md)
 - [Shift+Enter Issue #2754](https://github.com/anthropics/claude-code/issues/2754)
+- [Programmatic Control Issue #2929](https://github.com/anthropics/claude-code/issues/2929) - tmux workaround discussion
+- [Parallel Task Management Issue #4963](https://github.com/anthropics/claude-code/issues/4963) - Multi-agent orchestration
 - [tmux paste-buffer discussion #4098](https://github.com/orgs/tmux/discussions/4098)
-- [BitBot DONOTSTOP Hook](.claude/hooks/donotstop.sh)
+- [BitBot DONOTSTOP Hook](/.claude/hooks/donotstop.sh)
