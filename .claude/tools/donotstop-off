@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# donotstop-off - Disable the donotstop Stop hook
+# Usage: .claude/tools/donotstop-off
+#
+# Removes the DONOTSTOP.txt file to allow normal completion
+
+set -euo pipefail
+
+# Use /workspace for BitBot containers, fallback to project dir
+if [ -d "/workspace" ]; then
+    DONOTSTOP_FILE="/workspace/.bitbot/DONOTSTOP.txt"
+else
+    DONOTSTOP_FILE="${CLAUDE_PROJECT_DIR:-.}/.bitbot/DONOTSTOP.txt"
+fi
+
+if [ -f "$DONOTSTOP_FILE" ]; then
+    rm "$DONOTSTOP_FILE"
+    cat << EOF
+╔═══════════════════════════════════════════════════════════════╗
+║              DONOTSTOP Hook Disabled                          ║
+╚═══════════════════════════════════════════════════════════════╝
+
+The Stop hook will now allow normal completion.
+
+Claude will stop after finishing responses.
+
+To re-enable: .claude/tools/donotstop-on [reason]
+EOF
+else
+    cat << EOF
+╔═══════════════════════════════════════════════════════════════╗
+║           DONOTSTOP Hook Already Disabled                     ║
+╚═══════════════════════════════════════════════════════════════╝
+
+File not found: $DONOTSTOP_FILE
+
+To enable: .claude/tools/donotstop-on [reason]
+EOF
+fi
+
+exit 0

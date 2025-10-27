@@ -1,4 +1,12 @@
 {
+  "hooks": {
+    "Stop": [{
+      "type": "command",
+      "command": ".claude/hooks/donotstop.sh",
+      "timeout": 5000
+    }]
+  },
+
   "tools": [
     {
       "name": "fix-line-endings",
