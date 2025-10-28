@@ -38,10 +38,14 @@ if [ -n "$SESSION_ID" ]; then
         echo "$SESSION_ID" > "$MAP_DIR/$CLAUDE_PID.txt"
     fi
 
-    # Echo session ID and Claude PID for visibility
-    echo "Session ID: $SESSION_ID"
+    # Check if this is a resume (session already exists)
+    IS_RESUME=$(echo "$INPUT" | grep -q '"is_resume":true' && echo "resume" || echo "start")
+
+    # Echo session info in one line
     if [ -n "$CLAUDE_PID" ]; then
-        echo "Claude PID: $CLAUDE_PID"
+        echo "SessionStart:$IS_RESUME - Session: $SESSION_ID, PID: $CLAUDE_PID"
+    else
+        echo "SessionStart:$IS_RESUME - Session: $SESSION_ID"
     fi
 fi
 
