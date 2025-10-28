@@ -9,21 +9,28 @@
 
 ## Overview
 
-Container BitBot runs **inside** devcontainers to assist AI agents:
-- Manage tmux sessions for Claude Code
-- Resume unattached sessions
-- Launch Claude Code with resume or interactive mode
-- Provide workspace analysis and configuration helpers
+Container BitBot runs **inside** devcontainers with two independent layers:
+
+**Layer 1 (tmux)**: Session persistence
+- Manage tmux sessions (create/attach)
+- Smart launcher with session detection
+- Detach/reattach capability
+
+**Layer 2 (wrapper)**: Claude operations
+- Launch Claude via wrapper
+- Handle restart/resume/compact via IPC
+- Process monitoring and watchdog
 
 ```
-Container Entry → Container BitBot → Session Management → Claude Code
+Container Entry → Container BitBot → tmux layer → wrapper layer → Claude Code
 ```
 
-**Transparent Behavior**: Same `bitbot` command works on host and in container
-- **On Host**: `bitbot` orchestrates containers (enters/launches containers)
-- **In Container**: `bitbot` manages sessions (starts/resumes Claude Code)
+**Two-Layer Architecture**:
+- **tmux**: Session management (bitbot commands)
+- **wrapper**: Claude operations (IPC commands)
+- Complete independence between layers
 
-**Key Principle**: Simple bash scripts that help AI agents get started quickly in containers
+**Key Principle**: Separation of concerns - tmux for sessions, wrapper for Claude
 
 ---
 
@@ -57,45 +64,47 @@ END FUNCTION
 
 ---
 
-## Session Management
+## Two-Layer Architecture
 
-### Session Management Strategies
+Container BitBot uses two completely independent layers:
 
-Container BitBot supports two session management approaches:
+### Layer 1: tmux (Session Persistence)
 
-**Strategy 1: Wrapper-Based (Pipe IPC) - Preferred**
-- Named pipes for IPC (`/tmp/claude-wrapper-*.pipe`)
-- Watchdog process for stall detection
-- No tmux dependency required
-- Path: `/opt/bitbot/wrapper/claude-wrapper.sh`
-- Lightweight and reliable
+**Purpose**: Terminal session management
 
-**Strategy 2: tmux-Based - Fallback**
-- Terminal multiplexer for session persistence
-- Multiple panes/windows support
-- Requires tmux installed
-- Used when wrapper not available
+**Responsibilities**:
+- Create tmux sessions: `tmux new-session -s name "command"`
+- Attach to existing sessions: `tmux attach-session -t name`
+- Detect available sessions
+- Session naming: `claude-YYYYMMDD-HHMMSS`
 
-### Two-Level Session Architecture (tmux mode)
+**Key Points**:
+- Uses `tmux new-session` with command parameter (NOT send-keys)
+- Wrapper exec'd directly as the session command
+- Single pane per session (no splitting within terminal)
+- Multiple sessions possible across different terminals
 
-When using tmux, Container BitBot manages sessions at two levels:
+### Layer 2: Wrapper (Claude Operations)
 
-**Level 1: tmux Sessions (Terminal Persistence)**
-- Managed by: BitBot (`bitbot`, `bitbot resume`)
-- Survives terminal disconnection
-- Provides multiplexing (multiple panes/windows)
-- Session naming: `claude-YYYYMMDD-HHMM`
+**Purpose**: Claude process management via IPC
 
-**Level 2: Claude Sessions (Conversation History)**
-- Managed by: Claude Code (`claude --resume`)
-- Conversation history and context
-- Claude's own session chooser
-- Persists across tmux sessions
+**Location**: `/usr/local/bitbot/wrapper/`
 
-**Separation of Concerns**:
-- BitBot handles terminal/tmux layer (or wrapper process)
-- Claude handles conversation/history layer
-- `bitbot resume` with no tmux → creates tmux with `claude --resume`
+**Components**:
+- `claude-wrapper.sh` - Launch Claude with arguments
+- `send-wrapper-command.sh` - Send IPC commands
+- `watchdog.sh` - Monitor for stalls
+
+**Responsibilities**:
+- Launch Claude: `wrapper claude [args]`
+- Handle IPC commands: restart, resume, compact, clear
+- Monitor Claude process
+- Named pipe communication: `/tmp/claude-wrapper-*.pipe`
+
+**Key Points**:
+- Completely independent of tmux
+- IPC commands work whether in tmux or not
+- No `tmux send-keys` usage anywhere
 
 ### Commands
 
@@ -155,47 +164,58 @@ FUNCTION default_command(args):
 END FUNCTION
 ```
 
-### Start Command (Fresh Session)
+### Start Command (New Session)
 
 ```pseudocode
 FUNCTION start_command(args):
-    # Always create fresh Claude session (no prompts)
-    # Prefers wrapper, falls back to tmux
-    # Called when: bitbot start
+    # Always create new tmux session with wrapper
+    # Called when: bitbot start [args]
 
-    SET wrapper_script = "/opt/bitbot/wrapper/claude-wrapper.sh"
+    SET wrapper_script = "/usr/local/bitbot/wrapper/claude-wrapper.sh"
+    SET session_name = "claude-" + current_timestamp()  # claude-YYYYMMDD-HHMMSS
+    SET mode = get_bitbot_mode()
+    SET workspace = get_workspace()
 
-    # Check if wrapper is available (makes tmux optional)
-    IF file_exists(wrapper_script) AND is_executable(wrapper_script):
-        # Wrapper available - tmux not required
-        CALL create_fresh_claude_session_with_wrapper(args)
-    ELSE:
-        # No wrapper - require tmux
-        IF NOT tmux_available():
-            ERROR "tmux is not available"
-            PRINT ""
-            PRINT "Please install tmux:"
-            PRINT "  sudo apt-get install tmux"
-            PRINT ""
-            PRINT "Alternatively, wrapper can be mounted from $BITBOT_HOME:"
-            PRINT "  (Check devcontainer.json mounts)"
-            EXIT 1
-        END IF
+    PRINT "BitBot - Start New Session"
+    PRINT ""
 
-        PRINT "BitBot - Claude Code Launcher"
+    # Check wrapper availability
+    IF NOT file_exists(wrapper_script) OR NOT is_executable(wrapper_script):
+        ERROR "Wrapper not found or not executable"
         PRINT ""
-        CALL create_fresh_claude_session_tmux(args)
+        PRINT "Expected location: " + wrapper_script
+        PRINT ""
+        PRINT "Check Dockerfile includes:"
+        PRINT "  COPY container/bitbot/wrapper/ /usr/local/bitbot/wrapper/"
+        PRINT "  RUN chmod +x /usr/local/bitbot/wrapper/*.sh"
+        EXIT 1
     END IF
+
+    # Check tmux availability
+    IF NOT tmux_available():
+        ERROR "tmux is not available"
+        PRINT ""
+        PRINT "Please install tmux:"
+        PRINT "  apt-get update && apt-get install -y tmux"
+        EXIT 1
+    END IF
+
+    INFO "Creating new tmux session: " + session_name
+    INFO "Workspace: " + workspace
+    INFO "Mode: " + mode
+    PRINT ""
+
+    # Create tmux session with wrapper as command (NO send-keys)
+    EXEC "tmux new-session -s " + session_name + " '" + wrapper_script + " claude " + args + "'"
 END FUNCTION
 ```
 
-### Resume Command (Intelligent Resume)
+### Resume Command (Attach or Create)
 
 ```pseudocode
 FUNCTION resume_tmux_session(session_name):
-    # Intelligent resume: handles both tmux and Claude sessions
-    # Level 1: tmux sessions (managed by BitBot)
-    # Level 2: Claude sessions (managed by claude --resume)
+    # Smart resume: attach to existing or create new with claude --resume
+    # Called when: bitbot resume [session-name]
 
     PRINT "BitBot - Resume Session"
     PRINT ""
@@ -203,11 +223,12 @@ FUNCTION resume_tmux_session(session_name):
     SET sessions = list_tmux_sessions()
     SET session_count = count(sessions)
 
-    # No tmux sessions - create new tmux with claude --resume
+    # No tmux sessions - create new with wrapper claude --resume
     IF session_count == 0:
-        PRINT "No tmux sessions found"
+        INFO "No unattached tmux sessions found"
+        INFO "Creating new session with Claude --resume..."
         PRINT ""
-        CALL create_tmux_with_claude_resume()
+        CALL create_tmux_with_wrapper_resume()
         RETURN
     END IF
 
@@ -305,44 +326,37 @@ END FUNCTION
 ```
 
 ```pseudocode
-FUNCTION create_tmux_with_claude_resume():
-    # Create new tmux session with claude --resume
+FUNCTION create_tmux_with_wrapper_resume():
+    # Create new tmux session with wrapper claude --resume
     # Used when no tmux sessions exist but user wants to resume Claude
 
+    SET wrapper_script = "/usr/local/bitbot/wrapper/claude-wrapper.sh"
     SET session_name = "claude-" + get_timestamp()
     SET mode = get_bitbot_mode()
     SET workspace = get_workspace()
 
-    PRINT ""
-    PRINT "Creating new tmux session with Claude --resume..."
-    PRINT ""
-    PRINT "Claude will show its available sessions for you to select"
+    INFO "Claude will show its available sessions for you to select"
     PRINT ""
 
     # Show workspace info
-    PRINT "Workspace: " + workspace
-    PRINT "Mode: " + mode
-    PRINT "Session: " + session_name
+    INFO "Workspace: " + workspace
+    INFO "Mode: " + mode
+    INFO "Session: " + session_name
     PRINT ""
 
-    # Create tmux session and launch Claude with --resume
-    IF NOT EXECUTE "tmux new-session -d -s " + session_name:
-        ERROR "Failed to create tmux session"
+    # Check wrapper availability
+    IF NOT file_exists(wrapper_script) OR NOT is_executable(wrapper_script):
+        ERROR "Wrapper not found or not executable"
+        PRINT ""
+        PRINT "Expected location: " + wrapper_script
         EXIT 1
     END IF
 
-    # Send Claude --resume command
-    EXECUTE "tmux send-keys -t " + session_name + " 'claude --resume' C-m"
-
-    # Wait a moment for session to start
-    SLEEP 1
-
-    # Attach to session
-    PRINT "Session created successfully"
+    SUCCESS "Creating session..."
     PRINT ""
-    PRINT "Attaching to session '" + session_name + "'..."
-    PRINT ""
-    EXECUTE "tmux attach-session -t " + session_name
+
+    # Create tmux session with wrapper claude --resume (NO send-keys)
+    EXEC "tmux new-session -s " + session_name + " '" + wrapper_script + " claude --resume'"
 END FUNCTION
 ```
 
@@ -353,10 +367,13 @@ FUNCTION create_new_claude_session_with_choice(args):
     # Create new tmux session with launch mode choice
     # Used by default command (bitbot with no args)
 
+    SET wrapper_script = "/usr/local/bitbot/wrapper/claude-wrapper.sh"
     SET session_name = "claude-" + get_timestamp()
     SET mode = get_bitbot_mode()  # "work" or "config"
+    SET workspace = get_workspace()
 
-    PRINT "Creating new Claude Code session..."
+    PRINT ""
+    INFO "Creating new Claude Code session..."
     PRINT ""
 
     # Show launch mode choice
@@ -366,12 +383,12 @@ FUNCTION create_new_claude_session_with_choice(args):
         "resume":
             # Launch with --resume flag
             SET claude_cmd = "claude --resume"
-            PRINT "Launching: claude --resume"
+            INFO "Launching: claude --resume"
 
         "interactive":
             # Launch interactive mode
             SET claude_cmd = "claude"
-            PRINT "Launching: claude (interactive)"
+            INFO "Launching: claude (interactive)"
 
         "custom":
             # Ask for custom command
@@ -385,94 +402,17 @@ FUNCTION create_new_claude_session_with_choice(args):
 
     # Show workspace info
     PRINT ""
-    PRINT "Workspace: /workspace"
-    PRINT "Mode: " + mode
-    PRINT "Session: " + session_name
+    INFO "Workspace: " + workspace
+    INFO "Mode: " + mode
+    INFO "Session: " + session_name
     PRINT ""
 
-    # Create tmux session and launch Claude
-    EXECUTE "tmux new-session -s " + session_name + " -d"
-    EXECUTE "tmux send-keys -t " + session_name + " '" + claude_cmd + "' C-m"
-
-    # Wait a moment for session to start
-    SLEEP 1
-
-    # Attach to session
-    EXECUTE "tmux attach-session -t " + session_name
-END FUNCTION
-```
-
-```pseudocode
-FUNCTION create_fresh_claude_session_with_wrapper(args):
-    # Create fresh Claude session using wrapper (pipe IPC)
-    # Used by start command when wrapper is available
-
-    SET mode = get_bitbot_mode()  # "work" or "config"
-    SET workspace = get_workspace()
-    SET wrapper_script = "/opt/bitbot/wrapper/claude-wrapper.sh"
-
-    PRINT "BitBot - Claude Code Launcher"
-    PRINT ""
-    PRINT "Creating fresh Claude Code session..."
+    SUCCESS "Creating session..."
     PRINT ""
 
-    INFO "Using wrapper (pipe-based IPC + watchdog)"
-    PRINT ""
-
-    # Show workspace info
-    PRINT "Workspace: " + workspace
-    PRINT "Mode: " + mode
-    PRINT ""
-
-    SUCCESS "Launching Claude via wrapper..."
-    PRINT ""
-
-    # Launch via wrapper (replaces current process)
-    EXEC wrapper_script + " claude"
-END FUNCTION
-```
-
-```pseudocode
-FUNCTION create_fresh_claude_session_tmux(args):
-    # Create fresh tmux session with fresh Claude (no prompts)
-    # Used by start command when wrapper not available (fallback)
-
-    SET session_name = "claude-" + get_timestamp()
-    SET mode = get_bitbot_mode()  # "work" or "config"
-    SET workspace = get_workspace()
-
-    PRINT "Creating fresh Claude Code session..."
-    PRINT ""
-
-    INFO "Wrapper not mounted, using tmux fallback"
-    PRINT ""
-
-    # Always use fresh interactive Claude (no --resume)
-    SET claude_cmd = "claude"
-
-    # Show workspace info
-    PRINT "Workspace: " + workspace
-    PRINT "Mode: " + mode
-    PRINT "Session: " + session_name
-    PRINT ""
-
-    # Create tmux session and launch Claude
-    IF NOT EXECUTE "tmux new-session -s " + session_name + " -d":
-        ERROR "Failed to create tmux session"
-        EXIT 1
-    END IF
-
-    EXECUTE "tmux send-keys -t " + session_name + " '" + claude_cmd + "' C-m"
-
-    # Wait a moment for session to start
-    SLEEP 1
-
-    # Attach to session
-    SUCCESS "Session created successfully"
-    PRINT ""
-    INFO "Attaching to session '" + session_name + "'..."
-    PRINT ""
-    EXECUTE "tmux attach-session -t " + session_name
+    # Create tmux session with wrapper command (NO send-keys)
+    SET wrapper_cmd = wrapper_script + " " + claude_cmd
+    EXEC "tmux new-session -s " + session_name + " '" + wrapper_cmd + "'"
 END FUNCTION
 ```
 

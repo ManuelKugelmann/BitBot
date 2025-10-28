@@ -56,6 +56,12 @@ BitBot/
 | `/.claude/`                    | Claude Code config                   | kebab-case          |
 | `/.devcontainer/`              | BitBot dev container                 | lowercase           |
 
+**Workspace Directory Structure:**
+
+For complete workspace directory structure, mount points, and permissions across different modes (work, config, dev), see:
+
+📁 **`sparc/3-architecture/01-directory-structure.md`** (Single Source of Truth)
+
 ### Development Artifacts (/dev/)
 
 Development-related files organized under `/dev/`:

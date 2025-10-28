@@ -128,127 +128,10 @@ fi
 echo ""
 
 # ============================================================================
-# Test 3: Analyze Command
+# Test 3: Helper Utilities
 # ============================================================================
 
-echo -e "${BLUE}═══ Test 3: Analyze Command ═══${NC}"
-echo ""
-
-# Create temporary workspace
-TEST_WORKSPACE="/tmp/bitbot-test-workspace-$$"
-mkdir -p "$TEST_WORKSPACE"
-
-cleanup_workspace() {
-    rm -rf "$TEST_WORKSPACE"
-}
-trap cleanup_workspace EXIT
-
-# Test analyze with empty workspace
-run_test "analyze - empty workspace"
-export WORKSPACE="$TEST_WORKSPACE"
-if output=$("${CONTAINER_BITBOT_ROOT}/core/commands/analyze.sh" 2>&1); then
-    if echo "$output" | grep -q "Analyzing workspace"; then
-        test_passed "analyze - runs on empty workspace"
-    else
-        test_failed "analyze - unexpected output"
-    fi
-else
-    test_failed "analyze - command failed"
-fi
-
-# Test analyze with Node.js project
-run_test "analyze - Node.js detection"
-echo '{"name":"test"}' > "$TEST_WORKSPACE/package.json"
-if output=$("${CONTAINER_BITBOT_ROOT}/core/commands/analyze.sh" 2>&1); then
-    if echo "$output" | grep -q "Node.js project"; then
-        test_passed "analyze - detects Node.js project"
-    else
-        test_failed "analyze - doesn't detect Node.js"
-    fi
-else
-    test_failed "analyze - command failed"
-fi
-rm "$TEST_WORKSPACE/package.json"
-
-# Test analyze with Python project
-run_test "analyze - Python detection"
-echo "requests==2.28.0" > "$TEST_WORKSPACE/requirements.txt"
-if output=$("${CONTAINER_BITBOT_ROOT}/core/commands/analyze.sh" 2>&1); then
-    if echo "$output" | grep -q "Python project"; then
-        test_passed "analyze - detects Python project"
-    else
-        test_failed "analyze - doesn't detect Python"
-    fi
-else
-    test_failed "analyze - command failed"
-fi
-rm "$TEST_WORKSPACE/requirements.txt"
-
-# Test analyze with git repository
-run_test "analyze - Git repository"
-cd "$TEST_WORKSPACE"
-git init -q
-git config user.email "test@bitbot.test"
-git config user.name "Test User"
-if output=$("${CONTAINER_BITBOT_ROOT}/core/commands/analyze.sh" 2>&1); then
-    if echo "$output" | grep -q "Git Status"; then
-        test_passed "analyze - detects git repository"
-    else
-        test_failed "analyze - doesn't detect git"
-    fi
-else
-    test_failed "analyze - command failed"
-fi
-
-echo ""
-
-# ============================================================================
-# Test 4: Status Command
-# ============================================================================
-
-echo -e "${BLUE}═══ Test 4: Status Command ═══${NC}"
-echo ""
-
-run_test "status - basic execution"
-if output=$("${CONTAINER_BITBOT_ROOT}/core/commands/status.sh" 2>&1); then
-    if echo "$output" | grep -q "Container Status"; then
-        test_passed "status - shows container status"
-    else
-        test_failed "status - unexpected output"
-    fi
-else
-    test_failed "status - command failed"
-fi
-
-echo ""
-
-# ============================================================================
-# Test 5: Configure Command
-# ============================================================================
-
-echo -e "${BLUE}═══ Test 5: Configure Command ═══${NC}"
-echo ""
-
-run_test "configure - basic execution"
-export BITBOT_MODE="config"
-if output=$("${CONTAINER_BITBOT_ROOT}/core/commands/configure.sh" 2>&1); then
-    if echo "$output" | grep -q "DevContainer Configuration"; then
-        test_passed "configure - shows help"
-    else
-        test_failed "configure - unexpected output"
-    fi
-else
-    test_failed "configure - command failed"
-fi
-unset BITBOT_MODE
-
-echo ""
-
-# ============================================================================
-# Test 6: Helper Utilities
-# ============================================================================
-
-echo -e "${BLUE}═══ Test 6: Helper Utilities ═══${NC}"
+echo -e "${BLUE}═══ Test 3: Helper Utilities ═══${NC}"
 echo ""
 
 # Source helpers
@@ -400,7 +283,7 @@ else
     test_failed "bitbot - not executable"
 fi
 
-for cmd in analyze configure resume start status; do
+for cmd in default resume start; do
     run_test "$cmd.sh - executable"
     if [[ -x "${CONTAINER_BITBOT_ROOT}/core/commands/${cmd}.sh" ]]; then
         test_passed "$cmd.sh - is executable"
