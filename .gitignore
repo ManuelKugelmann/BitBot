@@ -51,7 +51,6 @@ Thumbs.db
 
 # BitBot global credentials (user-specific, never commit)
 global/.claude/.credentials.json
-global/.config/ccstatusline/settings.json
 *.key
 secrets.yml
 credentials.json
