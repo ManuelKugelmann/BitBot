@@ -7,8 +7,7 @@ on:
     paths:
       - 'core/**'
       - 'dev/tests/**'
-      - 'bitbot'
-      - 'bitbot.cmd'
+      - 'container/bitbot/**'
       - '.github/workflows/tests.yml'
   pull_request:
     branches:
@@ -32,7 +31,7 @@ jobs:
           find dev/tests -name "*.sh" -type f -exec bash -n {} \;
           find container/bitbot -name "*.sh" -type f -exec bash -n {} \;
           find container/templates -name "*.sh" -type f -exec bash -n {} \;
-          bash -n bitbot
+          bash -n core/bitbot
           echo "✓ All bash scripts have valid syntax"
 
   # Main test suite
@@ -91,15 +90,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Test bitbot.cmd wrapper
+      - name: Test core/bitbot launcher
         shell: cmd
         run: |
-          echo Testing bitbot.cmd...
-          if not exist bitbot.cmd (
-            echo ERROR: bitbot.cmd not found
+          echo Testing core/bitbot launcher...
+          if not exist core\bitbot (
+            echo ERROR: core/bitbot not found
             exit /b 1
           )
-          echo ✓ bitbot.cmd exists
+          if not exist core\bitbot.cmd (
+            echo ERROR: core/bitbot.cmd not found
+            exit /b 1
+          )
+          echo ✓ core/bitbot launchers exist
 
       - name: Test PowerShell scripts
         shell: pwsh
