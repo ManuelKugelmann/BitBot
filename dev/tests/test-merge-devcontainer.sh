@@ -40,8 +40,8 @@ print_section() {
 print_section "DevContainer Merge Test Suite"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-MERGE_SCRIPT="$PROJECT_ROOT/templates/shared/scripts/merge-devcontainer.sh"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+MERGE_SCRIPT="$PROJECT_ROOT/container/templates/shared/scripts/merge-devcontainer.sh"
 TEST_DIR="$SCRIPT_DIR/tmp-merge-test"
 
 # Check prerequisites
@@ -86,7 +86,7 @@ fi
 print_section "Test 1: Basic Merge"
 
 run_test "Create base.devcontainer.json"
-cat > "$PROJECT_ROOT/templates/shared/base.devcontainer.test.json" << 'EOF'
+cat > "$PROJECT_ROOT/container/templates/shared/base.devcontainer.test.json" << 'EOF'
 {
   "workspaceFolder": "/workspace",
   "features": {
@@ -97,7 +97,7 @@ cat > "$PROJECT_ROOT/templates/shared/base.devcontainer.test.json" << 'EOF'
   "remoteUser": "root"
 }
 EOF
-if [ -f "$PROJECT_ROOT/templates/shared/base.devcontainer.test.json" ]; then
+if [ -f "$PROJECT_ROOT/container/templates/shared/base.devcontainer.test.json" ]; then
     test_passed
 else
     test_failed "Failed to create test base file"
@@ -123,11 +123,11 @@ fi
 
 run_test "Run merge"
 # Temporarily copy base to test location
-cp "$PROJECT_ROOT/templates/shared/base.devcontainer.test.json" "$PROJECT_ROOT/templates/shared/base.devcontainer.json.bak"
-if [ -f "$PROJECT_ROOT/templates/shared/base.devcontainer.json" ]; then
-    cp "$PROJECT_ROOT/templates/shared/base.devcontainer.json" "$PROJECT_ROOT/templates/shared/base.devcontainer.json.original"
+cp "$PROJECT_ROOT/container/templates/shared/base.devcontainer.test.json" "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.bak"
+if [ -f "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json" ]; then
+    cp "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json" "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.original"
 fi
-cp "$PROJECT_ROOT/templates/shared/base.devcontainer.test.json" "$PROJECT_ROOT/templates/shared/base.devcontainer.json"
+cp "$PROJECT_ROOT/container/templates/shared/base.devcontainer.test.json" "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json"
 
 if bash "$MERGE_SCRIPT" "$TEST_DIR/template1" &> /dev/null; then
     test_passed
@@ -136,10 +136,10 @@ else
 fi
 
 # Restore original base
-if [ -f "$PROJECT_ROOT/templates/shared/base.devcontainer.json.original" ]; then
-    mv "$PROJECT_ROOT/templates/shared/base.devcontainer.json.original" "$PROJECT_ROOT/templates/shared/base.devcontainer.json"
+if [ -f "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.original" ]; then
+    mv "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.original" "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json"
 else
-    rm "$PROJECT_ROOT/templates/shared/base.devcontainer.json"
+    rm "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json"
 fi
 
 run_test "Verify merged devcontainer.json exists"
@@ -200,14 +200,14 @@ else
 fi
 
 run_test "Merge with override"
-cp "$PROJECT_ROOT/templates/shared/base.devcontainer.test.json" "$PROJECT_ROOT/templates/shared/base.devcontainer.json"
+cp "$PROJECT_ROOT/container/templates/shared/base.devcontainer.test.json" "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json"
 if bash "$MERGE_SCRIPT" "$TEST_DIR/template2" &> /dev/null; then
     test_passed
 else
     test_failed "Override merge failed"
 fi
-if [ -f "$PROJECT_ROOT/templates/shared/base.devcontainer.json.original" ]; then
-    mv "$PROJECT_ROOT/templates/shared/base.devcontainer.json.original" "$PROJECT_ROOT/templates/shared/base.devcontainer.json"
+if [ -f "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.original" ]; then
+    mv "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.original" "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json"
 fi
 
 run_test "Verify remoteUser is overridden"
@@ -227,46 +227,46 @@ fi
 # Test 3: Real templates
 print_section "Test 3: Real Template Tests"
 
-run_test "Test workspace template merge"
-if bash "$MERGE_SCRIPT" "$PROJECT_ROOT/container/templates/workspace" &> /dev/null; then
+run_test "Test bitbot-work template merge"
+if bash "$MERGE_SCRIPT" "$PROJECT_ROOT/container/templates/bitbot-work" &> /dev/null; then
     test_passed
 else
-    test_failed "Workspace template merge failed"
+    test_failed "bitbot-work template merge failed"
 fi
 
-run_test "Verify workspace devcontainer.json created"
-if [ -f "$PROJECT_ROOT/container/templates/workspace/devcontainer.json" ]; then
+run_test "Verify bitbot-work devcontainer.json created"
+if [ -f "$PROJECT_ROOT/container/templates/bitbot-work/devcontainer.json" ]; then
     test_passed
 else
-    test_failed "Workspace devcontainer.json not created"
+    test_failed "bitbot-work devcontainer.json not created"
 fi
 
-run_test "Test config template merge"
-if bash "$MERGE_SCRIPT" "$PROJECT_ROOT/container/templates/config" &> /dev/null; then
+run_test "Test bitbot-config template merge"
+if bash "$MERGE_SCRIPT" "$PROJECT_ROOT/container/templates/bitbot-config" &> /dev/null; then
     test_passed
 else
-    test_failed "Config template merge failed"
+    test_failed "bitbot-config template merge failed"
 fi
 
-run_test "Verify config devcontainer.json created"
-if [ -f "$PROJECT_ROOT/container/templates/config/devcontainer.json" ]; then
+run_test "Verify bitbot-config devcontainer.json created"
+if [ -f "$PROJECT_ROOT/container/templates/bitbot-config/devcontainer.json" ]; then
     test_passed
 else
-    test_failed "Config devcontainer.json not created"
+    test_failed "bitbot-config devcontainer.json not created"
 fi
 
-run_test "Test base template merge"
-if bash "$MERGE_SCRIPT" "$PROJECT_ROOT/templates/base" &> /dev/null; then
+run_test "Test bitbot-base template merge"
+if bash "$MERGE_SCRIPT" "$PROJECT_ROOT/container/templates/bitbot-base" &> /dev/null; then
     test_passed
 else
-    test_failed "Base template merge failed"
+    test_failed "bitbot-base template merge failed"
 fi
 
-run_test "Verify base devcontainer.json created"
-if [ -f "$PROJECT_ROOT/templates/base/devcontainer.json" ]; then
+run_test "Verify bitbot-base devcontainer.json created"
+if [ -f "$PROJECT_ROOT/container/templates/bitbot-base/devcontainer.json" ]; then
     test_passed
 else
-    test_failed "Base devcontainer.json not created"
+    test_failed "bitbot-base devcontainer.json not created"
 fi
 
 # Cleanup
@@ -281,9 +281,9 @@ else
 fi
 
 run_test "Remove test base file"
-rm -f "$PROJECT_ROOT/templates/shared/base.devcontainer.test.json"
-rm -f "$PROJECT_ROOT/templates/shared/base.devcontainer.json.bak"
-if [ ! -f "$PROJECT_ROOT/templates/shared/base.devcontainer.test.json" ]; then
+rm -f "$PROJECT_ROOT/container/templates/shared/base.devcontainer.test.json"
+rm -f "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.bak"
+if [ ! -f "$PROJECT_ROOT/container/templates/shared/base.devcontainer.test.json" ]; then
     test_passed
 else
     test_failed "Failed to remove test base file"

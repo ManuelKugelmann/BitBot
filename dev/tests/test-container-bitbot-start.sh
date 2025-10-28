@@ -130,7 +130,7 @@ fi
 
 run_test "generate_session_name function"
 session_name=$(generate_session_name)
-if [[ "$session_name" =~ ^claude-[0-9]{8}-[0-9]{4}$ ]]; then
+if [[ "$session_name" =~ ^bitbot-[0-9]{8}-[0-9]{4}$ ]]; then
     test_passed
 else
     test_failed "Session name format incorrect: $session_name"
@@ -203,32 +203,32 @@ fi
 
 # Test 7: Check global tmux config exists
 run_test "Global tmux config exists"
-if [[ -f global/.tmux.conf ]]; then
+if [[ -f container/home/.tmux.conf ]]; then
     test_passed
 else
-    test_failed "tmux.conf not found in global/"
+    test_failed "tmux.conf not found in container/home/"
 fi
 
 run_test "Global tmux config has required settings"
-if grep -q "set -g mouse on" global/.tmux.conf && \
-   grep -q "set -g status on" global/.tmux.conf && \
-   grep -q "set -g history-limit 10000" global/.tmux.conf && \
-   grep -q "BITBOT_PROJECT_PATH" global/.tmux.conf; then
+if grep -q "set -g mouse on" container/home/.tmux.conf && \
+   grep -q "set -g status on" container/home/.tmux.conf && \
+   grep -q "set -g history-limit 10000" container/home/.tmux.conf && \
+   grep -q "BITBOT_PROJECT_PATH" container/home/.tmux.conf; then
     test_passed
 else
-    test_failed "global/.tmux.conf missing required settings"
+    test_failed "container/home/.tmux.conf missing required settings"
 fi
 
 # Test 8: Check Dockerfiles DON'T bake tmux config (uses global mount instead)
 run_test "Base Dockerfile doesn't bake tmux config"
-if ! grep -q "tmux.conf" container/templates/base/Dockerfile; then
+if ! grep -q "tmux.conf" container/templates/bitbot-base/Dockerfile; then
     test_passed
 else
     test_failed "Base Dockerfile shouldn't bake tmux.conf (uses global mount)"
 fi
 
 run_test "Config Dockerfile doesn't bake tmux config"
-if ! grep -q "tmux.conf" container/templates/config/Dockerfile; then
+if ! grep -q "tmux.conf" container/templates/bitbot-config/Dockerfile; then
     test_passed
 else
     test_failed "Config Dockerfile shouldn't bake tmux.conf (uses global mount)"
