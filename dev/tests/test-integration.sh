@@ -278,8 +278,8 @@ else
 fi
 
 run_test "Verify start.sh command"
-if [[ -f ".devcontainer/bitbot/commands/start.sh" ]]; then
-    if bash -n ".devcontainer/bitbot/commands/start.sh" 2>/dev/null; then
+if [[ -f ".devcontainer/bitbot/core/commands/start.sh" ]]; then
+    if bash -n ".devcontainer/bitbot/core/commands/start.sh" 2>/dev/null; then
         test_passed "start.sh has valid syntax"
     else
         test_failed "start.sh has syntax errors"
@@ -289,8 +289,8 @@ else
 fi
 
 run_test "Verify resume.sh command"
-if [[ -f ".devcontainer/bitbot/commands/resume.sh" ]]; then
-    if bash -n ".devcontainer/bitbot/commands/resume.sh" 2>/dev/null; then
+if [[ -f ".devcontainer/bitbot/core/commands/resume.sh" ]]; then
+    if bash -n ".devcontainer/bitbot/core/commands/resume.sh" 2>/dev/null; then
         test_passed "resume.sh has valid syntax"
     else
         test_failed "resume.sh has syntax errors"
@@ -300,8 +300,8 @@ else
 fi
 
 run_test "Verify helpers.sh utilities"
-if [[ -f ".devcontainer/bitbot/util/helpers.sh" ]]; then
-    if bash -n ".devcontainer/bitbot/util/helpers.sh" 2>/dev/null; then
+if [[ -f ".devcontainer/bitbot/core/util/helpers.sh" ]]; then
+    if bash -n ".devcontainer/bitbot/core/util/helpers.sh" 2>/dev/null; then
         test_passed "helpers.sh has valid syntax"
     else
         test_failed "helpers.sh has syntax errors"
