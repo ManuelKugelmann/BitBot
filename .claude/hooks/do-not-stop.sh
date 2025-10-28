@@ -55,7 +55,6 @@ if [ -n "$DO_NOT_STOP_FILE" ]; then
 EOF
 else
     # File doesn't exist or is empty, allow normal stopping
-    # Output message for user visibility
-    echo "Allowed to stop working" >&2
+    # Silent exit - no output when allowing stop
     exit 0
 fi
