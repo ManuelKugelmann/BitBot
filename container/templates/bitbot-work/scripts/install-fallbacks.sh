@@ -5,9 +5,9 @@ set -e
 # This allows templates to customize which shared scripts to run
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SHARED_SCRIPTS="$SCRIPT_DIR/../../shared/scripts"
+SHARED_SCRIPTS="$SCRIPT_DIR/../../scripts"
 
-# Install AI tools (fallback when features don't work)
+# Install AI tools
 if [ -f "$SHARED_SCRIPTS/install-ai-tools.sh" ]; then
     bash "$SHARED_SCRIPTS/install-ai-tools.sh"
 fi

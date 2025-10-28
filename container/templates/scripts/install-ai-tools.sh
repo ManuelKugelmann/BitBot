@@ -1,20 +1,20 @@
 #!/bin/bash
 set -e
 
-# Shared AI tool installation (fallback when features don't work)
+# Shared AI tool installation
 # Used by workspace and config templates
 
-echo "=== Installing AI Tools (Fallback) ==="
+echo "=== Installing AI Tools ==="
 
-# Install Claude Code if not already installed
-if ! command -v claude &> /dev/null; then
-    echo "Installing Claude Code..."
-    npm install -g @anthropic-ai/claude-code@latest || {
-        echo "⚠ Claude Code installation failed, continuing..."
-    }
-else
-    echo "✓ Claude Code already installed: $(claude --version 2>&1 | head -1 || echo 'unknown version')"
-fi
+# Claude Code installed via devcontainer feature
+# if ! command -v claude &> /dev/null; then
+#     echo "Installing Claude Code..."
+#     npm install -g @anthropic-ai/claude-code@latest || {
+#         echo "⚠ Claude Code installation failed, continuing..."
+#     }
+# else
+#     echo "✓ Claude Code already installed: $(claude --version 2>&1 | head -1 || echo 'unknown version')"
+# fi
 
 # Install Claude Flow if not already installed
 if ! command -v claude-flow &> /dev/null; then
