@@ -2,6 +2,7 @@
 # claude-wrapper.sh - Wrapper for Claude Code with pipe-based control
 #
 # Creates a named pipe for receiving control commands from within Claude:
+#   - session  : Receive session ID from session-start hook
 #   - exit     : Gracefully exit Claude
 #   - restart  : Kill and restart Claude (resume mode)
 #   - compact  : Kill, compact context, and restart Claude
@@ -9,7 +10,7 @@
 #
 # Usage: claude-wrapper.sh [claude-args...]
 #
-# The wrapper creates a pipe at: .bitbot/wrapper/pipes/claude-<PID>.pipe
+# The wrapper creates a pipe at: .bitbot/tmp/pipes/claude-<PID>.pipe
 # Tools within Claude can send commands to this pipe.
 
 set -euo pipefail
@@ -43,8 +44,8 @@ find_project_root() {
 # Determine project directory
 PROJECT_DIR=$(find_project_root)
 
-# Setup pipe infrastructure (use wrapper-runtime in workspace)
-RUNTIME_DIR="$PROJECT_DIR/.bitbot/wrapper-runtime"
+# Setup pipe infrastructure (use tmp directory in workspace)
+RUNTIME_DIR="$PROJECT_DIR/.bitbot/tmp"
 PIPE_DIR="$RUNTIME_DIR/pipes"
 WRAPPER_PID=$$
 
@@ -152,10 +153,36 @@ handle_command() {
             fi
             ;;
 
+        session)
+            # Session ID notification from session-start hook
+            if [ -n "$session_id" ]; then
+                SESSION_ID="$session_id"
+                echo "Detected session: $SESSION_ID"
+
+                # Start watchdog now that we have the session ID
+                start_watchdog
+            fi
+            ;;
+
         *)
             echo "Warning: Unknown command received via pipe: $cmd" >&2
             ;;
     esac
+}
+
+# Start watchdog monitor
+start_watchdog() {
+    if [ "${BITBOT_WATCHDOG:-true}" = "true" ] && [ -n "${SESSION_ID:-}" ] && [ -z "${WATCHDOG_PID:-}" ]; then
+        # Watchdog script is in same directory as wrapper (mounted)
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        WATCHDOG_SCRIPT="$SCRIPT_DIR/watchdog.sh"
+        if [ -x "$WATCHDOG_SCRIPT" ]; then
+            echo "Starting watchdog monitor..."
+            "$WATCHDOG_SCRIPT" "$CLAUDE_PID" "$SESSION_ID" &
+            WATCHDOG_PID=$!
+            echo ""
+        fi
+    fi
 }
 
 # Perform restart operation
@@ -333,43 +360,10 @@ echo ""
 
 READER_PID=$!
 
-# Create session map directory and file
-MAP_DIR="$PROJECT_DIR/.bitbot/.pid-session-map"
-mkdir -p "$MAP_DIR"
-
-# Wait for Claude to potentially create session map and start session
-sleep 0.5
-
-# Try to detect session ID from wrapper state file
-# Note: session-start hook writes SESSION_ID to this file when Claude starts
-# Format: SESSION_ID=<uuid>\nIS_RESUME=start|resume\nSTART_TIME=<timestamp>
-WRAPPER_STATE="$RUNTIME_DIR/.wrapper-session-${CLAUDE_PID}.state"
+# Initialize SESSION_ID (will be set by session-start hook via pipe)
 SESSION_ID=""
 
-# Wait up to 5 seconds for session state to be posted
-for i in {1..10}; do
-    if [ -f "$WRAPPER_STATE" ]; then
-        source "$WRAPPER_STATE" 2>/dev/null || true
-        if [ -n "${SESSION_ID:-}" ]; then
-            echo "Detected session: $SESSION_ID"
-            break
-        fi
-    fi
-    sleep 0.5
-done
-
-# Start watchdog if enabled and session detected
-if [ "${BITBOT_WATCHDOG:-true}" = "true" ] && [ -n "$SESSION_ID" ]; then
-    # Watchdog script is in same directory as wrapper (mounted)
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    WATCHDOG_SCRIPT="$SCRIPT_DIR/watchdog.sh"
-    if [ -x "$WATCHDOG_SCRIPT" ]; then
-        echo "Starting watchdog monitor..."
-        "$WATCHDOG_SCRIPT" "$CLAUDE_PID" "$SESSION_ID" &
-        WATCHDOG_PID=$!
-        echo ""
-    fi
-fi
+# Note: Watchdog will be started when session-start hook sends "session <SESSION_ID>" via pipe
 
 # Wait for Claude to finish
 wait $CLAUDE_PID
@@ -379,9 +373,5 @@ CLAUDE_EXIT=$?
 if [ -n "${WATCHDOG_PID:-}" ]; then
     kill "$WATCHDOG_PID" 2>/dev/null || true
 fi
-
-# Cleanup session map and state
-rm -f "$MAP_DIR/$CLAUDE_PID.txt" 2>/dev/null || true
-rm -f "$WRAPPER_STATE" 2>/dev/null || true
 
 exit $CLAUDE_EXIT

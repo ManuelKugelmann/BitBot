@@ -166,14 +166,9 @@ FUNCTION get_session_info():
     # Export for caller
     export CLAUDE_PID=$(find_claude_pid)
 
-    IF CLAUDE_PID not empty:
-        PROJECT_ROOT = find_project_root()
-        WRAPPER_STATE = "$PROJECT_ROOT/.bitbot/wrapper/.wrapper-session-${CLAUDE_PID}.state"
-
-        IF file_exists(WRAPPER_STATE):
-            export SESSION_ID = grep('^SESSION_ID=', WRAPPER_STATE) | extract_value
-        ELSE:
-            export SESSION_ID = empty
+    # Export SESSION_ID from environment (set by session-start hook)
+    IF CLAUDE_SESSION_ID exists:
+        export SESSION_ID = CLAUDE_SESSION_ID
     ELSE:
         export SESSION_ID = empty
 ```

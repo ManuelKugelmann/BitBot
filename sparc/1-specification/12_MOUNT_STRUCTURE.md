@@ -178,9 +178,8 @@ user-project/
 │       ├── .claude-flow/     → /root/.claude-flow/ (rw)
 │       └── .opencode/        → /root/.opencode/ (rw)
 ├── .bitbot/
-│   └── wrapper-runtime/      ← Runtime files (NOT mounted)
-│       ├── pipes/
-│       └── .wrapper-session-*.state
+│   └── tmp/                  ← Runtime files (NOT mounted, ephemeral)
+│       └── pipes/            (named pipes for wrapper IPC)
 └── (user files)              → /workspace/ (rw)
 ```
 
@@ -195,7 +194,7 @@ Container:
 │   └── .opencode/           (from workspace/.devcontainer/home/)
 ├── /workspace/              (from workspace root)
 │   ├── .bitbot/
-│   │   └── wrapper-runtime/ (local, not mounted)
+│   │   └── tmp/             (local, not mounted, ephemeral)
 │   └── .devcontainer/       (mounted readonly)
 └── /usr/local/bitbot/       (from workspace/.devcontainer/bitbot/)
     ├── bitbot

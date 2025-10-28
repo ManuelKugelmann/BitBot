@@ -133,7 +133,7 @@ create_wrapper_runtime() {
     # Create runtime directory for wrapper (pipes, state files)
     # Note: Wrapper scripts are mounted readonly from $BITBOT_HOME/.bitbot/wrapper
     local workspace_path="$1"
-    local runtime_dir="${workspace_path}/.bitbot/wrapper-runtime"
+    local runtime_dir="${workspace_path}/.bitbot/tmp"
 
     # Create runtime directory
     create_directory "$runtime_dir"
@@ -148,7 +148,7 @@ EOF
 
     print_success "Created wrapper runtime directory"
     print_success "  - Wrapper scripts mounted from \$BITBOT_HOME/.bitbot/wrapper (readonly)"
-    print_success "  - Runtime files (pipes, state) in .bitbot/wrapper-runtime/"
+    print_success "  - Runtime files (pipes) in .bitbot/tmp/"
 }
 
 # ============================================================================

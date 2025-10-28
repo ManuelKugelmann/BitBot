@@ -95,7 +95,10 @@ Container BitBot uses two completely independent layers:
 
 **Purpose**: Claude process management via IPC
 
-**Location**: `/usr/local/bitbot/wrapper/`
+**Location**:
+- Wrapper scripts: `$BITBOT_HOME/.bitbot/wrapper/` (host-side, not in container)
+- Temporary files (pipes, state): `/workspace/.bitbot/tmp/` (in container, read-write)
+- Dev mode testing: `/opt/bitbot/wrapper/` (bitbot-dev only, readonly mount)
 
 **Components**:
 - `claude-wrapper.sh` - Launch Claude with arguments
@@ -178,7 +181,9 @@ FUNCTION start_command(args):
     # Always create new tmux session with wrapper
     # Called when: bitbot start [args]
 
-    SET wrapper_script = "/usr/local/bitbot/wrapper/claude-wrapper.sh"
+    # Note: Wrapper runs on HOST, not in container
+    # Container communicates via runtime files in .bitbot/tmp/
+    # This pseudocode shows conceptual flow only
     SET session_name = "bitbot-" + current_timestamp()  # bitbot-YYYYMMDD-HHMMSS
     SET mode = get_bitbot_mode()
     SET workspace = get_workspace()
@@ -337,7 +342,9 @@ FUNCTION create_tmux_with_wrapper_resume():
     # Create new tmux session with wrapper claude --resume
     # Used when no tmux sessions exist but user wants to resume Claude
 
-    SET wrapper_script = "/usr/local/bitbot/wrapper/claude-wrapper.sh"
+    # Note: Wrapper runs on HOST, not in container
+    # Container communicates via runtime files in .bitbot/tmp/
+    # This pseudocode shows conceptual flow only
     SET session_name = "claude-" + get_timestamp()
     SET mode = get_bitbot_mode()
     SET workspace = get_workspace()
@@ -374,7 +381,9 @@ FUNCTION create_new_claude_session_with_choice(args):
     # Create new tmux session with launch mode choice
     # Used by default command (bitbot with no args)
 
-    SET wrapper_script = "/usr/local/bitbot/wrapper/claude-wrapper.sh"
+    # Note: Wrapper runs on HOST, not in container
+    # Container communicates via runtime files in .bitbot/tmp/
+    # This pseudocode shows conceptual flow only
     SET session_name = "claude-" + get_timestamp()
     SET mode = get_bitbot_mode()  # "work" or "config"
     SET workspace = get_workspace()

@@ -85,7 +85,7 @@ user-workspace/
 │   │       │   └── .tmux.conf
 │   │       └── bitbot/
 │   │           └── core/
-│   └── runtime/                     ← Runtime files (not mounted separately)
+│   └── tmp/                     ← Runtime files (not mounted separately)
 │       ├── pipes/                   (wrapper IPC pipes)
 │       └── sessions/                (session state files)
 ├── .devcontainer/
@@ -103,7 +103,7 @@ user-workspace/
 │   │   │   └── container/
 │   │   │       ├── home/
 │   │   │       └── bitbot/
-│   │   └── runtime/                 ← Via workspace mount (rw, not separately mounted)
+│   │   └── tmp/                 ← Via workspace mount (rw, not separately mounted)
 │   │       ├── pipes/
 │   │       └── sessions/
 │   └── (project files)
@@ -114,7 +114,7 @@ user-workspace/
 
 **Key Points:**
 - `/workspace/.bitbot/internal/` - **Readonly** overlay mount (infrastructure)
-- `/workspace/.bitbot/runtime/` - **Read-write** via workspace mount (runtime files)
+- `/workspace/.bitbot/tmp/` - **Read-write** via workspace mount (runtime files)
 - Clean separation: Infrastructure (ro) vs Runtime (rw)
 - All infrastructure updates happen on host side via `bitbot` commands
 
@@ -282,7 +282,7 @@ check_uncommitted_infrastructure
 
 ```gitignore
 # BitBot runtime files
-/.bitbot/runtime/                # Runtime files (pipes, session state - never commit)
+/.bitbot/tmp/                # Runtime files (pipes, session state - never commit)
 /.bitbot/internal/global/        # Not used (reserved for future)
 ```
 
@@ -296,7 +296,7 @@ check_uncommitted_infrastructure
 **What Gets Committed:**
 - ✅ `.bitbot/internal/container/` - Infrastructure copies (for Codespaces)
 - ✅ `.bitbot/internal/.version` - Version tracking
-- ❌ `.bitbot/runtime/` - Runtime files (temporary, gitignored)
+- ❌ `.bitbot/tmp/` - Runtime files (temporary, gitignored)
 
 ---
 

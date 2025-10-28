@@ -58,14 +58,9 @@ IF SESSION_ID not empty:
     ELSE:
         ECHO "SessionStart:$IS_RESUME - Session: $SESSION_ID"
 
-    # Write wrapper state file for inter-process communication
-    IF CLAUDE_PID not empty:
-        WRAPPER_STATE = "$PROJECT_ROOT/.bitbot/wrapper/.wrapper-session-${CLAUDE_PID}.state"
-        CREATE directory .bitbot/wrapper
-        WRITE to WRAPPER_STATE:
-            SESSION_ID=$SESSION_ID
-            IS_RESUME=$IS_RESUME
-            START_TIME=$(current_timestamp)
+    # Send session ID to wrapper via pipe
+    IF WRAPPER_PIPE exists AND is_pipe(WRAPPER_PIPE):
+        SEND "session $SESSION_ID" to WRAPPER_PIPE
 
 EXIT 0
 ```
@@ -87,19 +82,7 @@ SOURCE session-utils.sh
 # Find Claude PID
 CLAUDE_PID = find_claude_pid()
 
-IF CLAUDE_PID not empty:
-    PROJECT_ROOT = find_project_root()
-    WRAPPER_STATE = "$PROJECT_ROOT/.bitbot/wrapper/.wrapper-session-${CLAUDE_PID}.state"
-
-    # Remove state file for this session
-    IF file_exists(WRAPPER_STATE):
-        DELETE WRAPPER_STATE
-
-    # Clean up old state files for non-running PIDs
-    FOR each file IN .bitbot/wrapper/.wrapper-session-*.state:
-        PID = extract_pid_from_filename(file)
-        IF NOT process_running(PID):
-            DELETE file
+# No cleanup needed - session communication via pipe is stateless
 
 EXIT 0
 ```
@@ -220,21 +203,16 @@ FUNCTION find_project_root():
 
 # Get session ID from wrapper state
 FUNCTION get_session_id():
-    CLAUDE_PID = find_claude_pid()
+    # Read SESSION_ID from Claude environment
+    # Note: SESSION_ID is exported to CLAUDE_ENV_FILE by session-start hook
+    IF CLAUDE_SESSION_ID exists:
+        RETURN CLAUDE_SESSION_ID
 
-    IF CLAUDE_PID empty:
-        RETURN empty
+    # Fallback: read from Claude's session list
+    SESSIONS = run_command("claude --list-sessions --format json")
+    LATEST_SESSION = parse_json(SESSIONS) | filter_by_latest | extract_id
 
-    PROJECT_ROOT = find_project_root()
-    WRAPPER_STATE = "$PROJECT_ROOT/.bitbot/wrapper/.wrapper-session-${CLAUDE_PID}.state"
-
-    IF NOT file_exists(WRAPPER_STATE):
-        RETURN empty
-
-    # Extract SESSION_ID from state file
-    SESSION_ID = grep('^SESSION_ID=', WRAPPER_STATE) | extract_value
-
-    RETURN SESSION_ID
+    RETURN LATEST_SESSION
 ```
 
 ---

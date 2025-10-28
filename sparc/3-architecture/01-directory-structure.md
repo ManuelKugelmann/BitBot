@@ -26,9 +26,9 @@ user-workspace/
 │   │   │           └── util/
 │   │   ├── global/                  ← Reserved (gitignored)
 │   │   └── .version                 ← Infrastructure version
-│   └── runtime/                     ← Runtime files (gitignored)
+│   └── tmp/                         ← Temporary/ephemeral files (gitignored)
 │       ├── pipes/                   (wrapper IPC named pipes)
-│       └── sessions/                (session state files)
+│       └── sessions/                (session state: SESSION_ID, IS_RESUME, START_TIME)
 ├── .devcontainer/
 │   ├── bitbot/                      ← Container BitBot commands (copied during init)
 │   │   ├── bitbot                   (main command)
@@ -56,7 +56,7 @@ user-workspace/
 | `.bitbot/internal/container/` | Infrastructure files | ✅ Yes | Container: RO |
 | `.bitbot/internal/.version` | Version tracking | ✅ Yes | Container: RO |
 | `.bitbot/internal/global/` | Reserved for future | ❌ No (gitignored) | - |
-| `.bitbot/runtime/` | Runtime files (pipes, state) | ❌ No (gitignored) | Container: RW |
+| `.bitbot/tmp/` | Temporary files (pipes, state) | ❌ No (gitignored) | Container: RW |
 | `.devcontainer/bitbot/` | Container BitBot | ✅ Yes | Container: RO |
 | `.devcontainer/home/` | AI tool configs | ✅ Yes | Container: RW |
 
@@ -74,7 +74,7 @@ user-workspace/
 │   │   │   └── container/
 │   │   │       ├── home/
 │   │   │       └── bitbot/
-│   │   └── runtime/                 ← Runtime files (RW via workspace)
+│   │   └── tmp/                     ← Temporary files (RW via workspace)
 │   │       ├── pipes/
 │   │       └── sessions/
 │   ├── .devcontainer/               ← DevContainer config (RO overlay)
@@ -117,7 +117,7 @@ user-workspace/
 ```
 /workspace/                          RW   (user files)
 /workspace/.bitbot/internal/         RO   (infrastructure overlay - hidden)
-/workspace/.bitbot/runtime/          RW   (via workspace mount)
+/workspace/.bitbot/tmp/              RW   (via workspace mount)
 /workspace/.devcontainer/            RO   (config overlay - hidden)
 /workspace/.devcontainer/home/       RW   (via workspace mount - AI configs)
 /usr/local/bitbot/                   RO   (container BitBot)
@@ -148,7 +148,7 @@ user-workspace/
 ```
 /workspace/                          RW   (user files)
 /workspace/.bitbot/internal/         RO   (infrastructure overlay - hidden)
-/workspace/.bitbot/runtime/          RW   (via workspace mount)
+/workspace/.bitbot/tmp/              RW   (via workspace mount)
 /workspace/.devcontainer/            RO   (config overlay - hidden)
 /workspace/.devcontainer/home/       RW   (via workspace mount - AI configs)
 /usr/local/bitbot/                   RO   (container BitBot)
@@ -184,7 +184,7 @@ user-workspace/
 ```
 /workspace/                          RW   (BitBot source code)
 /workspace/.bitbot/internal/         RO   (infrastructure overlay - hidden)
-/workspace/.bitbot/runtime/          RW   (via workspace mount)
+/workspace/.bitbot/tmp/              RW   (via workspace mount)
 /workspace/.bitbot/wrapper/          RO   (wrapper testing - overlay)
 /workspace/.devcontainer/            RO   (config overlay - hidden)
 /workspace/.devcontainer/home/       RW   (via workspace mount - AI configs)
@@ -222,7 +222,7 @@ When developing BitBot itself, all files are **available read-write via the work
 |-----------|-----------|-------------|----------|-----|
 | `/workspace/` | **RW** | **RW** | **RW** | Workspace mount |
 | `/workspace/.bitbot/internal/` | **RO** | **RO** | **RO** | Overlay mount |
-| `/workspace/.bitbot/runtime/` | **RW** | **RW** | **RW** | Workspace mount |
+| `/workspace/.bitbot/tmp/` | **RW** | **RW** | **RW** | Workspace mount |
 | `/workspace/.devcontainer/` | **RO** | **RO** | **RO** | Overlay mount |
 | `/workspace/.devcontainer/home/` | **RW** | **RW** | **RW** | Workspace mount |
 | `/usr/local/bitbot/` | **RO** | **RO** | **RO** | Direct mount |
@@ -276,8 +276,8 @@ An overlay mount places a **readonly** layer on top of an existing **read-write*
 ### Workspace .gitignore
 
 ```gitignore
-# BitBot runtime files (never commit)
-/.bitbot/runtime/
+# BitBot temporary files (never commit)
+/.bitbot/tmp/
 
 # BitBot reserved (never commit)
 /.bitbot/internal/global/
@@ -297,7 +297,7 @@ An overlay mount places a **readonly** layer on top of an existing **read-write*
 |------|-----------|--------|
 | `.bitbot/internal/container/` | ✅ Yes | Infrastructure for Codespaces |
 | `.bitbot/internal/.version` | ✅ Yes | Version tracking |
-| `.bitbot/runtime/` | ❌ No | Temporary runtime files |
+| `.bitbot/runtime/` | ❌ No | Temporary temporary files |
 | `.bitbot/internal/global/` | ❌ No | Reserved for future |
 | `.devcontainer/` | ✅ Yes | DevContainer config |
 | `.devcontainer/home/` | ✅ Yes | AI tool configs (per-workspace) |
@@ -328,7 +328,7 @@ vim .bitbot/internal/container/home/.tmux.conf
 # Re-enter container to see changes
 ```
 
-**Runtime Files:**
+**Temporary Files:**
 ```bash
 # ✅ Works - read-write via workspace mount
 echo "test" > /workspace/.bitbot/runtime/test.txt
@@ -448,7 +448,7 @@ bitbot update-workspace
 |----------------|-------------|------------|
 | `/workspace/` | Host: `./` | RW |
 | `/workspace/.bitbot/internal/` | Overlay: `.bitbot/internal/` | RO |
-| `/workspace/.bitbot/runtime/` | Host: `.bitbot/runtime/` | RW |
+| `/workspace/.bitbot/tmp/` | Host: `.bitbot/runtime/` | RW |
 | `/workspace/.devcontainer/` | Overlay: `.devcontainer/` | RO |
 | `/usr/local/bitbot/` | Host: `.devcontainer/bitbot/` | RO |
 | `/root/.tmux.conf` | Host: `.bitbot/internal/container/home/.tmux.conf` | RO |

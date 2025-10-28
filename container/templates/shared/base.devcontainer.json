@@ -1,20 +1,9 @@
 {
   "workspaceFolder": "/workspace",
-
-  "containerEnv": {
-    "BITBOT_PROJECT_PATH": "${localWorkspaceFolder}",
-    "BITBOT_PROJECT_NAME": "${localWorkspaceFolderBasename}",
-    "BITBOT_HOME": "${localEnv:BITBOT_HOME}"
-  },
-
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts"
     }
   },
-  "remoteUser": "root",
-  "mounts": [
-    "source=${localWorkspaceFolder}/.devcontainer/bitbot,target=/usr/local/bitbot,type=bind,readonly",
-    "source=${localEnv:BITBOT_HOME}/container/home/.tmux.conf,target=/root/.tmux.conf,type=bind,readonly"
-  ]
+  "remoteUser": "root"
 }

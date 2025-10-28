@@ -67,9 +67,9 @@ send-wrapper-command.sh clear
 ## Integration
 
 ### Session Hooks
-`session-start.sh` posts session ID to wrapper state file:
-- `.bitbot/wrapper/.wrapper-session-<PID>.state`
-- Contains: SESSION_ID, IS_RESUME, START_TIME
+`session-start.sh` sends session ID to wrapper via pipe:
+- Sends command: `session <SESSION_ID>` to `$WRAPPER_PIPE`
+- Wrapper receives session ID and starts watchdog
 
 ### Environment Variables
 - `WRAPPER_PIPE` - Path to control pipe (set by wrapper)
@@ -102,7 +102,6 @@ dev/tests/test-wrapper.sh
 ├── pipes/                      # Runtime (gitignored)
 │   ├── claude-<PID>.pipe      # Control pipe
 │   └── claude-<PID>.ready     # Ready marker
-├── .wrapper-session-*.state   # Session state (gitignored)
 └── .watchdog-*.state          # Watchdog state (gitignored)
 ```
 

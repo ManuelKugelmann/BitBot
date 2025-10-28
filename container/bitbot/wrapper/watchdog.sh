@@ -55,7 +55,7 @@ find_project_root() {
 }
 
 PROJECT_ROOT=$(find_project_root)
-RUNTIME_DIR="$PROJECT_ROOT/.bitbot/wrapper-runtime"
+RUNTIME_DIR="$PROJECT_ROOT/.bitbot/tmp"
 PIPE="$RUNTIME_DIR/pipes/claude-${CLAUDE_PID}.pipe"
 SESSION_DIR="$HOME/.config/Claude/sessions"
 WATCHDOG_STATE="$RUNTIME_DIR/.watchdog-${CLAUDE_PID}.state"

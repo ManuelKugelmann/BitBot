@@ -28,19 +28,20 @@ flowchart TD
     CheckInit -->|NO| GitCheck[Step 1: Git push recommendation<br/>if uncommitted/unpushed changes]
 
     GitCheck --> Step2[Step 2: Check Prerequisites<br/>Docker, DevContainer CLI]
-    Step2 --> Step3[Step 3: Create .bitbot/ Structure<br/>config.json, local/, .gitignore]
-    Step3 --> Step4[Step 4: Setup .devcontainer/]
+    Step2 --> Step3[Step 3: Sync Infrastructure<br/>Copy from $BITBOT_HOME/container]
+    Step3 --> Step4[Step 4: Create .bitbot/ Structure<br/>.bitbot/internal/, .bitbot/tmp/]
+    Step4 --> Step5[Step 5: Setup .devcontainer/]
 
-    Step4 --> DevContainerExists{.devcontainer/<br/>exists?}
+    Step5 --> DevContainerExists{.devcontainer/<br/>exists?}
 
     DevContainerExists -->|YES| Inform[Inform: Will use existing config]
     DevContainerExists -->|NO| CopyTemplate[Copy base template NOW]
 
-    Inform --> Step5
-    CopyTemplate --> Step5
+    Inform --> Step6
+    CopyTemplate --> Step6
 
-    Step5[Step 5: Launch Config Mode<br/>AI agent in devcontainer]
-    Step5 --> InConfig[Work with AI agent<br/>to configure .devcontainer]
+    Step6[Step 6: Launch Config Mode<br/>AI agent in devcontainer]
+    Step6 --> InConfig[Work with AI agent<br/>to configure .devcontainer]
     InConfig --> Exit[Exit config mode when done<br/>exit or Ctrl+D]
     Exit --> Done[DONE - Workspace ready<br/>User can run: bitbot work]
 
@@ -156,21 +157,20 @@ Start Docker now? (Y/n): █
 
 **Output:**
 ```
+📦 Setting up workspace infrastructure...
+
+🔄 Syncing infrastructure from BitBot...
+  ✓ Synced .bitbot/internal/container/ from $BITBOT_HOME/container
+  ✓ Infrastructure version: 0.1.0
+
 Creating workspace structure...
   ✓ Created .bitbot/
-  ✓ Created .bitbot/local/
   ✓ Created .bitbot/internal/
-  ✓ Created .bitbot/internal/local/
-  ✓ Created .bitbot/config.json
-  ✓ Created config mode devcontainer
-  ✓ Added .bitbot/local/ and .bitbot/internal/local/ to .gitignore
+  ✓ Created .bitbot/internal/container/
+  ✓ Created .bitbot/tmp/
+  ✓ Updated .gitignore (.bitbot/tmp/, .bitbot/internal/global/)
 
-Workspace configuration:
-  Name: my-awesome-project
-  Default mode: work
-
-Config mode devcontainer:
-  .bitbot/internal/devcontainer.json (references global Dockerfile)
+Workspace ready for initialization
 
 ```
 
@@ -472,30 +472,39 @@ After workspace init, the following structure exists:
 ```
 my-awesome-project/
 ├── .devcontainer/
-│   └── devcontainer.json         # Work mode config (created or existing)
+│   ├── bitbot/                   # Container BitBot commands (copied from BitBot)
+│   │   ├── bitbot
+│   │   └── core/
+│   ├── home/                     # Per-workspace AI configs
+│   │   ├── .claude/
+│   │   ├── .claude-flow/
+│   │   └── .opencode/
+│   ├── devcontainer.json         # Generated (base + details merged)
+│   ├── details.devcontainer.json # Template-specific settings
+│   ├── Dockerfile
+│   └── README.md
 ├── .bitbot/
-│   ├── config.json               # Workspace config (committed)
-│   ├── local/                    # Work mode local data (gitignored)
-│   │   └── .bash_history         # Work mode bash history mountpoint
-│   └── internal/                 # Config mode internals (excluded from mounts)
-│       ├── devcontainer.json     # Config mode devcontainer (committed, references global Dockerfile)
-│       └── local/                # Config mode local data (gitignored)
-│           └── .bash_history     # Config mode bash history mountpoint
+│   ├── internal/                 # Infrastructure files
+│   │   ├── container/            # Container infrastructure (committed)
+│   │   │   ├── home/
+│   │   │   │   └── .tmux.conf
+│   │   │   └── bitbot/
+│   │   │       └── core/
+│   │   ├── global/               # Reserved (gitignored)
+│   │   └── .version              # Infrastructure version
+│   └── tmp/                  # Runtime files (gitignored)
+│       ├── pipes/                # Wrapper IPC pipes
+│       └── sessions/             # Session state
 ├── .git/                         # Existing git repo
-├── .gitignore                    # Updated to ignore .bitbot/local/ and .bitbot/internal/local/
+├── .gitignore                    # Updated to ignore .bitbot/tmp/ and .bitbot/internal/global/
 ├── src/                          # Existing project files
 └── README.md
 ```
 
-**Contents of .bitbot/config.json:**
-```json
-{
-  "default_mode": "work",
-  "workspace_name": "my-awesome-project",
-  "skip_push_recommendation": false,
-  "skip_safety_checks": false
-}
-```
+**Key Directories:**
+- `.bitbot/internal/container/` - Infrastructure (readonly in container, committed)
+- `.bitbot/tmp/` - Runtime files (read-write, gitignored)
+- `.devcontainer/` - DevContainer config (readonly overlay in work mode)
 
 ---
 
@@ -614,12 +623,17 @@ my-awesome-project/
 | Aspect | Work Mode | Config Mode |
 |--------|-----------|-------------|
 | **Purpose** | Daily development | Edit infrastructure |
-| **DevContainer** | Workspace's .devcontainer/ | Global ~/.bitbot/config-devcontainer/ |
+| **DevContainer** | Workspace's .devcontainer/ | Uses same .devcontainer/ |
 | **Launch** | `bitbot work` | `bitbot config` (or auto-launch from init) |
-| **.devcontainer** | Read-only ✓ | Read-write ✓ |
+| **.devcontainer** | Read-only overlay ✓ | Read-only overlay ✓ (edit via workspace) |
+| **.bitbot/internal/** | Read-only overlay ✓ | Read-only overlay ✓ |
+| **.bitbot/tmp/** | Read-write (via workspace) | Read-write (via workspace) |
 | **Workspace** | /workspace (RW) | /workspace (RW) |
-| **When to use** | Write code, run tests | Create/edit .devcontainer, add features |
-| **Safety** | Can't break container config | Can edit config (be careful) |
+| **Docker Socket** | ❌ Not available | ✅ Mounted for rebuilds |
+| **When to use** | Write code, run tests | Review/commit infrastructure, rebuild container |
+| **Safety** | Can't accidentally modify infrastructure | Same - infrastructure readonly, Docker access for rebuilds |
+
+**Note:** Both modes have readonly overlays for `.devcontainer/` and `.bitbot/internal/`. Config mode adds Docker socket access for rebuilding containers.
 
 ---
 

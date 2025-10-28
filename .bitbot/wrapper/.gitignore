@@ -1,6 +1,5 @@
 # Runtime files (generated at runtime, not checked in)
 pipes/
-.wrapper-session-*.state
 .watchdog-*.state
 
 # Documentation (lives in sparc/0-research/)

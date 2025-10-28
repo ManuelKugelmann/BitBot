@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# session-start.sh - Create PID->SessionID map and display session ID
+# session-start.sh - Send session ID to wrapper and display session info
 # Receives JSON via stdin with session_id field
 #
 # NOTE: This hook is NOT standalone - it must be run by Claude Code
@@ -51,14 +51,9 @@ if [ -n "$SESSION_ID" ]; then
         echo "SessionStart:$IS_RESUME - Session: $SESSION_ID"
     fi
 
-    # Post session ID to wrapper if running under wrapper
-    if [ -n "$CLAUDE_PID" ]; then
-        WRAPPER_STATE="$PROJECT_ROOT/.bitbot/wrapper-runtime/.wrapper-session-${CLAUDE_PID}.state"
-        if mkdir -p "$PROJECT_ROOT/.bitbot/wrapper-runtime" 2>/dev/null; then
-            echo "SESSION_ID=$SESSION_ID" > "$WRAPPER_STATE"
-            echo "IS_RESUME=$IS_RESUME" >> "$WRAPPER_STATE"
-            echo "START_TIME=$(date +%s)" >> "$WRAPPER_STATE"
-        fi
+    # Send session ID to wrapper via pipe if running under wrapper
+    if [ -n "${WRAPPER_PIPE:-}" ] && [ -p "$WRAPPER_PIPE" ]; then
+        echo "session $SESSION_ID" > "$WRAPPER_PIPE"
     fi
 fi
 
