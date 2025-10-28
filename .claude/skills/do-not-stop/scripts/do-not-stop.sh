@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
-# donotstop - Enable the donotstop Stop hook
+# donotstop - Enable the donotstop Stop hook for current session
 # Usage: .claude/skills/do-not-stop/scripts/do-not-stop.sh [reason]
 #
-# If reason is provided as argument, it will be written to DO-NOT-STOP.txt
-# Otherwise, a default message is used
+# Writes to session-specific file: DO-NOT-STOP-<session-id>.txt
 
 set -euo pipefail
+
+# Get Claude PID and Session ID
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../../.claude/tools/get-session-info.sh"
+
+if [ -z "$SESSION_ID" ]; then
+    echo "Error: Could not detect session ID"
+    echo "Cannot enable do-not-stop without session ID"
+    exit 1
+fi
 
 # Use /workspace for BitBot containers, fallback to project dir
 if [ -d "/workspace" ]; then
@@ -13,17 +22,16 @@ if [ -d "/workspace" ]; then
 else
     DONOTSTOP_DIR="${CLAUDE_PROJECT_DIR:-.}/.bitbot"
 fi
-DO_NOT_STOP_FILE="$DONOTSTOP_DIR/DO-NOT-STOP.txt"
 
 # Create directory if it doesn't exist
 mkdir -p "$DONOTSTOP_DIR"
 
+DO_NOT_STOP_FILE="$DONOTSTOP_DIR/DO-NOT-STOP-$SESSION_ID.txt"
+
 # Use provided reason or default
 if [ $# -gt 0 ]; then
-    # Use all arguments as the reason
     REASON="$*"
 else
-    # Default reason
     REASON="Resume work!"
 fi
 
@@ -34,6 +42,8 @@ cat << EOF
 ╔═══════════════════════════════════════════════════════════════╗
 ║              DONOTSTOP Hook Enabled                           ║
 ╚═══════════════════════════════════════════════════════════════╝
+
+Session: $SESSION_ID
 
 The Stop hook will now block completion and continue with:
 

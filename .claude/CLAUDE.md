@@ -242,7 +242,7 @@ After completing a significant implementation phase, proactively remind the user
 **skill-creator** / **template-skill** - Create custom skills (Anthropic)
 **do-not-stop** - Enable automation (default: "Resume work!") | `/do-not-stop [reason]`
 **allow-stop** - Disable automation, allow normal stop | `/allow-stop`
-**restart** - Reload skills/config or manage context | `/restart [mode]`
+**restart** - Restart Claude to reload skills/manage context | Modes: resume (default), compact, clear | Self-pkill + exec restart
 
 ## Statusline (Optional)
 
