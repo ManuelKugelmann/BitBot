@@ -1,6 +1,8 @@
 # Runtime data
 .pid-session-map/
 wrapper/pipes/
+wrapper/.wrapper-session-*.state
+wrapper/.watchdog-*.state
 
 # DO-NOT-STOP control files
 DO-NOT-STOP-*.txt

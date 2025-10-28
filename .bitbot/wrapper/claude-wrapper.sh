@@ -333,14 +333,32 @@ READER_PID=$!
 MAP_DIR="$PROJECT_DIR/.bitbot/.pid-session-map"
 mkdir -p "$MAP_DIR"
 
-# Wait for Claude to potentially create session map
+# Wait for Claude to potentially create session map and start session
 sleep 0.5
 
-# Try to detect session ID from map
-if [ -f "$MAP_DIR/$CLAUDE_PID.txt" ]; then
-    SESSION_ID=$(cat "$MAP_DIR/$CLAUDE_PID.txt" 2>/dev/null || echo "")
-    if [ -n "$SESSION_ID" ]; then
-        echo "Detected session: $SESSION_ID"
+# Try to detect session ID from wrapper state file (posted by session-start hook)
+WRAPPER_STATE="$PROJECT_DIR/.bitbot/wrapper/.wrapper-session-${CLAUDE_PID}.state"
+SESSION_ID=""
+
+# Wait up to 5 seconds for session state to be posted
+for i in {1..10}; do
+    if [ -f "$WRAPPER_STATE" ]; then
+        source "$WRAPPER_STATE" 2>/dev/null || true
+        if [ -n "${SESSION_ID:-}" ]; then
+            echo "Detected session: $SESSION_ID"
+            break
+        fi
+    fi
+    sleep 0.5
+done
+
+# Start watchdog if enabled and session detected
+if [ "${BITBOT_WATCHDOG:-true}" = "true" ] && [ -n "$SESSION_ID" ]; then
+    WATCHDOG_SCRIPT="$PROJECT_DIR/.bitbot/wrapper/watchdog.sh"
+    if [ -x "$WATCHDOG_SCRIPT" ]; then
+        echo "Starting watchdog monitor..."
+        "$WATCHDOG_SCRIPT" "$CLAUDE_PID" "$SESSION_ID" &
+        WATCHDOG_PID=$!
         echo ""
     fi
 fi
@@ -349,7 +367,13 @@ fi
 wait $CLAUDE_PID
 CLAUDE_EXIT=$?
 
-# Cleanup session map
+# Stop watchdog if running
+if [ -n "${WATCHDOG_PID:-}" ]; then
+    kill "$WATCHDOG_PID" 2>/dev/null || true
+fi
+
+# Cleanup session map and state
 rm -f "$MAP_DIR/$CLAUDE_PID.txt" 2>/dev/null || true
+rm -f "$WRAPPER_STATE" 2>/dev/null || true
 
 exit $CLAUDE_EXIT
