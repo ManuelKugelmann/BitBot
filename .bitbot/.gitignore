@@ -1,0 +1,6 @@
+# Runtime data
+.pid-session-map/
+wrapper/pipes/
+
+# DO-NOT-STOP control files
+DO-NOT-STOP-*.txt
