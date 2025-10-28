@@ -9,23 +9,43 @@
 #
 # Usage: claude-wrapper.sh [claude-args...]
 #
-# The wrapper creates a pipe at: .bitbot/pipes/claude-<PID>.pipe
+# The wrapper creates a pipe at: .bitbot/wrapper/pipes/claude-<PID>.pipe
 # Tools within Claude can send commands to this pipe.
 
 set -euo pipefail
 
+# Find project root (look for .bitbot/ marker)
+find_project_root() {
+    local dir="$PWD"
+    local max_depth=10
+    local depth=0
+
+    while [ $depth -lt $max_depth ]; do
+        if [ -d "$dir/.bitbot" ]; then
+            echo "$dir"
+            return 0
+        fi
+
+        # Stop at filesystem root
+        if [ "$dir" = "/" ]; then
+            break
+        fi
+
+        dir="$(dirname "$dir")"
+        depth=$((depth + 1))
+    done
+
+    # Fallback to current directory
+    echo "$PWD"
+    return 1
+}
+
 # Determine project directory
-if [ -d "/workspace" ]; then
-    PROJECT_DIR="/workspace"
-else
-    PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-fi
+PROJECT_DIR=$(find_project_root)
 
 # Setup pipe infrastructure
-# Use /tmp for pipes (FIFO not supported on Windows filesystems in WSL)
-PIPE_DIR="/tmp/bitbot-pipes"
+PIPE_DIR="$PROJECT_DIR/.bitbot/wrapper/pipes"
 WRAPPER_PID=$$
-PIPE="$PIPE_DIR/wrapper-${WRAPPER_PID}.pipe"
 
 # Cleanup function
 cleanup() {
@@ -40,7 +60,7 @@ cleanup() {
     rm -f "${READY_MARKER:-}" 2>/dev/null || true
 
     # Remove pipe
-    rm -f "$PIPE" 2>/dev/null || true
+    rm -f "${PIPE:-}" 2>/dev/null || true
 
     # Cleanup empty pipe directory
     rmdir "$PIPE_DIR" 2>/dev/null || true
@@ -50,24 +70,15 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-# Create pipe directory and FIFO
+# Create pipe directory
 mkdir -p "$PIPE_DIR"
-mkfifo "$PIPE"
-
-# Export pipe location and wrapper PID for tools to use
-export WRAPPER_PIPE="$PIPE"
-export WRAPPER_PID
-
-# Create ready marker (for testing)
-READY_MARKER="$PIPE_DIR/wrapper-${WRAPPER_PID}.ready"
 
 echo "╔═══════════════════════════════════════════════════════════════╗"
 echo "║              Claude Code Wrapper                              ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo ""
 echo "Wrapper PID: $WRAPPER_PID"
-echo "Control pipe: $PIPE"
-echo "Commands: exit, restart, compact, clear"
+echo "Launching wrapped process..."
 echo ""
 
 # Handle commands from pipe
@@ -259,6 +270,43 @@ run_compaction() {
     sleep 0.5
 }
 
+# Store original arguments for potential restart
+ORIGINAL_ARGS=("$@")
+
+# Determine claude command (allow override for testing)
+CLAUDE_CMD="${CLAUDE_WRAPPER_CMD:-claude}"
+
+# Run Claude with env vars set inline, capture its PID
+# We use a subshell to get PID first, then set WRAPPER_PIPE in child env
+(
+    # Get our PID (this is Claude's PID)
+    MYPID=$$
+    PIPE="$PIPE_DIR/claude-${MYPID}.pipe"
+
+    # Export for child process
+    export WRAPPER_PIPE="$PIPE"
+    export WRAPPER_PID="$MYPID"
+    export CLAUDE_PID="$MYPID"
+
+    # Execute the command
+    exec $CLAUDE_CMD "$@"
+) &
+
+CLAUDE_PID=$!
+
+# Create pipe and ready marker based on Claude PID
+PIPE="$PIPE_DIR/claude-${CLAUDE_PID}.pipe"
+READY_MARKER="$PIPE_DIR/claude-${CLAUDE_PID}.ready"
+
+# Create the named pipe
+mkfifo "$PIPE"
+
+# Display info now that we have Claude PID
+echo "Claude PID: $CLAUDE_PID"
+echo "Control pipe: $PIPE"
+echo "Commands: exit, restart, compact, clear"
+echo ""
+
 # Start pipe reader in background
 (
     # Signal that reader is ready
@@ -281,26 +329,8 @@ run_compaction() {
 
 READER_PID=$!
 
-# Wait for reader to be ready
-while [ ! -f "$READY_MARKER" ]; do
-    sleep 0.1
-done
-
-# Store original arguments for potential restart
-ORIGINAL_ARGS=("$@")
-
-# Determine claude command (allow override for testing)
-CLAUDE_CMD="${CLAUDE_WRAPPER_CMD:-claude}"
-
-# Run Claude and capture its PID
-$CLAUDE_CMD "$@" &
-CLAUDE_PID=$!
-
-# Export Claude PID for session mapping
-export CLAUDE_PID
-
 # Create session map directory and file
-MAP_DIR="$PROJECT_DIR/.claude/.pid-session-map"
+MAP_DIR="$PROJECT_DIR/.bitbot/.pid-session-map"
 mkdir -p "$MAP_DIR"
 
 # Wait for Claude to potentially create session map

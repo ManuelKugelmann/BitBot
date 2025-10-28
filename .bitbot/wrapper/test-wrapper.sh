@@ -85,55 +85,80 @@ section "Pipe Infrastructure Tests"
 
 run_test "Wrapper creates pipe on startup"
 (
-    export CLAUDE_PROJECT_DIR="/tmp/test-wrapper-$$"
-    mkdir -p "$CLAUDE_PROJECT_DIR"
+    TEST_DIR="/tmp/test-wrapper-$$"
+    mkdir -p "$TEST_DIR/.bitbot"
+    cd "$TEST_DIR"
 
     # Create mock claude command
     export CLAUDE_WRAPPER_CMD="sleep"
 
-    # Start wrapper with dummy command
-    timeout 2 "$WRAPPER_SCRIPT" 1 &
-    WRAPPER_PID=$!
+    # Start wrapper and capture output to get actual Claude PID
+    timeout 2 "$WRAPPER_SCRIPT" 1 > /tmp/wrapper-out-$$.txt 2>&1 &
+    SHELL_PID=$!
 
-    # Wait for ready marker (pipes are in /tmp/bitbot-pipes/)
-    READY_MARKER="/tmp/bitbot-pipes/wrapper-${WRAPPER_PID}.ready"
+    # Extract Claude PID from output
+    sleep 0.5
+    CLAUDE_PID=$(grep "Claude PID:" /tmp/wrapper-out-$$.txt | awk '{print $3}')
+
+    if [ -z "$CLAUDE_PID" ]; then
+        echo "Could not extract Claude PID"
+        kill $SHELL_PID 2>/dev/null || true
+        rm -f /tmp/wrapper-out-$$.txt
+        cd /tmp && rm -rf "$TEST_DIR"
+        exit 1
+    fi
+
+    # Wait for ready marker
+    READY_MARKER="$TEST_DIR/.bitbot/wrapper/pipes/claude-${CLAUDE_PID}.ready"
     for i in {1..20}; do
         [ -f "$READY_MARKER" ] && break
         sleep 0.1
     done
 
     # Check pipe exists
-    if [ -p "/tmp/bitbot-pipes/wrapper-${WRAPPER_PID}.pipe" ]; then
-        wait $WRAPPER_PID || true
-        rm -rf "$CLAUDE_PROJECT_DIR"
+    if [ -p "$TEST_DIR/.bitbot/wrapper/pipes/claude-${CLAUDE_PID}.pipe" ]; then
+        kill $SHELL_PID 2>/dev/null || true
+        wait $SHELL_PID 2>/dev/null || true
+        rm -f /tmp/wrapper-out-$$.txt
+        cd /tmp && rm -rf "$TEST_DIR"
         exit 0
     else
-        kill $WRAPPER_PID 2>/dev/null || true
-        rm -rf "$CLAUDE_PROJECT_DIR"
+        kill $SHELL_PID 2>/dev/null || true
+        rm -f /tmp/wrapper-out-$$.txt
+        cd /tmp && rm -rf "$TEST_DIR"
         exit 1
     fi
 ) && test_passed || test_failed "Pipe not created"
 
 run_test "Wrapper cleans up pipe on exit"
 (
-    export CLAUDE_PROJECT_DIR="/tmp/test-wrapper-$$"
-    export CLAUDE_WRAPPER_CMD="sleep"
-    mkdir -p "$CLAUDE_PROJECT_DIR"
+    TEST_DIR="/tmp/test-wrapper-$$"
+    mkdir -p "$TEST_DIR/.bitbot"
+    cd "$TEST_DIR"
 
-    # Start wrapper and capture PID
-    timeout 2 "$WRAPPER_SCRIPT" 0.5 &
-    WRAPPER_PID=$!
+    export CLAUDE_WRAPPER_CMD="sleep"
+
+    # Start wrapper and capture output
+    timeout 2 "$WRAPPER_SCRIPT" 0.5 > /tmp/wrapper-out-cleanup-$$.txt 2>&1 &
+    SHELL_PID=$!
+
+    # Extract Claude PID
+    sleep 0.3
+    CLAUDE_PID=$(grep "Claude PID:" /tmp/wrapper-out-cleanup-$$.txt | awk '{print $3}')
 
     # Wait for wrapper to finish
-    wait $WRAPPER_PID 2>/dev/null || true
+    wait $SHELL_PID 2>/dev/null || true
 
     # Check pipe is removed
-    if [ ! -p "/tmp/bitbot-pipes/wrapper-${WRAPPER_PID}.pipe" ] && \
-       [ ! -f "/tmp/bitbot-pipes/wrapper-${WRAPPER_PID}.ready" ]; then
-        rm -rf "$CLAUDE_PROJECT_DIR"
+    if [ -n "$CLAUDE_PID" ] && \
+       [ ! -p "$TEST_DIR/.bitbot/wrapper/pipes/claude-${CLAUDE_PID}.pipe" ] && \
+       [ ! -f "$TEST_DIR/.bitbot/wrapper/pipes/claude-${CLAUDE_PID}.ready" ]; then
+        rm -f /tmp/wrapper-out-cleanup-$$.txt
+        cd /tmp && rm -rf "$TEST_DIR"
         exit 0
     else
-        rm -rf "$CLAUDE_PROJECT_DIR"
+        rm -f /tmp/wrapper-out-cleanup-$$.txt
+        cd /tmp && rm -rf "$TEST_DIR"
         exit 1
     fi
 ) && test_passed || test_failed "Pipe not cleaned up"
@@ -142,41 +167,58 @@ section "Command Parsing Tests"
 
 run_test "Send exit command via pipe"
 (
-    export CLAUDE_PROJECT_DIR="/tmp/test-wrapper-$$"
+    TEST_DIR="/tmp/test-wrapper-$$"
+    mkdir -p "$TEST_DIR/.bitbot"
+    cd "$TEST_DIR"
+
     export CLAUDE_WRAPPER_CMD="sleep"
-    mkdir -p "$CLAUDE_PROJECT_DIR"
 
     # Start wrapper with long-running command
-    timeout 5 "$WRAPPER_SCRIPT" 10 &
-    WRAPPER_PID=$!
+    timeout 5 "$WRAPPER_SCRIPT" 10 > /tmp/wrapper-out-exit-$$.txt 2>&1 &
+    SHELL_PID=$!
+
+    # Extract Claude PID from output
+    sleep 0.5
+    CLAUDE_PID=$(grep "Claude PID:" /tmp/wrapper-out-exit-$$.txt | awk '{print $3}')
+
+    if [ -z "$CLAUDE_PID" ]; then
+        kill $SHELL_PID 2>/dev/null || true
+        rm -f /tmp/wrapper-out-exit-$$.txt
+        cd /tmp && rm -rf "$TEST_DIR"
+        exit 1
+    fi
 
     # Wait for ready marker
-    READY_MARKER="/tmp/bitbot-pipes/wrapper-${WRAPPER_PID}.ready"
+    READY_MARKER="$TEST_DIR/.bitbot/wrapper/pipes/claude-${CLAUDE_PID}.ready"
     for i in {1..20}; do
         [ -f "$READY_MARKER" ] && break
         sleep 0.1
     done
 
     # Send exit command
-    PIPE="/tmp/bitbot-pipes/wrapper-${WRAPPER_PID}.pipe"
+    PIPE="$TEST_DIR/.bitbot/wrapper/pipes/claude-${CLAUDE_PID}.pipe"
     if [ -p "$PIPE" ]; then
         echo "exit" > "$PIPE"
 
-        # Wait for wrapper to exit
+        # Wait for Claude to exit
         sleep 1
 
-        # Check if wrapper exited
-        if ! kill -0 $WRAPPER_PID 2>/dev/null; then
-            rm -rf "$CLAUDE_PROJECT_DIR"
+        # Check if Claude exited
+        if ! kill -0 $CLAUDE_PID 2>/dev/null; then
+            rm -f /tmp/wrapper-out-exit-$$.txt
+            cd /tmp && rm -rf "$TEST_DIR"
             exit 0
         else
-            kill $WRAPPER_PID 2>/dev/null || true
-            rm -rf "$CLAUDE_PROJECT_DIR"
+            kill $CLAUDE_PID 2>/dev/null || true
+            kill $SHELL_PID 2>/dev/null || true
+            rm -f /tmp/wrapper-out-exit-$$.txt
+            cd /tmp && rm -rf "$TEST_DIR"
             exit 1
         fi
     else
-        kill $WRAPPER_PID 2>/dev/null || true
-        rm -rf "$CLAUDE_PROJECT_DIR"
+        kill $SHELL_PID 2>/dev/null || true
+        rm -f /tmp/wrapper-out-exit-$$.txt
+        cd /tmp && rm -rf "$TEST_DIR"
         exit 1
     fi
 ) && test_passed || test_failed "Exit command not processed"
@@ -213,16 +255,18 @@ run_test "Send-command script requires session ID for compact"
 
 section "Environment Variable Tests"
 
-run_test "Wrapper exports WRAPPER_PIPE and WRAPPER_PID"
+run_test "Wrapper exports WRAPPER_PIPE and wrapped process can discover own PID"
 (
-    export CLAUDE_PROJECT_DIR="/tmp/test-wrapper-$$"
-    export CLAUDE_WRAPPER_CMD="bash"
-    mkdir -p "$CLAUDE_PROJECT_DIR"
+    TEST_DIR="/tmp/test-wrapper-$$"
+    mkdir -p "$TEST_DIR/.bitbot"
+    cd "$TEST_DIR"
 
-    # Create a test script that checks env vars
+    export CLAUDE_WRAPPER_CMD="bash"
+
+    # Create a test script that discovers its own PID and checks WRAPPER_PIPE
     ENV_OUTPUT="/tmp/wrapper-env-$$.txt"
     TEST_CMD="-c"
-    TEST_ARG="if [ -n \"\$WRAPPER_PIPE\" ] && [ -n \"\$WRAPPER_PID\" ]; then echo \"WRAPPER_PIPE=\$WRAPPER_PIPE\" > $ENV_OUTPUT; echo \"WRAPPER_PID=\$WRAPPER_PID\" >> $ENV_OUTPUT; sleep 0.2; else exit 1; fi"
+    TEST_ARG="MYPID=\$\$; if [ -n \"\$WRAPPER_PIPE\" ] && [ -n \"\$MYPID\" ]; then echo \"WRAPPER_PIPE=\$WRAPPER_PIPE\" > $ENV_OUTPUT; echo \"MYPID=\$MYPID\" >> $ENV_OUTPUT; sleep 0.2; else exit 1; fi"
 
     # Run wrapper with test script
     timeout 2 "$WRAPPER_SCRIPT" "$TEST_CMD" "$TEST_ARG" || true
@@ -230,17 +274,17 @@ run_test "Wrapper exports WRAPPER_PIPE and WRAPPER_PID"
     # Check results
     if [ -f "$ENV_OUTPUT" ]; then
         source "$ENV_OUTPUT"
-        if [ -n "$WRAPPER_PIPE" ] && [ -n "$WRAPPER_PID" ]; then
+        if [ -n "$WRAPPER_PIPE" ] && [ -n "$MYPID" ]; then
             rm -f "$ENV_OUTPUT"
-            rm -rf "$CLAUDE_PROJECT_DIR"
+            cd /tmp && rm -rf "$TEST_DIR"
             exit 0
         fi
     fi
 
     rm -f "$ENV_OUTPUT"
-    rm -rf "$CLAUDE_PROJECT_DIR"
+    cd /tmp && rm -rf "$TEST_DIR"
     exit 1
-) && test_passed || test_failed "Environment variables not exported"
+) && test_passed || test_failed "Environment variables not exported or PID not discoverable"
 
 section "Executable Permissions"
 

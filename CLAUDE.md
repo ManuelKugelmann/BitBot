@@ -380,3 +380,4 @@ graph LR
 - never abort research or work on an approach without explicit instruction
 - test run all code and scripts before committing
 - only commit when all tests are done and pass
+- do not git reset without user confirmation
