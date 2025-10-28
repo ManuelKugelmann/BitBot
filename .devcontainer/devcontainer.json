@@ -32,7 +32,8 @@
     "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
     "source=${localWorkspaceFolder}/.devcontainer/home/.claude,target=/root/.claude,type=bind,consistency=cached",
     "source=${localWorkspaceFolder}/.devcontainer/home/.claude-flow,target=/root/.claude-flow,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder}/.devcontainer/home/.opencode,target=/root/.opencode,type=bind,consistency=cached"
+    "source=${localWorkspaceFolder}/.devcontainer/home/.opencode,target=/root/.opencode,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.bitbot/wrapper,target=/opt/bitbot/wrapper,type=bind,readonly"
   ],
   "postCreateCommand": "echo '✓ MinGW cross-compiler installed:' && x86_64-w64-mingw32-gcc --version && echo '' && echo '🚀 Running Codespaces quick test...' && dev/tests/test-codespaces.sh || echo '⚠ Some tests failed (expected if Docker unavailable)'"
 }

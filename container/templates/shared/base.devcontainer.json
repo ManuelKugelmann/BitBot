@@ -15,7 +15,7 @@
   "remoteUser": "root",
   "mounts": [
     "source=${localWorkspaceFolder}/.devcontainer/bitbot,target=/usr/local/bitbot,type=bind,readonly",
-    "source=${localEnv:BITBOT_HOME}/global/.tmux.conf,target=/home/bitbot/.tmux.conf,type=bind,readonly",
+    "source=${localEnv:BITBOT_HOME}/container/home/.tmux.conf,target=/root/.tmux.conf,type=bind,readonly",
     "source=${localEnv:BITBOT_HOME}/.bitbot/wrapper,target=/opt/bitbot/wrapper,type=bind,readonly"
   ]
 }

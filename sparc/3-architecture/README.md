@@ -177,6 +177,30 @@ Architecture documentation serves to:
 
 ---
 
+### 07: Complete Workflow
+**File**: `diagrams/07-complete-workflow.md`
+
+**Purpose**: End-to-end technical workflow from first run through daily development
+
+**Contents**:
+- Platform entry points (Windows/WSL/macOS/Linux)
+- Host-side BitBot (global and workspace contexts)
+- Container launching and mounting
+- Container-side BitBot (tmux and session management)
+- Claude Code launching with mode-specific tools
+- Complete flow with all technical components
+
+**Key Insights**:
+- Two-layer architecture (host + container BitBot)
+- tmux-based session management inside containers
+- Mode-aware Claude Code launching (work vs config tools)
+- Session persistence and resume capability
+- Platform abstraction at entry point
+
+**View**: [07-complete-workflow.md](diagrams/07-complete-workflow.md)
+
+---
+
 ## Diagram Format: Mermaid
 
 All diagrams use [Mermaid](https://mermaid.js.org/) syntax for several reasons:

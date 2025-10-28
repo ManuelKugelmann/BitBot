@@ -2,7 +2,7 @@
 
 **Component**: Container BitBot (runs inside containers)
 **Source**: `container/bitbot/` directory
-**Installed**: `/opt/bitbot/` inside containers
+**Installed**: `/usr/local/bitbot/` inside containers
 **Purpose**: AI agent assistance and session management inside devcontainers
 
 ---
@@ -46,10 +46,6 @@ FUNCTION bitbot(command, args):
             CALL start_claude_session(args)
         "resume":
             CALL resume_tmux_session(args)
-        "analyze":
-            CALL analyze_workspace()
-        "status":
-            CALL show_status()
         "help":
             CALL show_help()
         DEFAULT:
@@ -371,63 +367,6 @@ END FUNCTION
 
 ---
 
-## Workspace Analysis
-
-```pseudocode
-FUNCTION analyze_workspace():
-    # Analyze workspace tech stack and structure
-    # See existing implementation in templates/base/bitbot/commands/analyze.sh
-
-    PRINT "Analyzing workspace: /workspace"
-    PRINT ""
-
-    CALL detect_project_type()
-    CALL check_git_status()
-    CALL detect_dependencies()
-    CALL show_container_info()
-END FUNCTION
-```
-
----
-
-## Status Display
-
-```pseudocode
-FUNCTION show_status():
-    # Show container environment status
-    # See existing implementation in templates/base/bitbot/commands/status.sh
-
-    PRINT "BitBot Container Status"
-    PRINT ""
-
-    CALL show_mode()
-    CALL show_container_details()
-    CALL show_workspace_info()
-    CALL show_devcontainer_status()
-    CALL show_tmux_sessions()
-END FUNCTION
-
-FUNCTION show_tmux_sessions():
-    # Add to status display
-
-    PRINT "tmux Sessions:"
-
-    SET sessions = list_tmux_sessions()
-
-    IF sessions is empty:
-        PRINT "  No active sessions"
-    ELSE:
-        FOR EACH session IN sessions:
-            PRINT "  • " + session.name + " (" + session.windows + " windows)"
-        END FOR
-    END IF
-
-    PRINT ""
-END FUNCTION
-```
-
----
-
 ## Help Display
 
 ```pseudocode
@@ -440,24 +379,23 @@ FUNCTION show_help():
     PRINT "  bitbot-helper <command> [options]"
     PRINT ""
     PRINT "Commands:"
-    PRINT "  start         Start Claude Code in tmux session"
-    PRINT "  resume [name] Resume tmux session (or choose from list)"
-    PRINT "  analyze       Analyze workspace tech stack"
-    PRINT "  status        Show container environment status"
+    PRINT "  (default)     Smart launcher: detect sessions, choose launch mode"
+    PRINT "  start         Always start fresh Claude in new tmux session"
+    PRINT "  resume [name] Resume existing tmux session (or choose from list)"
     PRINT "  help          Show this help message"
     PRINT ""
     PRINT "Examples:"
-    PRINT "  # Start Claude Code (with launch mode choice)"
-    PRINT "  bitbot-helper start"
+    PRINT "  # Smart launcher (detects sessions, offers resume/new)"
+    PRINT "  bitbot"
+    PRINT ""
+    PRINT "  # Always start fresh session with fresh Claude"
+    PRINT "  bitbot start"
     PRINT ""
     PRINT "  # Resume existing session"
-    PRINT "  bitbot-helper resume"
+    PRINT "  bitbot resume"
     PRINT ""
     PRINT "  # Resume specific session"
-    PRINT "  bitbot-helper resume claude-20251022-1430"
-    PRINT ""
-    PRINT "  # Analyze workspace"
-    PRINT "  bitbot-helper analyze"
+    PRINT "  bitbot resume claude-20251022-1430"
     PRINT ""
     PRINT "Environment:"
     PRINT "  WORKSPACE     Workspace path (default: /workspace)"
@@ -473,7 +411,7 @@ END FUNCTION
 **Automatic Launch on Container Start**:
 
 ```pseudocode
-# In container entrypoint script (e.g., /opt/bitbot/entrypoint.sh)
+# In container entrypoint script (e.g., /usr/local/bitbot/entrypoint.sh)
 
 FUNCTION container_entrypoint():
     # Called when container starts
@@ -493,17 +431,16 @@ FUNCTION container_entrypoint():
             PRINT "  • " + session.name
         END FOR
         PRINT ""
-        PRINT "To resume: bitbot-helper resume"
-        PRINT "To start new: bitbot-helper start"
+        PRINT "To resume: bitbot resume"
+        PRINT "To start new: bitbot start"
     ELSE:
         PRINT "No existing sessions found"
         PRINT ""
-        PRINT "To start Claude Code: bitbot-helper start"
-        PRINT "To analyze workspace: bitbot-helper analyze"
+        PRINT "To start Claude Code: bitbot start"
     END IF
 
     PRINT ""
-    PRINT "Type 'bitbot-helper help' for more commands"
+    PRINT "Type 'bitbot help' for more commands"
     PRINT ""
 
     # Drop to shell
@@ -532,9 +469,9 @@ container/bitbot/
         └── tmux-utils.sh  # tmux session management
 ```
 
-**Installed Structure** (`/opt/bitbot/` inside containers):
+**Installed Structure** (`/usr/local/bitbot/` inside containers):
 ```
-/opt/bitbot/
+/usr/local/bitbot/
 ├── bitbot                 # Container entry point
 ├── README.md
 └── core/
@@ -544,9 +481,9 @@ container/bitbot/
 
 **Deployment**: Dockerfile copies during build:
 ```dockerfile
-COPY container/bitbot/ /opt/bitbot/
-RUN chmod +x /opt/bitbot/bitbot /opt/bitbot/core/commands/*.sh
-ENV PATH="/opt/bitbot:${PATH}"
+COPY container/bitbot/ /usr/local/bitbot/
+RUN chmod +x /usr/local/bitbot/bitbot /usr/local/bitbot/core/commands/*.sh
+ENV PATH="/usr/local/bitbot:${PATH}"
 ```
 
 **Dependencies**:

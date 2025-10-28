@@ -254,6 +254,66 @@ bitbot init            # Creates .devcontainer/ with template
 bitbot work            # Start coding!
 ```
 
+### Workflow Overview
+
+BitBot simplifies AI-assisted development with two secure modes:
+
+```mermaid
+graph TB
+    Start([Run bitbot]) --> Context{Where are<br/>you running?}
+
+    Context -->|BitBot folder| FirstTime{First<br/>time?}
+    FirstTime -->|Yes| Setup[Setup Wizard]
+    FirstTime -->|No| Ready([Ready to use])
+    Setup --> AddPath[Add to PATH]
+    AddPath --> Ready
+
+    Context -->|Project folder| Initialized{Workspace<br/>ready?}
+
+    Initialized -->|No| Init[bitbot init]
+    Init --> GitSafe[Git safety check]
+    GitSafe --> Structure[Create .bitbot/]
+    Structure --> Template[Setup .devcontainer/]
+    Template --> Guide[AI guides setup]
+    Guide --> WorkReady([Ready to work])
+
+    Initialized -->|Yes| Mode{What do you<br/>want to do?}
+
+    Mode -->|Code| Work[bitbot work]
+    Work --> WorkEnv[Work Mode]
+    WorkEnv --> Code([Code with AI<br/>Infrastructure protected])
+
+    Mode -->|Configure| Config[bitbot config]
+    Config --> ConfigEnv[Config Mode]
+    ConfigEnv --> Configure([Edit .devcontainer<br/>AI guidance])
+
+    Mode -->|VS Code| VSCode[bitbot vscode]
+    VSCode --> WorkEnv
+
+    style Start fill:#4a9eff,stroke:#333,stroke-width:2px
+    style Setup fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
+    style Init fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
+    style GitSafe fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
+    style Code fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
+    style Configure fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
+    style Ready fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
+    style WorkReady fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
+```
+
+**Key Points:**
+
+1. **First Time**: Run `bitbot` from install folder for setup wizard
+2. **Initialize**: Run `bitbot init` in your project to create workspace
+3. **Daily Work**: Run `bitbot` or `bitbot work` to code with AI protection
+4. **Configuration**: Run `bitbot config` when you need to modify container setup
+5. **VS Code**: Run `bitbot vscode` to open directly in VS Code
+
+**Safety Features:**
+- Git checks warn before making changes
+- Work mode protects `.devcontainer/` from accidents
+- Config mode provides AI guidance for infrastructure
+- Both modes can run simultaneously
+
 ### GitHub Codespaces Support
 
 BitBot workspaces work seamlessly in GitHub Codespaces!

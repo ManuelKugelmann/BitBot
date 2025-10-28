@@ -118,7 +118,19 @@ main() {
     local sessions="$(list_tmux_sessions)"
     local session_count="$(echo "$sessions" | grep -c '^' || echo 0)"
 
-    if [[ $session_count -gt 0 ]]; then
+    # Single session - auto-resume
+    if [[ $session_count -eq 1 ]]; then
+        local single_session="$(echo "$sessions" | head -1)"
+        info "Found one session: $single_session"
+        echo ""
+        info "Auto-resuming..."
+        echo ""
+        exec "${SCRIPT_DIR}/resume.sh" "$single_session"
+        return
+    fi
+
+    # Multiple sessions - show list and offer resume
+    if [[ $session_count -gt 1 ]]; then
         info "Found existing tmux sessions:"
         while IFS= read -r session; do
             local session_info="$(get_session_info "$session")"

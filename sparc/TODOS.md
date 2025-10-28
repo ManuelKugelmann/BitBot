@@ -51,8 +51,8 @@
 
 ### Advanced Features (P2)
 
-- [ ] tmux integration & session management
-- [ ] Multi-session support
+- [x] tmux integration & session management ✅ DONE
+- [x] Multi-session support ✅ DONE
 - [ ] Container resource limits & monitoring
 
 ### Integration (P2)

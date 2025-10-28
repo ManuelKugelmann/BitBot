@@ -1,6 +1,18 @@
+<!-- ============================================================================
+     TEMPLATE-SPECIFIC CONTENT GOES HERE
+     Each template (base, config, bitbotdev, workspace) can add custom sections
+     ============================================================================ -->
+
+<!-- ============================================================================
+     BITBOT DEVELOPMENT SECTION (NOT synced to templates)
+     Content below this line is for BitBot development only
+     ============================================================================ -->
+
 ## Project Structure
 
 BitBot follows a clean separation between core functionality, development artifacts, templates, and documentation.
+
+**Note**: This section and below are for BitBot development, not end-user customization.
 
 ### Top-Level Organization
 
@@ -92,18 +104,56 @@ Each template contains:
 - `README.md` - Template documentation
 - `.claude/` - Template-specific Claude Code configuration
 
-**Template .claude Content**:
-- **Base content** (all templates): hooks, tools, settings.json, shared skills (no prefix)
-- **bitbot-config-*** content: Only in `bitbot-config/` template
-- **bitbot-dev-*** content: Only in `bitbot-dev/` template (e.g., release scripts)
-- **bitbot-work-*** content: Only in `bitbot-work/` template (e.g., AI workspace tools)
-
-**Template Merging**:
+**Template Internals** (for BitBot development):
 - Templates are built by merging `shared/base.devcontainer.json` + `details.devcontainer.json`
-- Custom templates use `bitbot-work/` as their base template
+- Custom templates use `workspace/` as their base template
 - Container runtime scripts in `container/bitbot/` are mounted at `/usr/local/bitbot`
 - During `bitbot init`, scripts are copied to `.devcontainer/bitbot/` in user workspace
-- .claude content synced using `dev/scripts/bitbot-dev-sync-claude-templates.sh`
+
+**Customizing DevContainers** (for end users):
+
+After `bitbot init`, users can customize their workspace `.devcontainer/`:
+
+1. **Add Packages** (edit `Dockerfile`):
+```dockerfile
+RUN apt-get update && apt-get install -y \
+    python3 python3-pip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+```
+
+2. **Add VS Code Extensions** (edit `devcontainer.json`):
+```json
+{
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python", "dbaeumer.vscode-eslint"]
+    }
+  }
+}
+```
+
+3. **Configure Settings** (edit `devcontainer.json`):
+```json
+{
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python3"
+      }
+    }
+  }
+}
+```
+
+4. **Add DevContainer Features**:
+```json
+{
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": {"version": "lts"}
+  }
+}
+```
 
 ## SPARC Process
 
@@ -244,6 +294,35 @@ After completing a significant implementation phase, proactively remind the user
 - User templates (work, config) include shared home folders for AI tool configs
 - See individual template README.md files for template-specific documentation
 
+## DevContainer Mount Structure
+
+**Container User:** `root` (home directory = `/root/`)
+
+**Mount Strategy:** Infrastructure files mounted readonly from `$BITBOT_HOME`, no copying.
+
+### Global Mounts (from BitBot Installation)
+
+| Source | Target | Purpose |
+|--------|--------|---------|
+| `$BITBOT_HOME/container/home/.tmux.conf` | `/root/.tmux.conf` | Tmux config (ro) |
+| `$BITBOT_HOME/.bitbot/wrapper/` | `/opt/bitbot/wrapper/` | Wrapper scripts (ro) |
+
+### Workspace Mounts (per-project)
+
+| Source | Target | Purpose |
+|--------|--------|---------|
+| `${localWorkspaceFolder}/.devcontainer/bitbot/` | `/usr/local/bitbot/` | Container BitBot (ro) |
+| `${localWorkspaceFolder}/.devcontainer/home/.claude/` | `/root/.claude/` | Claude config (rw) |
+| `${localWorkspaceFolder}/.devcontainer/home/.claude-flow/` | `/root/.claude-flow/` | Claude Flow (rw) |
+| `${localWorkspaceFolder}/.devcontainer/home/.opencode/` | `/root/.opencode/` | OpenCode (rw) |
+
+**Key Points:**
+- Container user is `root`, so home = `/root/` (NOT `/home/bitbot/`)
+- Infrastructure mounted readonly (automatic updates when BitBot updated)
+- Per-workspace dotfiles in `.devcontainer/home/` (workspace-specific Claude hooks/sessions)
+- No files copied except user-modifiable configs
+- See `sparc/1-specification/12_MOUNT_STRUCTURE.md` for details
+
 ## Available Skills
 
 **IMPORTANT**: Use skills instead of raw `dos2unix` or `sed` commands.
@@ -382,3 +461,23 @@ graph LR
 - only commit when all tests are done and pass
 - do not git reset without user confirmation
 - use /sparc/TODOS.md to track Tasks
+
+---
+
+## INBOX
+
+**Purpose**: Temporary holding area for memory commands and quick notes.
+
+**Usage**:
+- Use `# memory` commands to add quick notes here
+- Content must be sorted into appropriate sections before syncing to templates
+- Sync script will block if INBOX section exists
+
+**Instructions**:
+Before running sync script:
+1. Review all items in INBOX
+2. Move each item to its appropriate section (General Guidelines, Skills, etc.)
+3. Delete the ## INBOX section
+4. Run sync script: `dev/scripts/sync-claude-md-to-templates.sh`
+
+<!-- Items below this line -->

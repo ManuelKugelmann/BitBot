@@ -38,15 +38,6 @@ main() {
         resume)
             "${BITBOT_CONTAINER_HOME}/core/commands/resume.sh" "$@"
             ;;
-        analyze)
-            "${BITBOT_CONTAINER_HOME}/core/commands/analyze.sh" "$@"
-            ;;
-        status)
-            "${BITBOT_CONTAINER_HOME}/core/commands/status.sh" "$@"
-            ;;
-        configure)
-            "${BITBOT_CONTAINER_HOME}/core/commands/configure.sh" "$@"
-            ;;
         help|--help|-h)
             show_help
             ;;
@@ -70,9 +61,6 @@ Commands:
   (default)     Smart launcher: detect sessions, choose launch mode
   start         Always start fresh Claude in new tmux session
   resume [name] Resume existing tmux session (or choose from list)
-  analyze       Analyze workspace tech stack and structure
-  status        Show container environment status
-  configure     Configure devcontainer (config mode only)
   help          Show this help message
 
 Examples:
@@ -88,17 +76,11 @@ Examples:
   # Resume specific session
   bitbot resume claude-20251022-1430
 
-  # Analyze workspace
-  bitbot analyze
-
-  # Show status
-  bitbot status
-
 Environment:
   WORKSPACE     Workspace path (default: /workspace)
   BITBOT_MODE   Current mode (work/config)
 
-For more information, see /opt/bitbot/README.md
+For more information, see /usr/local/bitbot/README.md
 EOF
 }
 
