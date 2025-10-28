@@ -55,6 +55,6 @@ if [ -n "$DO_NOT_STOP_FILE" ]; then
 EOF
 else
     # File doesn't exist or is empty, allow normal stopping
-    # Silent exit - no output when allowing stop
+    # Silent exit - Stop hooks don't use suppressOutput
     exit 0
 fi
