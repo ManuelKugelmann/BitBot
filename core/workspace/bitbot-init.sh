@@ -146,13 +146,11 @@ copy_wrapper_infrastructure() {
     create_directory "$dest_wrapper"
     create_directory "$dest_wrapper/pipes"
 
-    # Copy wrapper scripts
+    # Copy wrapper scripts (executable scripts only, not docs)
     local scripts=(
         "claude-wrapper.sh"
         "watchdog.sh"
         "send-wrapper-command.sh"
-        "README.md"
-        "TYPE-C-DETECTION.md"
     )
 
     for script in "${scripts[@]}"; do

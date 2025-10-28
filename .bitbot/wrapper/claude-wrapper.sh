@@ -336,7 +336,9 @@ mkdir -p "$MAP_DIR"
 # Wait for Claude to potentially create session map and start session
 sleep 0.5
 
-# Try to detect session ID from wrapper state file (posted by session-start hook)
+# Try to detect session ID from wrapper state file
+# Note: session-start hook writes SESSION_ID to this file when Claude starts
+# Format: SESSION_ID=<uuid>\nIS_RESUME=start|resume\nSTART_TIME=<timestamp>
 WRAPPER_STATE="$PROJECT_DIR/.bitbot/wrapper/.wrapper-session-${CLAUDE_PID}.state"
 SESSION_ID=""
 
