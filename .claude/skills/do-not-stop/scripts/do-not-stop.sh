@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# donotstop-on - Enable the donotstop Stop hook
-# Usage: .claude/tools/donotstop-on [reason]
+# donotstop - Enable the donotstop Stop hook
+# Usage: .claude/skills/do-not-stop/scripts/do-not-stop.sh [reason]
 #
-# If reason is provided as argument, it will be written to DONOTSTOP.txt
+# If reason is provided as argument, it will be written to DO-NOT-STOP.txt
 # Otherwise, a default message is used
 
 set -euo pipefail
@@ -13,7 +13,7 @@ if [ -d "/workspace" ]; then
 else
     DONOTSTOP_DIR="${CLAUDE_PROJECT_DIR:-.}/.bitbot"
 fi
-DONOTSTOP_FILE="$DONOTSTOP_DIR/DONOTSTOP.txt"
+DO_NOT_STOP_FILE="$DONOTSTOP_DIR/DO-NOT-STOP.txt"
 
 # Create directory if it doesn't exist
 mkdir -p "$DONOTSTOP_DIR"
@@ -28,7 +28,7 @@ else
 fi
 
 # Write reason to file
-echo "$REASON" > "$DONOTSTOP_FILE"
+echo "$REASON" > "$DO_NOT_STOP_FILE"
 
 cat << EOF
 ╔═══════════════════════════════════════════════════════════════╗
@@ -37,12 +37,12 @@ cat << EOF
 
 The Stop hook will now block completion and continue with:
 
-$(cat "$DONOTSTOP_FILE")
+$(cat "$DO_NOT_STOP_FILE")
 
-File: $DONOTSTOP_FILE
+File: $DO_NOT_STOP_FILE
 
-To disable: .claude/tools/donotstop-off
-To change reason: Edit $DONOTSTOP_FILE or run this tool again
+To disable: /allow-stop
+To change reason: Edit $DO_NOT_STOP_FILE or run this tool again
 EOF
 
 exit 0

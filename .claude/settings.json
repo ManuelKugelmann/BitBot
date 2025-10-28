@@ -1,71 +1,29 @@
 {
   "hooks": {
-    "Stop": [{
-      "type": "command",
-      "command": ".claude/hooks/donotstop.sh",
-      "timeout": 5000
-    }]
-  },
 
-  "tools": [
-    {
-      "name": "fix-line-endings",
-      "description": "Fix CRLF (Windows) to LF (Unix) line endings in files",
-      "command": ".claude/tools/fix-line-endings.sh",
-      "autoApprove": true,
-      "args": {
-        "files": {
-          "type": "array",
-          "description": "File paths to fix",
-          "required": true
+    "UserPromptSubmit": [
+        {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": ".claude/hooks/fix-and-check.sh",
+                    "timeout": 10000
+                }
+            ]
         }
-      }
-    },
-    {
-      "name": "check-bash",
-      "description": "Check bash script syntax without executing or modifying",
-      "command": ".claude/tools/check-bash.sh",
-      "autoApprove": true,
-      "args": {
-        "files": {
-          "type": "array",
-          "description": "Bash scripts to check",
-          "required": true
+    ],
+    "Stop": [
+        {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": ".claude/hooks/do-not-stop.sh",
+                    "timeout": 5000
+                }
+            ]
         }
-      }
-    },
-    {
-      "name": "fix-line-endings-check-bash",
-      "description": "Fix line endings and check syntax in one step (recommended)",
-      "command": ".claude/tools/fix-line-endings-check-bash.sh",
-      "autoApprove": true,
-      "args": {
-        "files": {
-          "type": "array",
-          "description": "Bash scripts to fix and verify",
-          "required": true
-        }
-      }
-    },
-    {
-      "name": "run-with-timeout",
-      "description": "Run commands with timeout to prevent hanging",
-      "command": ".claude/tools/run-with-timeout.sh",
-      "autoApprove": true,
-      "args": {
-        "timeout": {
-          "type": "number",
-          "description": "Timeout in seconds",
-          "required": true
-        },
-        "command": {
-          "type": "string",
-          "description": "Command to run",
-          "required": true
-        }
-      }
-    }
-  ],
+    ]
+  },
 
   "permissions": {
     "allow": [

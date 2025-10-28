@@ -163,7 +163,7 @@ BitBot follows the **SPARC** methodology for structured development:
 BitBot includes a Stop hook that automatically continues work after Claude finishes responding. This enables automated workflows without manual prompting.
 
 **How it works:**
-- Hook reads `.bitbot/DONOTSTOP.txt` for continuation instructions
+- Hook reads `.bitbot/DO-NOT-STOP.txt` for continuation instructions
 - When file exists, Claude continues with the specified reason
 - When file is removed, Claude stops normally
 
@@ -173,9 +173,9 @@ BitBot includes a Stop hook that automatically continues work after Claude finis
 - Prevents need for repeated prompting
 
 **Control:**
-- `.claude/tools/donotstop-off` - Disable (allow normal stops)
-- `.claude/tools/donotstop-on [reason]` - Enable with custom reason
-- Edit `.bitbot/DONOTSTOP.txt` - Change continuation message
+- `/allow-stop` - Disable (allow normal stops)
+- `/do-not-stop [reason]` - Enable with custom reason
+- Edit `.bitbot/DO-NOT-STOP.txt` - Change continuation message directly
 
 **Use cases:**
 - Multi-phase implementations (implement tasks from TODO-TRACKER.md)
@@ -185,7 +185,7 @@ BitBot includes a Stop hook that automatically continues work after Claude finis
 **Safety:**
 - Prevents infinite loops with `stop_hook_active` check
 - 5 second timeout on hook execution
-- User can disable anytime with `donotstop-off`
+- User can disable anytime with `/allow-stop` command
 
 ## Context Management
 
@@ -231,57 +231,49 @@ After completing a significant implementation phase, proactively remind the user
 - Workspace templates include shared home folders for AI tool configs
 - See `container/templates/workspace/README.md` for workspace template docs
 
-## Available Tools
+## Available Skills and Commands
 
-**IMPORTANT**: ALWAYS use these tools instead of raw `dos2unix` or `sed` commands. These are auto-approved and don't require user confirmation.
+**IMPORTANT**: ALWAYS use these skills/commands instead of raw `dos2unix` or `sed` commands.
 
-**fix-line-endings**
+### Skills (Model-Invoked)
 
-- Converts CRLF→LF only (no syntax check)
+Claude automatically uses these skills when relevant to the task:
+
+**fix-line-endings** - Converts CRLF→LF only (no syntax check)
 - Use when: `/bin/bash: line 1: $'\r': command not found`
-- Example: `.claude/tools/fix-line-endings script.sh another.sh`
-- Auto-approved
+- Auto-invoked when encountering line ending issues
 
-**check-bash**
-
-- Validates bash syntax without execution or modifications
+**check-bash** - Validates bash syntax without execution
 - Use before committing bash scripts
-- Example: `.claude/tools/check-bash script.sh`
-- Auto-approved
+- Auto-invoked when verifying script correctness
 
-**fix-line-endings-check-bash** ⭐ (recommended)
-
-- Fixes CRLF→LF then checks bash syntax in one step
+**fix-line-endings-check-bash** ⭐ (recommended) - Fixes CRLF→LF + checks bash syntax
 - Use after creating/editing bash scripts
-- Example: `.claude/tools/fix-line-endings-check-bash script.sh another.sh`
-- Auto-approved
+- Auto-invoked as the default bash script preparation step
 
-**run-with-timeout**
-
-- Runs a command with timeout to prevent hangs
+**run-with-timeout** - Runs commands with timeout protection
 - Use for potentially long-running test commands
-- Example: `.claude/tools/run-with-timeout 30 ./test-script.sh`
-- Auto-approved
+- Auto-invoked when timeout protection is needed
 
+**skill-creator** (Anthropic) - Guide for creating effective skills
+- Use when creating or updating custom skills
+- Includes templates and best practices
 
-**donotstop-on**
+**template-skill** (Anthropic) - Starting template for new skills
+- Use as a base when creating new skills
 
-- Enables Stop hook automation (blocks completion and continues work)
-- Reads continuation reason from `.bitbot/DONOTSTOP.txt`
-- Default reason: "Continue working. Check TODO list and implement the next pending task."
-- Example: `.claude/tools/donotstop-on "Custom reason here"`
-- Auto-approved
+**do-not-stop** - Enable Stop hook automation
+- Model invokes when: Starting multi-phase work, automated workflows
+- User invokes: `/do-not-stop [reason]`
+- Use case: Working until finished without manual prompting
 - **Enabled by default in BitBot**
 
-**donotstop-off**
+**allow-stop** - Disable Stop hook automation
+- Model invokes when: User asks questions, interactive discussion needed
+- User invokes: `/allow-stop`
+- Use case: Asking, discussing, working together interactively
 
-- Disables Stop hook automation (allows normal completion)
-- Removes `.bitbot/DONOTSTOP.txt` file
-- Use when you want Claude to stop after finishing
-- Example: `.claude/tools/donotstop-off`
-- Auto-approved
-
-**DO NOT USE**: `dos2unix file.sh` or `sed -i 's/\r$//' file.sh` directly - use tools above instead!
+**DO NOT USE**: `dos2unix file.sh` or `sed -i 's/\r$//' file.sh` directly - use skills above instead!
 
 ## Statusline (Optional)
 

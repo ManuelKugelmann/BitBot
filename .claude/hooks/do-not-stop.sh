@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# donotstop.sh - Stop hook that blocks completion with custom reason
-# Reads reason from /workspace/.bitbot/DONOTSTOP.txt
+# do-not-stop.sh - Stop hook that blocks completion with custom reason
+# Reads reason from /workspace/.bitbot/DO-NOT-STOP.txt
 
 set -euo pipefail
 
@@ -13,17 +13,17 @@ if echo "$INPUT" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true'; th
     exit 0
 fi
 
-# Check if DONOTSTOP.txt exists and is not empty
+# Check if DO-NOT-STOP.txt exists and is not empty
 # Try /workspace first (for BitBot containers), fallback to project dir
 if [ -d "/workspace" ]; then
-    DONOTSTOP_FILE="/workspace/.bitbot/DONOTSTOP.txt"
+    DO_NOT_STOP_FILE="/workspace/.claude/DO-NOT-STOP.txt"
 else
-    DONOTSTOP_FILE="${CLAUDE_PROJECT_DIR}/.bitbot/DONOTSTOP.txt"
+    DO_NOT_STOP_FILE="${CLAUDE_PROJECT_DIR}/.claude/DO-NOT-STOP.txt"
 fi
 
-if [ -f "$DONOTSTOP_FILE" ] && [ -s "$DONOTSTOP_FILE" ]; then
+if [ -f "$DO_NOT_STOP_FILE" ] && [ -s "$DO_NOT_STOP_FILE" ]; then
     # Read the entire file content (multiline)
-    REASON=$(cat "$DONOTSTOP_FILE")
+    REASON=$(cat "$DO_NOT_STOP_FILE")
 
     # Escape special characters for JSON
     REASON_ESCAPED=$(echo "$REASON" | sed 's/\\/\\\\/g; s/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
