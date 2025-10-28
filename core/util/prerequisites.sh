@@ -104,7 +104,7 @@ check_project_location() {
         echo "  ✅ Move project to WSL filesystem: ~/projects/"
         echo ""
         echo "Quick migration (automatic, creates junction):"
-        echo "  ${BITBOT_HOME}/core/util/migrate-project.sh"
+        echo "  ${BITBOT_HOME}/core/util/migrate-project-to-wsl-filesystem.sh"
         echo ""
         echo "Manual migration:"
         echo "  1. mkdir -p ~/projects"
