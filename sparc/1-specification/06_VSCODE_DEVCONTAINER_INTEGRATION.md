@@ -404,16 +404,20 @@ labels:
 ### 2.0.1 Directory Structure
 
 ```
-templates/workspace/
+templates/bitbot-work/
 ├── home/
-│   ├── claude/          → mounted to /home/bitbot/.claude
-│   ├── claude-flow/     → mounted to /home/bitbot/.claude-flow
-│   └── opencode/        → mounted to /home/bitbot/.opencode
-├── scripts/
-│   ├── post-create.sh
-│   └── install-fallbacks.sh
+│   ├── .claude/         → mounted to /root/.claude
+│   ├── .claude-flow/    → mounted to /root/.claude-flow
+│   ├── .opencode/       → mounted to /root/.opencode
+│   ├── .config/         → mounted to /root/.config
+│   └── .tmux.conf       → mounted to /root/.tmux.conf
+├── .claude/
+│   ├── hooks/
+│   ├── skills/
+│   └── tools/
 ├── Dockerfile
-├── devcontainer.json
+├── devcontainer.json    (generated from base + details)
+├── details.devcontainer.json
 └── README.md
 ```
 
@@ -429,42 +433,48 @@ templates/workspace/
 
 ### 2.0.3 Mount Configuration
 
-**devcontainer.json** (`templates/workspace/devcontainer.json`):
+**devcontainer.json** (`templates/bitbot-work/devcontainer.json`):
 ```json
 {
   "mounts": [
     "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-
-    "source=${localWorkspaceFolder}/.devcontainer/home/claude,target=/home/bitbot/.claude,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder}/.devcontainer/home/claude-flow,target=/home/bitbot/.claude-flow,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder}/.devcontainer/home/opencode,target=/home/bitbot/.opencode,type=bind,consistency=cached"
+    "source=${localWorkspaceFolder}/.bitbot/internal/container/home/.tmux.conf,target=/root/.tmux.conf,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.bitbot/internal/container/home/.config,target=/root/.config,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude,target=/root/.claude,type=bind,consistency=cached",
+    "source=${localEnv:BITBOT_HOME:${localWorkspaceFolder}/.bitbot/internal}/global/.claude/CLAUDE.md,target=/root/.claude/CLAUDE.md,type=bind,consistency=cached",
+    "source=${localEnv:BITBOT_HOME:${localWorkspaceFolder}/.bitbot/internal}/global/.claude/settings.json,target=/root/.claude/settings.json,type=bind,readonly"
   ]
 }
 ```
 
 ### 2.0.4 What Goes in Shared Folders?
 
-| Folder         | Contains                               | Example Files                |
-|----------------|----------------------------------------|------------------------------|
-| `claude/`      | Claude Code instructions, tools        | CLAUDE.md, tools/*.sh        |
-| `claude-flow/` | Workflow definitions, automation       | workflows/*.yaml, config.yml |
-| `opencode/`    | Code templates, snippets, config       | templates/*.tmpl, config.yml |
+| Folder         | Contains                               | Example Files                      |
+|----------------|----------------------------------------|------------------------------------|
+| `.claude/`     | Claude Code instructions, tools        | CLAUDE.md, tools/*.sh, hooks/*.sh  |
+| `.claude-flow/`| Workflow definitions, automation       | workflows/*.yaml, config.yml       |
+| `.opencode/`   | Code templates, snippets, config       | templates/*.tmpl, config.yml       |
+| `.config/`     | Tool configs (ccstatusline, etc)       | ccstatusline/settings.json         |
 
 ### 2.0.5 Distinction: BitBot Development vs. Workspace Containers
 
 **IMPORTANT**: BitBot has two devcontainer contexts:
 
-| Context                | Location            | Purpose                           | Used For                |
-|------------------------|---------------------|-----------------------------------|-------------------------|
-| **BitBot Development** | `/.devcontainer`    | Develop BitBot itself            | Contributors, maintainers |
-| **Workspace**          | `/templates/workspace` | AI-powered user workspaces    | BitBot users, projects  |
+| Context                | Location                   | Purpose                        | Used For                |
+|------------------------|----------------------------|--------------------------------|-------------------------|
+| **BitBot Development** | `/.devcontainer`           | Develop BitBot itself          | Contributors, maintainers |
+| **Work Template**      | `/templates/bitbot-work`   | AI-powered user workspaces     | BitBot users, projects  |
+| **Config Template**    | `/templates/bitbot-config` | Workspace configuration        | Configuring devcontainers |
+| **Dev Template**       | `/templates/bitbot-dev`    | BitBot development environment | BitBot contributors     |
+| **Base Template**      | `/templates/bitbot-base`   | Minimal BitBot (base for all)  | Template foundation     |
 
 **Key Points**:
-- Root `/.devcontainer` is for **developing BitBot itself** (has MinGW, BitBot dependencies)
-- `templates/workspace` is for **BitBot-managed workspaces** (has AI tools, dev environment)
-- Shared home folders are in **workspace template only** (user-facing feature)
+- Root `/.devcontainer` is for **developing BitBot itself** (has MinGW, cross-compilation tools)
+- `templates/bitbot-work` is for **BitBot-managed workspaces** (has AI tools, dev environment)
+- `templates/bitbot-base` is the **base template** used by other templates (merged via scripts)
+- Shared home folders are in **all templates** (copied to `.bitbot/internal/`, overlaid with global mounts)
 
-See `templates/workspace/README.md` for full workspace template documentation.
+See `templates/bitbot-work/README.md` for full workspace template documentation.
 
 ### 2.0.6 Hybrid Installation Approach
 

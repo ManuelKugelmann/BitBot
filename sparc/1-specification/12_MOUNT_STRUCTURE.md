@@ -227,9 +227,10 @@ Container:
 
 ### Affected Files
 
-- `container/templates/shared/base.devcontainer.json`
-- `container/templates/bitbot-work/devcontainer.json`
-- `container/templates/bitbot-work/details.devcontainer.json`
+- `container/templates/bitbot-base/devcontainer.json` (base template)
+- `container/templates/bitbot-work/devcontainer.json` (generated)
+- `container/templates/bitbot-work/details.devcontainer.json` (work-specific)
+- `container/templates/scripts/merge-devcontainer.sh` (merge tool)
 - `.devcontainer/devcontainer.json` (BitBot dev)
 
 ## Testing
@@ -256,8 +257,9 @@ echo "test" >> /root/.claude/settings.local.json
 ## Related Documentation
 
 - `sparc/0-research/WRAPPER_WATCHDOG.md` - Wrapper architecture
-- `container/templates/shared/base.devcontainer.json` - Base mounts
-- `CLAUDE.md` - Developer section (mount summary)
+- `container/templates/bitbot-base/devcontainer.json` - Base template with mounts
+- `container/templates/scripts/merge-devcontainer.sh` - Template merge script
+- `CLAUDE.md` - Developer section (mount summary, template merging)
 
 ---
 
