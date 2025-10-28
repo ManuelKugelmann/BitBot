@@ -101,12 +101,12 @@ Templates under `container/templates/`:
 
 | Template          | Purpose                          | Features                               | .claude Content              |
 | ----------------- | -------------------------------- | -------------------------------------- | ---------------------------- |
-| `bitbot-base/`    | Minimal BitBot                   | Core only, no extras                   | hooks, tools, settings.json  |
+| `bitbot-base/`    | Minimal BitBot (base template)   | Core only, no extras                   | hooks, tools, settings.json  |
 | `bitbot-config/`  | User workspace configuration     | + Config tools, JSON/YAML editing      | + bitbot-config-* skills     |
 | `bitbot-dev/`     | BitBot development               | + Build tools, shared home             | + bitbot-dev-* skills        |
 | `bitbot-work/`    | AI-powered user workspaces       | + Claude Code, AI tools, MCP           | + bitbot-work-* skills       |
 | `custom/`         | User custom templates            | User-defined (uses bitbot-work/ base)  | Inherits from bitbot-work/   |
-| `shared/`         | Shared resources                 | Scripts, configs used by all           | N/A                          |
+| `scripts/`        | Shared merge/build scripts       | Template merge and setup tools         | N/A                          |
 
 Each template contains:
 - `Dockerfile` - Container image definition
@@ -116,10 +116,31 @@ Each template contains:
 - `.claude/` - Template-specific Claude Code configuration
 
 **Template Internals** (for BitBot development):
-- Templates are built by merging `shared/base.devcontainer.json` + `details.devcontainer.json`
-- Custom templates use `workspace/` as their base template
+- **Base Template**: `bitbot-base/` is standalone (no merge needed)
+- **Other Templates**: Built by merging `bitbot-base/devcontainer.json` + `details.devcontainer.json`
+- **Merge Script**: `container/templates/scripts/merge-devcontainer.sh <template-dir>`
+- **Mount Deduplication**: Details mounts with same target path override base mounts
 - Container runtime scripts in `container/bitbot/` are mounted at `/usr/local/bitbot`
 - During `bitbot init`, scripts are copied to `.devcontainer/bitbot/` in user workspace
+
+**Merging Templates** (for BitBot development):
+
+To regenerate a template's `devcontainer.json` after editing `details.devcontainer.json`:
+
+```bash
+# Merge single template
+container/templates/scripts/merge-devcontainer.sh container/templates/bitbot-config
+
+# Merge all templates
+for t in bitbot-config bitbot-dev bitbot-work; do
+  container/templates/scripts/merge-devcontainer.sh container/templates/$t
+done
+```
+
+**Mount Override Example**:
+- Base has `.devcontainer` mount as `readonly`
+- Config template overrides with RW mount in `details.devcontainer.json`
+- Merge script deduplicates: keeps 7 base mounts + 1 override = 8 total
 
 **Customizing DevContainers** (for end users):
 
