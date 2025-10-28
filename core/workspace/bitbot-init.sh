@@ -57,6 +57,12 @@ bitbot_init() {
     # Create workspace structure
     create_workspace_structure "$workspace_path"
 
+    # Copy template home files
+    copy_template_home_files "$workspace_path"
+
+    # Setup global config (symlink or copy)
+    setup_global_config "$workspace_path"
+
     # Create/copy .devcontainer if needed (must be before sync_infrastructure)
     setup_devcontainer "$workspace_path"
 
@@ -218,6 +224,61 @@ sync_infrastructure() {
     cp -r "$source_dir"/* "$target_dir/"
 
     print_success "Copied container BitBot scripts to .devcontainer/bitbot/"
+
+    echo ""
+}
+
+# ============================================================================
+# Copy Template Home Files
+# ============================================================================
+
+copy_template_home_files() {
+    # Copy template home files to .bitbot/internal/container/home/
+    local workspace_path="$1"
+
+    print_step "Copying template home files..."
+
+    local bitbot_install
+    bitbot_install=$(get_bitbot_install_dir)
+
+    # Use bitbot-work template (or get from template arg if implemented)
+    local template_home="${bitbot_install}/container/templates/bitbot-work/home"
+    local target_dir="${workspace_path}/.bitbot/internal/container/home"
+
+    if [[ ! -d "$template_home" ]]; then
+        print_warning "Template home directory not found: $template_home"
+        return 0
+    fi
+
+    # Create target directory
+    create_directory "$target_dir"
+
+    # Copy all home files
+    cp -r "$template_home"/* "$target_dir/" 2>/dev/null || true
+    cp -r "$template_home"/.[!.]* "$target_dir/" 2>/dev/null || true
+
+    print_success "Copied template home files to .bitbot/internal/container/home/"
+    echo ""
+}
+
+# ============================================================================
+# Setup Global Config
+# ============================================================================
+
+setup_global_config() {
+    # Setup global config directory structure
+    # Note: Actual global files will be mounted as overlays in devcontainer.json
+    local workspace_path="$1"
+
+    print_step "Setting up global config structure..."
+
+    # Create global config directories
+    create_directory "${workspace_path}/.bitbot/internal/global"
+    create_directory "${workspace_path}/.bitbot/internal/global/.claude"
+    create_directory "${workspace_path}/.bitbot/internal/global/.bitbot"
+
+    print_success "Created .bitbot/internal/global/ structure"
+    print_info "Global files will be mounted from \$BITBOT_HOME/global/ (if available)"
 
     echo ""
 }
