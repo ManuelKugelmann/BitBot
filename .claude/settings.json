@@ -11,12 +11,12 @@
             ]
         }
     ],
-    "PreToolUse": [
+    "SessionEnd": [
         {
             "hooks": [
                 {
                     "type": "command",
-                    "command": ".claude/hooks/restart-trigger.sh",
+                    "command": ".claude/hooks/session-end.sh",
                     "timeout": 5000
                 }
             ]
