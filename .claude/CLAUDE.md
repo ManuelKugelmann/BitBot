@@ -173,8 +173,8 @@ BitBot includes a Stop hook that automatically continues work after Claude finis
 - Prevents need for repeated prompting
 
 **Control:**
-- `/allow-stop` - Disable (allow normal stops)
-- `/do-not-stop [reason]` - Enable with custom reason
+- `/claude-allow-stop` - Disable (allow normal stops)
+- `/claude-do-not-stop [reason]` - Enable with custom reason
 - Edit `.bitbot/DO-NOT-STOP.txt` - Change continuation message directly
 
 **Use cases:**
@@ -185,7 +185,7 @@ BitBot includes a Stop hook that automatically continues work after Claude finis
 **Safety:**
 - Prevents infinite loops with `stop_hook_active` check
 - 5 second timeout on hook execution
-- User can disable anytime with `/allow-stop` command
+- User can disable anytime with `/claude-allow-stop` command
 
 ## Context Management
 
@@ -239,10 +239,11 @@ After completing a significant implementation phase, proactively remind the user
 **check-bash** - Validate bash syntax
 **fix-line-endings-check-bash** ⭐ - Fix + check (recommended for bash scripts)
 **run-with-timeout** - Execute commands with timeout protection
-**skill-creator** / **template-skill** - Create custom skills (Anthropic)
-**do-not-stop** - Enable automation (default: "Resume work!") | `/do-not-stop [reason]`
-**allow-stop** - Disable automation, allow normal stop | `/allow-stop`
-**restart** - Restart Claude to reload skills/manage context | Modes: resume (default), compact, clear | Self-pkill + exec restart
+**claude-skill-creator** / **claude-template-skill** - Create custom skills (Anthropic)
+**claude-do-not-stop** - Enable automation (default: "Resume work!") | `/claude-do-not-stop [reason]`
+**claude-allow-stop** - Disable automation, allow normal stop | `/claude-allow-stop`
+**claude-get-session-info** - Shared utility for session management (sourced by other skills)
+**claude-restart** - Restart Claude to reload skills/manage context | Modes: resume (default), compact, clear | Self-pkill + exec restart
 
 ## Statusline (Optional)
 
