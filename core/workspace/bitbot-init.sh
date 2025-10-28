@@ -57,6 +57,9 @@ bitbot_init() {
     # Create workspace structure
     create_workspace_structure "$workspace_path"
 
+    # Sync infrastructure (copy container bitbot scripts)
+    sync_infrastructure "$workspace_path"
+
     # Create/copy .devcontainer if needed
     setup_devcontainer "$workspace_path"
 
@@ -189,6 +192,37 @@ EOF
 }
 
 # ============================================================================
+# Sync Infrastructure
+# ============================================================================
+
+sync_infrastructure() {
+    # Copy container bitbot scripts to .devcontainer/bitbot/
+    local workspace_path="$1"
+
+    print_step "Syncing container infrastructure..."
+
+    local bitbot_install
+    bitbot_install=$(get_bitbot_install_dir)
+    local source_dir="${bitbot_install}/container/bitbot"
+    local target_dir="${workspace_path}/.devcontainer/bitbot"
+
+    if [[ ! -d "$source_dir" ]]; then
+        print_error "Container bitbot source not found: $source_dir"
+        return 1
+    fi
+
+    # Create target directory
+    create_directory "$target_dir"
+
+    # Copy all container bitbot scripts
+    cp -r "$source_dir"/* "$target_dir/"
+
+    print_success "Copied container BitBot scripts to .devcontainer/bitbot/"
+
+    echo ""
+}
+
+# ============================================================================
 # .devcontainer Setup
 # ============================================================================
 
@@ -204,7 +238,7 @@ setup_devcontainer() {
 
         local bitbot_install
         bitbot_install=$(get_bitbot_install_dir)
-        local template_path="${bitbot_install}/container/templates/workspace"
+        local template_path="${bitbot_install}/container/templates/bitbot-work"
 
         if [[ -d "$template_path" ]]; then
             cp -r "$template_path" "$devcontainer_path"
