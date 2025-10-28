@@ -55,7 +55,10 @@ if [ -n "$DO_NOT_STOP_FILE" ]; then
 EOF
 else
     # File doesn't exist or is empty, allow normal stopping
-    # Output message will appear as "Stop hook succeeded: <message>"
-    echo "Automation disabled - ready to stop"
-    exit 0
+    # Use systemMessage to show user-visible feedback
+    cat <<EOF
+{
+  "systemMessage": "Stop hook: Automation disabled - ready to stop"
+}
+EOF
 fi
