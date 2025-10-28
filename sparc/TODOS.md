@@ -163,6 +163,9 @@ Urgent:
 - [x] Migrate wrapper to .bitbot/ infrastructure ✅
 - [x] Update project detection to use .bitbot/ marker ✅
 - [x] Add watchdog prototype for stall detection ✅
+- [x] Move host launchers to core/ directory ✅
+- [x] Create core/shared/ for version tracking ✅
+- [x] Fix dogfooding conflict (host vs container bitbot command) ✅
 - [ ] Test watchdog in real-world stall scenarios
 - [ ] Add relevant session info to statusline (session ID, PID, wrapper status)
 - [ ] Integrate wrapper into BitBot container startup
