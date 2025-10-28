@@ -7,8 +7,8 @@ set -e
 # Example: ./merge-devcontainer.sh templates/workspace
 
 TEMPLATE_DIR="${1:-.}"
-SHARED_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-BASE_FILE="$SHARED_DIR/base.devcontainer.json"
+TEMPLATES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+BASE_FILE="$TEMPLATES_DIR/bitbot-base/devcontainer.json"
 DETAILS_FILE="$TEMPLATE_DIR/details.devcontainer.json"
 OUTPUT_FILE="$TEMPLATE_DIR/devcontainer.json"
 

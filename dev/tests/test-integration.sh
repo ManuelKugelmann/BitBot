@@ -260,69 +260,97 @@ else
 fi
 
 # ============================================================================
-# Test 3: Container BitBot Commands (Validation)
+# Test 3: Container BitBot Commands (Execution Tests)
 # ============================================================================
 
 echo -e "${BLUE}═══ Test 3: Container BitBot Commands ═══${NC}"
 echo ""
 
-run_test "Verify bitbot command exists in container scripts"
+run_test "Test bitbot help command"
 if [[ -f ".devcontainer/bitbot/bitbot" ]]; then
-    if bash -n ".devcontainer/bitbot/bitbot" 2>/dev/null; then
-        test_passed "Container bitbot command has valid syntax"
+    if bash ".devcontainer/bitbot/bitbot" help &>/tmp/bitbot-help-$$.log; then
+        if grep -qiE "usage|help|command" /tmp/bitbot-help-$$.log; then
+            test_passed "bitbot help command works"
+        else
+            test_failed "bitbot help output invalid"
+            cat /tmp/bitbot-help-$$.log
+        fi
     else
-        test_failed "Container bitbot command has syntax errors"
+        test_failed "bitbot help command failed"
+        cat /tmp/bitbot-help-$$.log
     fi
+    rm -f /tmp/bitbot-help-$$.log
 else
     test_failed "Container bitbot command not found"
 fi
 
-run_test "Verify start.sh command"
-if [[ -f ".devcontainer/bitbot/core/commands/start.sh" ]]; then
-    if bash -n ".devcontainer/bitbot/core/commands/start.sh" 2>/dev/null; then
-        test_passed "start.sh has valid syntax"
-    else
-        test_failed "start.sh has syntax errors"
-    fi
+run_test "Test bitbot invalid command handling"
+if bash ".devcontainer/bitbot/bitbot" invalid-command &>/tmp/bitbot-invalid-$$.log; then
+    test_failed "Invalid command should return error"
 else
-    test_failed "start.sh not found"
-fi
-
-run_test "Verify resume.sh command"
-if [[ -f ".devcontainer/bitbot/core/commands/resume.sh" ]]; then
-    if bash -n ".devcontainer/bitbot/core/commands/resume.sh" 2>/dev/null; then
-        test_passed "resume.sh has valid syntax"
+    # Should fail with error
+    if grep -qE "Unknown command|usage:" /tmp/bitbot-invalid-$$.log; then
+        test_passed "Invalid command handled correctly"
     else
-        test_failed "resume.sh has syntax errors"
+        test_failed "Invalid command error message missing"
     fi
-else
-    test_failed "resume.sh not found"
 fi
+rm -f /tmp/bitbot-invalid-$$.log
 
-run_test "Verify helpers.sh utilities"
+run_test "Test helpers.sh can be sourced"
 if [[ -f ".devcontainer/bitbot/core/util/helpers.sh" ]]; then
-    if bash -n ".devcontainer/bitbot/core/util/helpers.sh" 2>/dev/null; then
-        test_passed "helpers.sh has valid syntax"
+    if bash -c "source .devcontainer/bitbot/core/util/helpers.sh && command_exists bash" 2>/dev/null; then
+        test_passed "helpers.sh sourced and functions work"
     else
-        test_failed "helpers.sh has syntax errors"
+        test_failed "helpers.sh sourcing failed"
     fi
 else
     test_failed "helpers.sh not found"
 fi
 
+run_test "Test bitbot script has valid shebang"
+if [[ -f ".devcontainer/bitbot/bitbot" ]]; then
+    if head -1 ".devcontainer/bitbot/bitbot" | grep -q "^#!/"; then
+        test_passed "bitbot has valid shebang"
+    else
+        test_failed "bitbot missing shebang"
+    fi
+else
+    test_failed "bitbot not found"
+fi
+
+run_test "Test all core commands are executable"
+all_executable=true
+for cmd in .devcontainer/bitbot/core/commands/*.sh; do
+    if [[ ! -x "$cmd" ]]; then
+        all_executable=false
+        break
+    fi
+done
+if [[ "$all_executable" == "true" ]]; then
+    test_passed "All core commands are executable"
+else
+    test_failed "Some commands not executable"
+fi
+
 echo ""
 
 # ============================================================================
-# Test 4: Wrapper Integration
+# Test 4: Wrapper Integration (Execution Tests)
 # ============================================================================
 
 echo -e "${BLUE}═══ Test 4: Wrapper Integration ═══${NC}"
 echo ""
 
-run_test "Verify wrapper scripts"
+run_test "Test claude-wrapper.sh syntax and structure"
 if [[ -f ".devcontainer/bitbot/wrapper/claude-wrapper.sh" ]]; then
     if bash -n ".devcontainer/bitbot/wrapper/claude-wrapper.sh" 2>/dev/null; then
-        test_passed "claude-wrapper.sh has valid syntax"
+        # Check for key functions
+        if grep -qE "handle_command|start_watchdog|cleanup" ".devcontainer/bitbot/wrapper/claude-wrapper.sh"; then
+            test_passed "claude-wrapper.sh has valid structure"
+        else
+            test_failed "claude-wrapper.sh missing key functions"
+        fi
     else
         test_failed "claude-wrapper.sh has syntax errors"
     fi
@@ -330,15 +358,45 @@ else
     test_failed "claude-wrapper.sh not found"
 fi
 
-run_test "Verify watchdog script"
+run_test "Test watchdog.sh syntax and monitoring logic"
 if [[ -f ".devcontainer/bitbot/wrapper/watchdog.sh" ]]; then
     if bash -n ".devcontainer/bitbot/wrapper/watchdog.sh" 2>/dev/null; then
-        test_passed "watchdog.sh has valid syntax"
+        # Check for monitoring functions
+        if grep -q "check_session_alive" ".devcontainer/bitbot/wrapper/watchdog.sh" || grep -q "monitor" ".devcontainer/bitbot/wrapper/watchdog.sh"; then
+            test_passed "watchdog.sh has monitoring logic"
+        else
+            test_failed "watchdog.sh missing monitoring functions"
+        fi
     else
         test_failed "watchdog.sh has syntax errors"
     fi
 else
     test_failed "watchdog.sh not found"
+fi
+
+run_test "Test wrapper scripts are executable"
+wrapper_executable=true
+for script in .devcontainer/bitbot/wrapper/*.sh; do
+    if [[ ! -x "$script" ]]; then
+        wrapper_executable=false
+        break
+    fi
+done
+if [[ "$wrapper_executable" == "true" ]]; then
+    test_passed "All wrapper scripts are executable"
+else
+    test_failed "Some wrapper scripts not executable"
+fi
+
+run_test "Test send-wrapper-command.sh exists"
+if [[ -f ".devcontainer/bitbot/wrapper/send-wrapper-command.sh" ]]; then
+    if [[ -x ".devcontainer/bitbot/wrapper/send-wrapper-command.sh" ]]; then
+        test_passed "send-wrapper-command.sh is executable"
+    else
+        test_failed "send-wrapper-command.sh not executable"
+    fi
+else
+    test_failed "send-wrapper-command.sh not found"
 fi
 
 echo ""
