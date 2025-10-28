@@ -213,7 +213,7 @@ fi
 
 run_test "Verify BitBot scripts copied"
 if [[ -d ".devcontainer/bitbot" ]]; then
-    if [[ -f ".devcontainer/bitbot/commands/start.sh" ]]; then
+    if [[ -f ".devcontainer/bitbot/core/commands/start.sh" ]]; then
         test_passed "Container BitBot scripts present"
     else
         test_failed "BitBot scripts incomplete"
