@@ -55,13 +55,9 @@ if [ -n "$DO_NOT_STOP_FILE" ]; then
 EOF
 else
     # File doesn't exist or is empty, allow normal stopping
-    # NOTE: systemMessage output not appearing in current Claude Code version
-    # NOTE: No global setting exists to suppress "Stop hook succeeded:" messages
-    #       - suppressOutput only hides hook stdout, not system messages
-    #       - Only option is disableAllHooks (disables all hooks completely)
     cat <<EOF
 {
-  "systemMessage": "Stop hook: Automation disabled - ready to stop"
+  "systemMessage": "Allowed to stop working."
 }
 EOF
 fi
