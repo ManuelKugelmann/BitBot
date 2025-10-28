@@ -42,7 +42,6 @@ All BitBot containers use **`root`** as the remote user:
 | Source (Host) | Target (Container) | Purpose |
 |---------------|-------------------|---------|
 | `$BITBOT_HOME/container/home/.tmux.conf` | `/root/.tmux.conf` | Tmux configuration |
-| `$BITBOT_HOME/.bitbot/wrapper/` | `/opt/bitbot/wrapper/` | Wrapper scripts (IPC, watchdog) |
 
 **Properties:**
 - Readonly (`type=bind,readonly`)
@@ -55,13 +54,13 @@ All BitBot containers use **`root`** as the remote user:
 
 | Source (Host) | Target (Container) | Purpose |
 |---------------|-------------------|---------|
-| `${localWorkspaceFolder}/.devcontainer/bitbot/` | `/usr/local/bitbot/` | Container BitBot commands |
+| `${localWorkspaceFolder}/.devcontainer/bitbot/` | `/usr/local/bitbot/` | Container BitBot (commands + wrapper) |
 | `${localWorkspaceFolder}/.devcontainer/` | `/workspace/.devcontainer/` | DevContainer config (readonly view) |
 
 **Properties:**
 - Readonly
 - Per-workspace (copied during `bitbot init`)
-- Contains container-side BitBot commands
+- Contains container-side BitBot commands and wrapper scripts
 
 ### 3. Workspace Data
 
@@ -104,8 +103,7 @@ All BitBot containers use **`root`** as the remote user:
   "remoteUser": "root",
   "mounts": [
     "source=${localWorkspaceFolder}/.devcontainer/bitbot,target=/usr/local/bitbot,type=bind,readonly",
-    "source=${localEnv:BITBOT_HOME}/container/home/.tmux.conf,target=/root/.tmux.conf,type=bind,readonly",
-    "source=${localEnv:BITBOT_HOME}/.bitbot/wrapper,target=/opt/bitbot/wrapper,type=bind,readonly"
+    "source=${localEnv:BITBOT_HOME}/container/home/.tmux.conf,target=/root/.tmux.conf,type=bind,readonly"
   ]
 }
 ```
@@ -147,16 +145,18 @@ All BitBot containers use **`root`** as the remote user:
 
 ```
 BitBot/
-├── .bitbot/
-│   └── wrapper/              → /opt/bitbot/wrapper/ (ro)
-│       ├── claude-wrapper.sh
-│       ├── watchdog.sh
-│       └── send-wrapper-command.sh
-└── container/
-    ├── home/                  ← Global dotfiles (mounted)
-    │   └── .tmux.conf        → /root/.tmux.conf (ro)
-    └── templates/
-        └── bitbot-work/      ← User template
+├── container/
+│   ├── bitbot/               ← Container-side BitBot
+│   │   ├── bitbot
+│   │   ├── core/
+│   │   └── wrapper/          ← Wrapper scripts (part of container BitBot)
+│   │       ├── claude-wrapper.sh
+│   │       ├── watchdog.sh
+│   │       └── send-wrapper-command.sh
+│   ├── home/                 ← Global dotfiles (mounted)
+│   │   └── .tmux.conf       → /root/.tmux.conf (ro)
+│   └── templates/
+│       └── bitbot-work/     ← User template
 ```
 
 ### User Workspace
@@ -166,7 +166,11 @@ user-project/
 ├── .devcontainer/
 │   ├── bitbot/               → /usr/local/bitbot/ (ro)
 │   │   ├── bitbot            (container-side command)
-│   │   └── core/
+│   │   ├── core/
+│   │   └── wrapper/          (wrapper scripts, part of container BitBot)
+│   │       ├── claude-wrapper.sh
+│   │       ├── watchdog.sh
+│   │       └── send-wrapper-command.sh
 │   └── home/                 ← Per-workspace dotfiles (mounted)
 │       ├── .claude/          → /root/.claude/ (rw)
 │       │   ├── hooks/        (workspace-specific hooks)
@@ -193,9 +197,10 @@ Container:
 │   ├── .bitbot/
 │   │   └── wrapper-runtime/ (local, not mounted)
 │   └── .devcontainer/       (mounted readonly)
-├── /usr/local/bitbot/       (from workspace/.devcontainer/bitbot/)
-└── /opt/bitbot/
-    └── wrapper/             (from $BITBOT_HOME/.bitbot/wrapper/)
+└── /usr/local/bitbot/       (from workspace/.devcontainer/bitbot/)
+    ├── bitbot
+    ├── core/
+    └── wrapper/             (wrapper scripts, part of container BitBot)
 ```
 
 ## Benefits
@@ -213,12 +218,12 @@ Container:
 
 **Before (WRONG):**
 - Mounted to `/home/bitbot/` (wrong home directory)
-- Wrapper scripts copied to workspace
+- Wrapper mounted separately from `/opt/bitbot/`
 - `global/` directory at root (unclear grouping)
 
 **After (CORRECT):**
 - Mount to `/root/` (correct home for root user)
-- Wrapper scripts mounted readonly from `$BITBOT_HOME`
+- Wrapper part of container BitBot at `/usr/local/bitbot/wrapper/`
 - `container/home/` directory (clear grouping with container files)
 
 ### Affected Files
@@ -233,17 +238,17 @@ Container:
 **Verify mounts work:**
 ```bash
 # In container
-ls -la /root/.tmux.conf          # Should exist (from $BITBOT_HOME)
-ls -la /root/.claude/            # Should exist (from workspace)
-ls -la /opt/bitbot/wrapper/      # Should exist (from $BITBOT_HOME)
-which claude                     # Should work (in PATH)
+ls -la /root/.tmux.conf                    # Should exist (from $BITBOT_HOME)
+ls -la /root/.claude/                      # Should exist (from workspace)
+ls -la /usr/local/bitbot/wrapper/          # Should exist (part of container BitBot)
+which claude                               # Should work (in PATH)
 ```
 
 **Verify readonly enforcement:**
 ```bash
 # Should fail (readonly mount)
 echo "test" >> /root/.tmux.conf
-echo "test" >> /opt/bitbot/wrapper/claude-wrapper.sh
+echo "test" >> /usr/local/bitbot/wrapper/claude-wrapper.sh
 
 # Should succeed (read-write mount)
 echo "test" >> /root/.claude/settings.local.json

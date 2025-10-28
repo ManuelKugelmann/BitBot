@@ -56,20 +56,21 @@ BitBot currently mounts global infrastructure from `$BITBOT_HOME`:
 
 ### Key Insight
 
-**The Strategy:** Update on host, mount readonly in container (same pattern as `.devcontainer/`):
+**The Strategy:** Host `bitbot` commands sync infrastructure, containers mount readonly:
 
 1. **On `bitbot init`:** Copy `$BITBOT_HOME/container` → `.bitbot/internal/container/` (committed to git)
-2. **Before container starts:** `initializeCommand` syncs updates from `$BITBOT_HOME/container` (host-side)
-   - Local: Syncs if `$BITBOT_HOME` exists
-   - Codespaces: Skips (no `$BITBOT_HOME`), uses committed copies
-3. **Container mounts:** `.bitbot/internal/` as readonly overlay (just like `.devcontainer/`)
+2. **On `bitbot work/config`:** Sync updates from `$BITBOT_HOME/container`, THEN start container
+   - Local: `bitbot` commands sync automatically before starting container
+   - Codespaces: No `bitbot` command, uses committed copies
+3. **Container mounts:** `.bitbot/internal/` as readonly (both work and config modes)
 4. **Container uses:** Files from `/workspace/.bitbot/internal/container/` (guaranteed to exist)
 
-**Result:** Same devcontainer.json works everywhere, auto-updates locally, self-contained in Codespaces!
+**Result:** Simple devcontainer.json, updates managed by host commands, self-contained in Codespaces!
 
 **Mount Permissions:**
-- All mounts are **readonly** - infrastructure is immutable inside container
-- Updates happen on **host side** via `initializeCommand`
+- `.bitbot/internal/` mounted **readonly** in both work and config modes
+- Updates happen via **host `bitbot` commands** (before container starts)
+- No `initializeCommand`, no `postAttachCommand` needed
 - Same pattern as `.devcontainer/` directory
 
 ### Directory Structure
@@ -111,75 +112,69 @@ user-workspace/
 - All infrastructure files readonly inside container
 - Updates happen on host side via `initializeCommand`
 
-### Mount Configuration: Dual-Mode Strategy
+### Mount Configuration: Simple Readonly Strategy
 
-BitBot uses **different mount strategies** for work vs config modes:
+BitBot uses **simple readonly mounts** in all modes (same as `.devcontainer/`):
 
-#### Work Mode (bitbot-work) - Readonly Infrastructure
+#### All Modes - Same Mount Strategy
 
-**Purpose:** Production use, immutable infrastructure
+**File:** `container/templates/shared/base.devcontainer.json`
 
-**Mounts:**
 ```json
 {
-  "initializeCommand": "bash -c 'if [ -n \"$BITBOT_HOME\" ] && [ -d \"$BITBOT_HOME/container\" ]; then rsync -a --delete \"$BITBOT_HOME/container/\" \"${localWorkspaceFolder}/.bitbot/internal/container/\"; fi'",
-
   "mounts": [
+    "source=${localWorkspaceFolder}/.devcontainer/bitbot,target=/usr/local/bitbot,type=bind,readonly",
     "source=${localWorkspaceFolder}/.bitbot/internal,target=/workspace/.bitbot/internal,type=bind,readonly",
     "source=${localWorkspaceFolder}/.bitbot/internal/container/home/.tmux.conf,target=/root/.tmux.conf,type=bind,readonly"
-  ],
-
-  "postAttachCommand": "/usr/local/bitbot/core/util/check-updates.sh"
+  ]
 }
 ```
 
-**Behavior:**
-- ✅ `.bitbot/internal/` **readonly** - can't accidentally modify infrastructure
-- ✅ `initializeCommand` syncs updates from `$BITBOT_HOME` (host-side, before container starts)
-- ✅ `postAttachCommand` checks for pending updates, informs user
-- ⚠️ Changes require entering config mode: `bitbot config`
+**Config Mode Additions:**
 
-#### Config Mode (bitbot-config) - Read-Write Infrastructure
+**File:** `container/templates/bitbot-config/details.devcontainer.json`
 
-**Purpose:** DevContainer customization, infrastructure updates
-
-**Mounts:**
 ```json
 {
-  "initializeCommand": "bash -c 'if [ -n \"$BITBOT_HOME\" ] && [ -d \"$BITBOT_HOME/container\" ]; then rsync -a --delete \"$BITBOT_HOME/container/\" \"${localWorkspaceFolder}/.bitbot/internal/container/\"; fi'",
-
   "mounts": [
-    "source=${localWorkspaceFolder}/.bitbot/internal/container,target=/workspace/.bitbot/internal/container,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder}/.bitbot/internal/container/home/.tmux.conf,target=/root/.tmux.conf,type=bind,readonly",
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-  ],
-
-  "postAttachCommand": "/usr/local/bitbot/core/util/sync-and-notify.sh"
+  ]
 }
 ```
 
-**Behavior:**
-- ✅ `.bitbot/internal/container/` **read-write** - can customize infrastructure
-- ✅ `initializeCommand` syncs updates from `$BITBOT_HOME` (same as work mode)
-- ✅ `postAttachCommand` informs user about applied updates
-- ✅ Docker socket available for rebuilding devcontainer
-- ✅ User can edit Dockerfiles, add packages, customize
-
-**Key Differences:**
+**Key Points:**
 
 | Aspect | Work Mode | Config Mode |
 |--------|-----------|-------------|
-| `.bitbot/internal/` mount | **Readonly** | **Read-write** (only `container/` subdirectory) |
+| `.bitbot/internal/` mount | **Readonly** | **Readonly** (same) |
 | Purpose | Production development | Infrastructure customization |
-| Infrastructure updates | Host-side only (initializeCommand) | Host-side + user edits |
-| User notification | "Updates available, enter config mode" | "Updates applied" |
+| Infrastructure updates | Via host `bitbot work` command | Via host `bitbot config` command |
+| User edits | ❌ Read-only | ✅ Via workspace mount (not special mount) |
 | Docker socket | ❌ Not mounted | ✅ Mounted (for rebuilds) |
 
+**How Updates Work:**
+
+1. **Host commands sync before starting container:**
+   ```bash
+   # In bitbot work/config/init commands:
+   rsync -a --delete "$BITBOT_HOME/container/" ".bitbot/internal/container/"
+   # THEN start devcontainer
+   ```
+
+2. **Container-side BitBot (work mode):**
+   - Can detect if workspace has uncommitted changes in `.bitbot/internal/`
+   - Informs user: "Infrastructure changes detected, review and commit"
+
+3. **No devcontainer lifecycle hooks needed:**
+   - No `initializeCommand`
+   - No `postAttachCommand`
+   - Simple, predictable behavior
+
 **Result:**
-- ✅ Work mode: Safe, immutable infrastructure
-- ✅ Config mode: Flexible, customizable infrastructure
-- ✅ Both modes: Auto-sync from `$BITBOT_HOME` on startup
-- ✅ Codespaces: Works in both modes (uses committed copies)
+- ✅ Simple devcontainer.json - just readonly mounts
+- ✅ Updates managed by host `bitbot` commands
+- ✅ Codespaces works (uses committed copies)
+- ✅ Config mode doesn't need special mounts
 
 ---
 
@@ -199,50 +194,90 @@ setup_internal_infrastructure() {
     echo "📦 Setting up workspace infrastructure..."
 
     # Create directory structure
-    mkdir -p "$workspace/.bitbot/internal"/{global,container,wrapper}
+    mkdir -p "$workspace/.bitbot/internal/container"
 
-    # Detect environment
-    if [ -n "$BITBOT_HOME" ] && [ -d "$BITBOT_HOME" ]; then
-        echo "🔗 Local environment detected - creating update link"
-        setup_local_infrastructure "$workspace"
-    else
-        echo "☁️  Standalone/Codespaces mode - copying files"
-        setup_standalone_infrastructure "$workspace"
-    fi
+    # Sync from BITBOT_HOME (if available)
+    sync_infrastructure "$workspace"
 
     # Copy version file
     echo "$(bitbot --version)" > "$workspace/.bitbot/internal/.version"
 }
 
-setup_local_infrastructure() {
+sync_infrastructure() {
     local workspace="$1"
 
-    # Initial copy of infrastructure
-    # Updates will be synced automatically by initializeCommand
-    cp -r "$BITBOT_HOME/container/home" "$workspace/.bitbot/internal/container/"
-    cp -r "$BITBOT_HOME/container/bitbot" "$workspace/.bitbot/internal/container/"
+    # This function is called by: bitbot init, bitbot work, bitbot config
+    # Syncs $BITBOT_HOME/container → workspace/.bitbot/internal/container/
 
-    echo "✅ Infrastructure copied (will auto-update via initializeCommand)"
-}
-
-setup_standalone_infrastructure() {
-    local workspace="$1"
-
-    # Copy infrastructure (initializeCommand will skip updates)
-    cp -r "$BITBOT_HOME/container/home" "$workspace/.bitbot/internal/container/"
-    cp -r "$BITBOT_HOME/container/bitbot" "$workspace/.bitbot/internal/container/"
-
-    echo "✅ Infrastructure copied (standalone mode - manual updates)"
+    if [ -n "$BITBOT_HOME" ] && [ -d "$BITBOT_HOME/container" ]; then
+        echo "🔄 Syncing infrastructure from BitBot..."
+        rsync -a --delete "$BITBOT_HOME/container/" "$workspace/.bitbot/internal/container/"
+        echo "✅ Infrastructure synced"
+    else
+        echo "ℹ️  No BitBot installation found (Codespaces/standalone mode)"
+        echo "   Using workspace infrastructure files"
+    fi
 }
 ```
 
-### 2. Git Configuration
+### 2. `bitbot work` / `bitbot config` - Sync Before Start
+
+**File:** `core/workspace/bitbot-work.sh` and `core/workspace/bitbot-config.sh`
+
+```bash
+#!/bin/bash
+# Sync infrastructure, then start container
+
+main() {
+    # Detect workspace
+    workspace=$(detect_workspace)
+
+    # Sync infrastructure from $BITBOT_HOME (shared function)
+    sync_infrastructure "$workspace"
+
+    # Start devcontainer
+    start_devcontainer "$workspace" "work"  # or "config"
+}
+```
+
+**Behavior:**
+- Every `bitbot work` or `bitbot config` call syncs infrastructure first
+- Ensures containers always start with latest infrastructure
+- Silent when up-to-date, informs when syncing
+
+### 3. Container-Side Detection (Optional)
+
+**File:** `container/bitbot/core/util/check-infrastructure.sh`
+
+```bash
+#!/bin/bash
+# Check if workspace has uncommitted infrastructure changes
+
+check_uncommitted_infrastructure() {
+    cd /workspace
+
+    # Check if .bitbot/internal/ has uncommitted changes
+    if git status --porcelain .bitbot/internal/ | grep -q "^"; then
+        echo "ℹ️  Infrastructure changes detected in .bitbot/internal/"
+        echo "   Review changes: git diff .bitbot/internal/"
+        echo "   Commit if ready: git add .bitbot/internal/ && git commit"
+    fi
+}
+
+# Run check (can be called from work mode container)
+check_uncommitted_infrastructure
+```
+
+**Usage:** Container BitBot can call this to inform user about pending changes.
+
+### 4. Git Configuration
 
 **File:** `.gitignore` (workspace root)
 
 ```gitignore
 # BitBot infrastructure
 /.bitbot/wrapper-runtime/        # Session files (never commit)
+/.bitbot/internal/global/        # Not used (reserved for future)
 ```
 
 **File:** `.gitattributes` (workspace root)
@@ -566,20 +601,21 @@ Add Codespaces section documenting `.bitbot/internal/` structure.
 ### v0.1.0 (Alpha)
 
 - [x] `.bitbot/internal/` structure defined ✅
-- [x] Dual-mode mount strategy (work ro, config rw) ✅
+- [x] Simple readonly mount strategy (all modes) ✅
+- [x] Host-command-based sync (no lifecycle hooks) ✅
 - [ ] `bitbot init` creates `.bitbot/internal/container/` directory
 - [ ] `bitbot init` supports re-init for updates
-- [ ] Work mode: `.bitbot/internal/` mounted readonly
-- [ ] Config mode: `.bitbot/internal/container/` mounted read-write
-- [ ] `initializeCommand` syncs from `$BITBOT_HOME/container`
-- [ ] `postAttachCommand` for work mode: check-updates.sh
-- [ ] `postAttachCommand` for config mode: sync-and-notify.sh
-- [ ] Update base.devcontainer.json with initializeCommand
-- [ ] Update bitbot-work template with readonly mount
-- [ ] Update bitbot-config template with read-write mount
-- [ ] Test in local environment (auto-update workflow)
-- [ ] Test in Codespaces (fallback to committed copies)
-- [ ] Test dual-mode switching (work ↔ config)
+- [ ] Add `sync_infrastructure()` function (shared)
+- [ ] `bitbot work/config` calls `sync_infrastructure()` before starting container
+- [ ] `.bitbot/internal/` mounted readonly (all modes)
+- [ ] Config mode: Docker socket mounted (for rebuilds)
+- [ ] Container-side: Optional uncommitted changes detection
+- [ ] Update base.devcontainer.json (simple readonly mounts)
+- [ ] Update bitbot-work template (no special config needed)
+- [ ] Update bitbot-config template (add Docker socket mount)
+- [ ] Test in local environment (host command sync workflow)
+- [ ] Test in Codespaces (uses committed copies)
+- [ ] Test switching modes (work ↔ config)
 - [ ] Documentation updated
 - [ ] Test suite passes (5 test cases)
 

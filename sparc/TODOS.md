@@ -168,21 +168,19 @@ Urgent:
 - [x] Fix dogfooding conflict (host vs container bitbot command) ✅
 - [x] Design Codespaces infrastructure strategy ✅ (See: `sparc/1-specification/13_CODESPACES_INFRASTRUCTURE.md`)
 - [ ] Implement `.bitbot/internal/` directory structure
-  - [ ] Update `bitbot init` to create `.bitbot/internal/container/`
-  - [ ] Support `bitbot init` re-init for updates
-  - [ ] Add `initializeCommand` to sync from `$BITBOT_HOME/container`
-- [ ] Implement dual-mode mounts (work ro, config rw)
-  - [ ] Work mode: Mount `.bitbot/internal/` readonly
-  - [ ] Config mode: Mount `.bitbot/internal/container/` read-write
-  - [ ] Add `postAttachCommand` scripts (check-updates.sh, sync-and-notify.sh)
-- [ ] Update templates
-  - [ ] Update bitbot-work template (readonly mount)
-  - [ ] Update bitbot-config template (read-write mount)
-  - [ ] Update base.devcontainer.json (initializeCommand)
+  - [ ] Add `sync_infrastructure()` shared function
+  - [ ] Update `bitbot init` to create `.bitbot/internal/container/` and call sync
+  - [ ] Update `bitbot work` to call `sync_infrastructure()` before starting container
+  - [ ] Update `bitbot config` to call `sync_infrastructure()` before starting container
+- [ ] Update templates (simple readonly mounts)
+  - [ ] Update base.devcontainer.json (add `.bitbot/internal/` readonly mount)
+  - [ ] Update bitbot-config template (add Docker socket mount)
+- [ ] Optional container-side detection
+  - [ ] Add `check-infrastructure.sh` to detect uncommitted changes (work mode)
 - [ ] Testing
-  - [ ] Test local environment (auto-update workflow)
-  - [ ] Test Codespaces (fallback to committed copies)
-  - [ ] Test dual-mode switching (work ↔ config)
+  - [ ] Test local environment (host command sync workflow)
+  - [ ] Test Codespaces (uses committed copies, no host commands)
+  - [ ] Test switching modes (work ↔ config)
 - [ ] Test watchdog in real-world stall scenarios
 - [ ] Add relevant session info to statusline (session ID, PID, wrapper status)
 - [ ] Integrate wrapper into BitBot container startup

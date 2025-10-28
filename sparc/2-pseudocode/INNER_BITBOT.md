@@ -703,14 +703,18 @@ END FUNCTION
 container/bitbot/
 ├── bitbot                 # Main entry point (mirrors outer bitbot)
 ├── README.md              # Container BitBot documentation
-└── core/                  # Mirrors outer bitbot core/ structure
-    ├── commands/          # Command implementations
-    │   ├── default.sh     # Smart launcher (auto-select, launch mode choice)
-    │   ├── start.sh       # Start fresh Claude session
-    │   └── resume.sh      # Intelligent resume (tmux + Claude detection)
-    └── util/              # Shared utilities
-        ├── helpers.sh     # Common helper functions
-        └── tmux-utils.sh  # tmux session management
+├── core/                  # Mirrors outer bitbot core/ structure
+│   ├── commands/          # Command implementations
+│   │   ├── default.sh     # Smart launcher (auto-select, launch mode choice)
+│   │   ├── start.sh       # Start fresh Claude session
+│   │   └── resume.sh      # Intelligent resume (tmux + Claude detection)
+│   └── util/              # Shared utilities
+│       ├── helpers.sh     # Common helper functions
+│       └── tmux-utils.sh  # tmux session management
+└── wrapper/               # Wrapper scripts (IPC, watchdog)
+    ├── claude-wrapper.sh  # Main wrapper (pipe-based IPC)
+    ├── watchdog.sh        # Process monitor
+    └── send-wrapper-command.sh  # Command sender
 ```
 
 **Installed Structure** (`/usr/local/bitbot/` inside containers):
@@ -718,16 +722,29 @@ container/bitbot/
 /usr/local/bitbot/
 ├── bitbot                 # Container entry point
 ├── README.md
-└── core/
-    ├── commands/
-    └── util/
+├── core/
+│   ├── commands/
+│   └── util/
+└── wrapper/               # Wrapper scripts (part of container BitBot)
+    ├── claude-wrapper.sh
+    ├── watchdog.sh
+    └── send-wrapper-command.sh
 ```
 
-**Deployment**: Dockerfile copies during build:
-```dockerfile
-COPY container/bitbot/ /usr/local/bitbot/
-RUN chmod +x /usr/local/bitbot/bitbot /usr/local/bitbot/core/commands/*.sh
-ENV PATH="/usr/local/bitbot:${PATH}"
+**Deployment**: Copied to `.devcontainer/bitbot/` during `bitbot init`, then mounted:
+```json
+{
+  "mounts": [
+    "source=${localWorkspaceFolder}/.devcontainer/bitbot,target=/usr/local/bitbot,type=bind,readonly"
+  ]
+}
+```
+
+**Permissions**: Set during copy:
+```bash
+chmod +x .devcontainer/bitbot/bitbot
+chmod +x .devcontainer/bitbot/core/commands/*.sh
+chmod +x .devcontainer/bitbot/wrapper/*.sh
 ```
 
 **Dependencies**:
