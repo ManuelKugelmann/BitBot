@@ -40,18 +40,36 @@ echo "  Output:  $OUTPUT_FILE"
 # Merge strategy:
 # - Deep recursive merge for objects
 # - Arrays are REPLACED (not merged) to avoid duplicates
-# - EXCEPT: "mounts" array is CONCATENATED (base + details)
-# - Details override base values
+# - EXCEPT: "mounts" array - intelligently merged:
+#   - Concatenate base + details mounts
+#   - If same target path appears in both, details mount wins (replaces base)
+#   - This allows config mode to override .devcontainer mount to RW
 #
 # jq merge formula:
 #   1. Merge base * details (arrays replaced)
-#   2. Special handling: concatenate mounts from both base and details
+#   2. Mounts handling: concatenate base + details, dedup by target
 
 jq -s '
+  # Merge everything except mounts
   (.[0] * .[1]) as $merged |
-  # If both base and details have mounts, concatenate them
-  if (.[0].mounts and .[1].mounts) then
-    $merged | .mounts = (.[0].mounts + .[1].mounts)
+
+  # Handle mounts specially
+  if (.[0].mounts or .[1].mounts) then
+    # Helper function to extract target from mount string
+    def get_target: . | capture("target=(?<path>[^,]+)") | .path;
+
+    # Start with base mounts (or empty array)
+    (.[0].mounts // []) as $base_mounts |
+    (.[1].mounts // []) as $details_mounts |
+
+    # Get targets from details mounts (these override base)
+    ($details_mounts | map(get_target)) as $details_targets |
+
+    # Filter base mounts: keep only those NOT overridden by details
+    ($base_mounts | map(select(get_target as $t | ($details_targets | index($t)) == null))) as $filtered_base |
+
+    # Concatenate: filtered base + all details
+    $merged | .mounts = ($filtered_base + $details_mounts)
   else
     $merged
   end

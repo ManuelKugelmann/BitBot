@@ -6,8 +6,6 @@
     }
   },
   "remoteUser": "root",
-
-  "$comment_mounts": "Mount structure: copied files + global overlays",
   "mounts": [
     "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
     "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
