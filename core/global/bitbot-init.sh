@@ -374,10 +374,10 @@ add_to_path() {
         echo "Skipped PATH addition."
         echo ""
         echo "To use BitBot, run from the install directory:"
-        echo "  ${bitbot_install}/bitbot"
+        echo "  ${bitbot_install}/core/bitbot"
         echo ""
         echo "Or add to PATH manually:"
-        echo "  export PATH=\"\$PATH:${bitbot_install}\""
+        echo "  export PATH=\"\$PATH:${bitbot_install}/core\""
         echo "  export BITBOT_HOME=\"${bitbot_install}\""
         return 0
     fi
@@ -397,7 +397,7 @@ add_to_path() {
     {
         echo ""
         echo "# BitBot PATH"
-        echo "export PATH=\"${bitbot_install}:\$PATH\""
+        echo "export PATH=\"${bitbot_install}/core:\$PATH\""
         echo "export BITBOT_HOME=\"${bitbot_install}\""
     } >> "$shell_config"
 

@@ -178,10 +178,10 @@ unzip bitbot-v1.0.0.zip -d [INSTALLFOLDER]/bitbot
 
    ```bash
    cd [INSTALLFOLDER]/bitbot
-   bitbot
+   core/bitbot
    ```
 
-   This runs the first-time setup wizard to configure BitBot preferences and add it to PATH.
+   This runs the first-time setup wizard to configure BitBot preferences and add `bitbot` to PATH.
 
 2. **Initialize your workspace:**
 
@@ -396,21 +396,24 @@ bitbot vscode    # Opens VS Code in dev container (no popup)
 
 ```
 bitbot/
-├── bitbot                     # Main CLI router (bash)
-├── bitbot.exe                 # Windows launcher (38KB C executable)
-├── bitbot.cmd                 # Windows CMD wrapper
-├── core/                      # Core runtime scripts
+├── core/                      # Host-side BitBot implementation
+│   ├── bitbot                 # Main CLI launcher (bash)
+│   ├── bitbot.exe             # Windows launcher (38KB C executable)
+│   ├── bitbot.cmd             # Windows CMD wrapper
+│   ├── shared/                # Shared resources (version tracking)
 │   ├── global/                # Global commands (first-run setup)
 │   ├── workspace/             # Workspace commands (work, config, init)
 │   └── util/                  # Utilities (detect, git, prerequisites)
-├── templates/                 # DevContainer templates
-│   ├── bitbot/                # BitBot internal templates
-│   │   ├── base/              # Base template
-│   │   ├── config/            # Config mode (infrastructure)
-│   │   ├── dev/               # BitBot development
-│   │   └── workspace/         # Work mode (AI tools)
-│   ├── custom/                # User custom templates
-│   └── shared/                # Shared scripts and configs
+├── container/                 # Container-related files
+│   ├── bitbot/                # Container-side BitBot runtime
+│   ├── home/                  # Global dotfiles (mounted to containers)
+│   └── templates/             # DevContainer templates
+│       ├── bitbot-base/       # Minimal BitBot container
+│       ├── bitbot-config/     # Config mode (infrastructure)
+│       ├── bitbot-dev/        # BitBot development
+│       ├── bitbot-work/       # Work mode (AI tools)
+│       ├── custom/            # User custom templates
+│       └── shared/            # Shared scripts and configs
 ├── LICENSE                    # MIT License
 └── README.md                  # This file
 ```

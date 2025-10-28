@@ -18,12 +18,17 @@ BitBot follows a clean separation between core functionality, development artifa
 
 ```
 BitBot/
-├── bitbot              # Main launcher (bash)
-├── bitbot.cmd          # Windows CMD launcher
-├── bitbot.exe          # Windows compiled launcher
-├── core/               # Host-side BitBot implementation (shell scripts)
+├── core/               # Host-side BitBot implementation
+│   ├── bitbot         # Main launcher (bash)
+│   ├── bitbot.cmd     # Windows CMD launcher
+│   ├── bitbot.exe     # Windows compiled launcher
+│   ├── shared/        # Shared resources (version tracking)
+│   ├── global/        # Global commands (first-run setup)
+│   ├── workspace/     # Workspace commands (work, config, init)
+│   └── util/          # Utilities (detect, git, prerequisites)
 ├── container/          # Container-related files
 │   ├── bitbot/        # Container-side BitBot runtime (commands, utilities)
+│   ├── home/          # Global dotfiles (mounted to containers)
 │   └── templates/     # DevContainer templates
 │       ├── bitbot-base/   # Minimal BitBot container
 │       ├── bitbot-config/ # BitBot with configuration tools
@@ -480,4 +485,10 @@ Before running sync script:
 3. Delete the ## INBOX section
 4. Run sync script: `dev/scripts/sync-claude-md-to-templates.sh`
 
+**Template-Specific Content**:
+Add to `container/templates/{template}/.claude/details.CLAUDE.md` (like `details.devcontainer.json`)
+
 <!-- Items below this line -->
+
+---
+
