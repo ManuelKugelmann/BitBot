@@ -1,4 +1,6 @@
 {
+  "name": "BitBot Workspace",
+  "dockerFile": "Dockerfile",
   "workspaceFolder": "/workspace",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
@@ -6,7 +8,8 @@
     },
     "ghcr.io/anthropics/devcontainer-features/claude-code:1": {
       "version": "latest"
-    }
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   "remoteUser": "root",
   "mounts": [
@@ -21,7 +24,5 @@
   ],
   "$comment": "Workspace template details - merged with templates/shared/base.devcontainer.json",
   "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
-  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/workspace",
-  "name": "BitBot Workspace",
-  "dockerFile": "Dockerfile"
+  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/workspace"
 }
