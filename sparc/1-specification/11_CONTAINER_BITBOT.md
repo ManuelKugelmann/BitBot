@@ -11,12 +11,13 @@
 
 ## Executive Summary
 
-Container BitBot is the container-side companion to host-side BitBot, providing tmux-based session management, Claude Code launching, workspace analysis, and devcontainer configuration assistance. It runs inside both work and config mode containers at `/usr/local/bitbot/`.
+Container BitBot is the container-side companion to host-side BitBot, providing Claude Code launching via wrapper with transparent tmux infrastructure. It runs inside both work and config mode containers at `/usr/local/bitbot/`.
 
 **Key Features**:
-- Smart session launcher (detect existing sessions, offer resume/new)
-- tmux-based session management for terminal multiplexing
-- Mode-aware Claude Code launching (work vs config tools)
+- Single-command Claude launcher (`bitbot`)
+- Wrapper-based session management (restart/resume/compact via IPC)
+- Transparent tmux infrastructure (single pane, user doesn't interact with tmux)
+- Mode-aware operation (work vs config tools)
 
 ---
 
@@ -30,27 +31,30 @@ Container BitBot is the container-side companion to host-side BitBot, providing 
 ```
 /usr/local/bitbot/
 ├── bitbot                      # Main entry point
+├── wrapper/                    # Wrapper scripts (pipe-based IPC)
+│   ├── claude-wrapper.sh      # Main wrapper
+│   ├── send-wrapper-command.sh # IPC command sender
+│   └── watchdog.sh            # Stall detection
 ├── core/
 │   ├── commands/               # Command implementations
-│   │   ├── default.sh         # Smart launcher (default)
-│   │   ├── start.sh           # Create fresh Claude session
-│   │   └── resume.sh          # Resume existing session
+│   │   └── start.sh           # Launch Claude via wrapper in tmux
 │   └── util/
 │       ├── helpers.sh         # Common utilities
 │       └── tmux-utils.sh      # tmux operations
 └── README.md
 ```
 
-### 1.2 Mount Configuration
+### 1.2 Build Configuration
 
-Container BitBot is mounted from host installation:
+Container BitBot is copied during build:
 
 **Dockerfile**:
 ```dockerfile
-# Copy container BitBot from host installation
+# Copy container BitBot from source
 COPY container/bitbot/ /usr/local/bitbot/
 RUN chmod +x /usr/local/bitbot/bitbot
 RUN chmod +x /usr/local/bitbot/core/commands/*.sh
+RUN chmod +x /usr/local/bitbot/wrapper/*.sh
 ```
 
 **PATH Setup**:
@@ -58,280 +62,112 @@ RUN chmod +x /usr/local/bitbot/core/commands/*.sh
 ENV PATH="/usr/local/bitbot:${PATH}"
 ```
 
+**Dependencies**:
+```dockerfile
+RUN apt-get update && apt-get install -y tmux && apt-get clean
+```
+
 ---
 
 ## 2. Commands
 
-### 2.1 Default (Smart Launcher)
-
-**Usage**: `bitbot` (no arguments)
-
-**Behavior**:
-- **0 tmux sessions**: Offer launch mode [1] Fresh [2] Resume [3] Custom
-- **1 tmux session**: Auto-resume that session (no menu)
-- **2+ tmux sessions**: Show list, offer [1] Resume [2] New
-
-**Example Output (1 session - auto-resume)**:
-```
-BitBot - Claude Code Launcher
-
-Found one session: claude-20251028-1430
-
-Auto-resuming...
-
-Attaching to session 'claude-20251028-1430'...
-```
-
-**Example Output (multiple sessions)**:
-```
-BitBot - Claude Code Launcher
-
-Found existing tmux sessions:
-  • claude-20251028-1430 (3h ago) - 2 windows, attached
-  • claude-20251028-0900 (10h ago) - 1 window, detached
-
-Would you like to:
-  1) Resume existing session
-  2) Create new session
-
-Choice (1-2) [1]:
-```
-
-### 2.2 Start (Fresh Session)
-
-**Usage**: `bitbot start`
-
-**Behavior**:
-1. Check if wrapper is available (pipe-based IPC)
-2. If wrapper available: Launch Claude via wrapper (no tmux needed)
-3. If no wrapper: Use tmux fallback
-   - Generate session name: `claude-{YYYYMMDD-HHMM}`
-   - Create new tmux session
-   - Launch Claude Code in session
-   - Attach to session
-
-**Wrapper Flow (Preferred)**:
-```bash
-# Check for wrapper
-if [[ -f /opt/bitbot/wrapper/claude-wrapper.sh ]]; then
-    # Launch via pipe-based IPC (no tmux required)
-    exec /opt/bitbot/wrapper/claude-wrapper.sh claude
-fi
-```
-
-**tmux Fallback Flow**:
-```bash
-# Create detached session
-tmux new-session -d -s "claude-20251028-1430"
-
-# Send Claude command
-tmux send-keys -t "claude-20251028-1430" "claude" C-m
-
-# Wait for startup
-sleep 1
-
-# Attach to session
-tmux attach-session -t "claude-20251028-1430"
-```
-
-**Session Management Options**:
-- **Wrapper (Preferred)**: Pipe-based IPC + watchdog, no tmux dependency
-- **tmux (Fallback)**: Terminal multiplexing, requires tmux installed
-
-**Session Naming (tmux fallback)**:
-- Format: `claude-{YYYYMMDD-HHMM}`
-- Example: `claude-20251028-1430`
-- Sorted chronologically when listing
-
-### 2.3 Resume (Intelligent Session Resume)
+### 2.1 Launch Claude (Default)
 
 **Usage**:
-- `bitbot resume` - Intelligent resume
-- `bitbot resume <session-name>` - Direct resume
+- `bitbot` - Launch Claude Code
+- `bitbot [args]` - Launch Claude Code with arguments
 
 **Behavior**:
-- **0 tmux sessions**: Create new tmux + run `claude --resume` (Claude shows its sessions)
-- **1 tmux session**: Auto-attach (no menu) + check if Claude running
-- **2+ tmux sessions**: Show tmux session menu
-- **After attach**: Check if Claude is still running, warn if exited
+1. Check wrapper and tmux availability
+2. Create transparent tmux session (single pane)
+3. Launch wrapper inside tmux: `claude-wrapper.sh claude [args]`
+4. Attach to session (user sees only Claude interface)
 
-**Example Output (no tmux sessions)**:
+**Architecture Flow**:
 ```
-BitBot - Resume Session
+bitbot [args] → tmux session → wrapper → claude [args]
+```
 
-No tmux sessions found
+**Example Output**:
+```
+BitBot - Claude Code Launcher
 
-Creating new tmux session with Claude --resume...
-Claude will show its available sessions for you to select
+Starting Claude Code...
 
 Workspace: /workspace
 Mode: work
-Session: claude-20251028-1545
 
-Session created successfully
-
-Attaching to session 'claude-20251028-1545'...
-
-[Claude's session picker appears]
+[Claude Code interface appears]
 ```
-
-**Example Output (1 session - auto-attach)**:
-```
-BitBot - Resume Session
-
-Found one session: claude-20251028-1430
-
-Attaching to session 'claude-20251028-1430'...
-
-[tmux attaches]
-```
-
-**Example Output (Claude exited)**:
-```
-BitBot - Resume Session
-
-Found one session: claude-20251028-1430
-
-Attaching to session 'claude-20251028-1430'...
-
-Note: Claude Code appears to have exited in this session
-
-  To resume your Claude session:
-    claude --resume
-
-[tmux attaches to shell]
-```
-
-**Example Output (multiple sessions)**:
-```
-BitBot - Resume Session
-
-Select tmux session to resume:
-
-  1) claude-20251028-1430 (3h ago) - 2 windows
-  2) claude-20251028-0900 (10h ago) - 1 window
-
-  0) Cancel
-
-Choice:
-```
-
 
 ---
 
 ## 3. Session Management Architecture
 
-Container BitBot supports two session management strategies:
+Container BitBot uses a layered architecture: wrapper for Claude operations, tmux for infrastructure.
 
-### 3.1 Wrapper-Based (Pipe IPC) - Preferred
+### 3.1 Wrapper Layer (Claude Operations)
 
-**Architecture**:
-- Named pipes for IPC (`/tmp/claude-wrapper-*.pipe`)
-- Watchdog process for stall detection
-- No tmux dependency required
-- Direct process management
+**Location**: `/usr/local/bitbot/wrapper/`
+
+**Components**:
+- `claude-wrapper.sh` - Main wrapper, launches Claude
+- `send-wrapper-command.sh` - IPC command sender
+- `watchdog.sh` - Stall detection process
+
+**Responsibilities**:
+- Launch Claude Code with arguments
+- Handle restart/resume/compact via named pipe IPC
+- Monitor Claude process for stalls
+- Pass all arguments through to Claude
+
+**IPC Commands**:
+```bash
+# Restart Claude
+/usr/local/bitbot/wrapper/send-wrapper-command.sh restart
+
+# Resume Claude session
+/usr/local/bitbot/wrapper/send-wrapper-command.sh resume
+
+# Compact Claude context
+/usr/local/bitbot/wrapper/send-wrapper-command.sh compact
+```
+
+### 3.2 tmux Layer (Infrastructure)
+
+**Purpose**: Transparent infrastructure (user doesn't interact with tmux)
+
+**Characteristics**:
+- Single pane only (no multiplexing)
+- Automatically created by `bitbot`
+- Users see only Claude interface
+- No tmux commands needed
 
 **Benefits**:
-- **Lightweight**: No terminal multiplexer overhead
-- **Reliable**: Direct IPC via named pipes
-- **Monitoring**: Built-in watchdog for stall detection
-- **Simplicity**: No tmux learning curve
+- Terminal persistence
+- Detach/reattach capability
+- Process isolation
+- Standard terminal environment
 
-**Availability**:
-- Mounted from `$BITBOT_HOME/sparc/5-completion/` directory
-- Path: `/opt/bitbot/wrapper/claude-wrapper.sh`
-- Requires devcontainer.json mount configuration
+### 3.3 Architecture Flow
 
-**Limitations**:
-- Single Claude instance per wrapper
-- No built-in multiplexing (use multiple containers)
-
-### 3.2 tmux-Based - Fallback
-
-**Architecture**:
-- tmux terminal multiplexer
-- Session-based management
-- Full terminal emulation
-
-**Benefits**:
-- **Persistence**: Sessions survive terminal disconnection
-- **Multiplexing**: Multiple panes/windows in one session
-- **Detachment**: Close terminal, resume later
-- **Scriptability**: Automate session creation
-- **Universal**: Works in all terminal environments
-
-**Use Cases**:
-- Long-running Claude sessions (hours/days)
-- Multiple workspaces in parallel
-- Terminal disconnect/reconnect
-- Session sharing (future: pair programming)
-- Wrapper not available/not mounted
-
-**Requirements**:
-- tmux package installed in container
-- Terminal access (not required for wrapper)
-
-### 3.3 Session Lifecycle (tmux)
-
-**Session Lifecycle**:
-```mermaid
-graph LR
-    A[bitbot start] --> B[Create tmux session]
-    B --> C[Launch Claude Code]
-    C --> D[User works]
-    D --> E{Detach?}
-    E -->|Yes| F[Session keeps running]
-    E -->|No| G[Continue working]
-    F --> H[bitbot resume]
-    H --> D
-    G --> D
+```
+User runs: bitbot [args]
+  ↓
+Check wrapper exists at /usr/local/bitbot/wrapper/claude-wrapper.sh
+  ↓
+Check tmux is installed
+  ↓
+Create tmux session: claude-YYYYMMDD-HHMMSS
+  ↓
+Send to tmux: /usr/local/bitbot/wrapper/claude-wrapper.sh claude [args]
+  ↓
+Attach to tmux session
+  ↓
+User sees only Claude interface (tmux transparent)
 ```
 
-**Session Naming Convention**:
-- Format: `claude-{YYYYMMDD-HHMM}`
-- Chronologically sortable
-- Human-readable timestamp
-- No special characters (tmux compatible)
-
-**Session Detection**:
-```bash
-# List all tmux sessions
-tmux list-sessions
-
-# Check if specific session exists
-tmux has-session -t "session-name"
-
-# Get session details
-tmux list-sessions -F "#{session_name} #{session_created} #{session_attached}"
-```
-
-### 3.4 tmux Configuration
-
-**BitBot tmux Config** (future):
-```bash
-# ~/.tmux.conf (user's home in container)
-
-# Enable mouse support
-set -g mouse on
-
-# Increase history
-set -g history-limit 10000
-
-# Better colors
-set -g default-terminal "screen-256color"
-
-# Status bar
-set -g status-bg colour235
-set -g status-fg colour250
-set -g status-left "[#{session_name}] "
-set -g status-right "%H:%M %d-%b-%y"
-
-# Easy pane navigation
-bind h select-pane -L
-bind j select-pane -D
-bind k select-pane -U
-bind l select-pane -R
-```
+**Important**: tmux can have multiple sessions across different terminals, but within each terminal there's only a single pane - no splitting
 
 ---
 
@@ -345,9 +181,7 @@ bind l select-pane -R
 - `.devcontainer/` mounted RO (read-only)
 
 **Available Commands**:
-- `bitbot` (default) - Smart launcher
-- `bitbot start` - Fresh session
-- `bitbot resume` - Resume session
+- `bitbot [args]` - Launch Claude Code
 
 **Claude Code Configuration**:
 - Work-focused tools enabled

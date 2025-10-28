@@ -81,24 +81,14 @@ create_new_claude_session() {
     info "Session: $session_name"
     echo ""
 
-    # Create tmux session and launch Claude
-    if ! tmux new-session -d -s "$session_name"; then
-        error "Failed to create tmux session"
-        return 1
-    fi
+    # Create tmux session with wrapper command (no send-keys)
+    local wrapper_cmd="/usr/local/bitbot/wrapper/claude-wrapper.sh $claude_cmd"
 
-    # Send Claude command to session
-    tmux send-keys -t "$session_name" "$claude_cmd" C-m
-
-    # Wait a moment for session to start
-    sleep 1
-
-    # Attach to session
-    success "Session created successfully"
+    success "Creating session..."
     echo ""
-    info "Attaching to session '$session_name'..."
-    echo ""
-    tmux attach-session -t "$session_name"
+
+    # exec tmux with wrapper as the session command
+    exec tmux new-session -s "$session_name" "$wrapper_cmd"
 }
 
 # Main default function

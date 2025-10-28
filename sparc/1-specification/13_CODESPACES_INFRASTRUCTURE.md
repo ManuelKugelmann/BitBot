@@ -80,12 +80,14 @@ BitBot currently mounts global infrastructure from `$BITBOT_HOME`:
 user-workspace/
 ├── .bitbot/
 │   ├── internal/
-│   │   └── container/               ← Working copies (committed to git)
+│   │   └── container/               ← Infrastructure (committed to git)
 │   │       ├── home/
 │   │       │   └── .tmux.conf
 │   │       └── bitbot/
 │   │           └── core/
-│   └── wrapper-runtime/             ← Session files (not mounted)
+│   └── runtime/                     ← Runtime files (not mounted separately)
+│       ├── pipes/                   (wrapper IPC pipes)
+│       └── sessions/                (session state files)
 ├── .devcontainer/
 │   ├── bitbot/                      ← Container BitBot commands
 │   └── home/                        ← Per-workspace AI configs
@@ -95,12 +97,15 @@ user-workspace/
 **Container:**
 ```
 /
-├── workspace/
+├── workspace/                       ← Workspace mount (rw)
 │   ├── .bitbot/
-│   │   └── internal/                ← Mounted readonly (overlay on workspace)
-│   │       └── container/
-│   │           ├── home/
-│   │           └── bitbot/
+│   │   ├── internal/                ← Readonly overlay mount
+│   │   │   └── container/
+│   │   │       ├── home/
+│   │   │       └── bitbot/
+│   │   └── runtime/                 ← Via workspace mount (rw, not separately mounted)
+│   │       ├── pipes/
+│   │       └── sessions/
 │   └── (project files)
 ├── root/
 │   └── .tmux.conf                   ← Mounted from workspace/.bitbot/internal/container/home/.tmux.conf
@@ -108,9 +113,10 @@ user-workspace/
 ```
 
 **Key Points:**
-- `/workspace/.bitbot/internal/` - Readonly mount (same pattern as `.devcontainer/`)
-- All infrastructure files readonly inside container
-- Updates happen on host side via `initializeCommand`
+- `/workspace/.bitbot/internal/` - **Readonly** overlay mount (infrastructure)
+- `/workspace/.bitbot/runtime/` - **Read-write** via workspace mount (runtime files)
+- Clean separation: Infrastructure (ro) vs Runtime (rw)
+- All infrastructure updates happen on host side via `bitbot` commands
 
 ### Mount Configuration: Simple Readonly Strategy
 
@@ -275,8 +281,8 @@ check_uncommitted_infrastructure
 **File:** `.gitignore` (workspace root)
 
 ```gitignore
-# BitBot infrastructure
-/.bitbot/wrapper-runtime/        # Session files (never commit)
+# BitBot runtime files
+/.bitbot/runtime/                # Runtime files (pipes, session state - never commit)
 /.bitbot/internal/global/        # Not used (reserved for future)
 ```
 
@@ -290,7 +296,7 @@ check_uncommitted_infrastructure
 **What Gets Committed:**
 - ✅ `.bitbot/internal/container/` - Infrastructure copies (for Codespaces)
 - ✅ `.bitbot/internal/.version` - Version tracking
-- ❌ `.bitbot/wrapper-runtime/` - Session state (temporary)
+- ❌ `.bitbot/runtime/` - Runtime files (temporary, gitignored)
 
 ---
 
