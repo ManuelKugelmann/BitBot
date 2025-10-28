@@ -1,0 +1,17 @@
+{
+  "workspaceFolder": "/workspace",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {
+      "version": "latest"
+    }
+  },
+  "remoteUser": "root",
+  "$comment": "Base template details - merged with templates/shared/base.devcontainer.json",
+  "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
+  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/base",
+  "name": "BitBot Basic Environment",
+  "dockerFile": "Dockerfile"
+}

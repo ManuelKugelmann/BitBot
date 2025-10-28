@@ -1,0 +1,5 @@
+# Ignore credentials and sensitive data
+.claude/.credentials.json
+
+# Ignore user-specific ccstatusline config (will be created on first use)
+.config/ccstatusline/settings.json

@@ -1,0 +1,88 @@
+#!/bin/bash
+# Container BitBot - AI Agent Assistant
+# Runs inside devcontainers to help AI agents manage sessions and workspace
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+GREY='\033[0;90m'
+RESET='\033[0m'
+
+# Paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BITBOT_CONTAINER_HOME="${SCRIPT_DIR}"
+WORKSPACE="${WORKSPACE:-/workspace}"
+
+# Source utilities
+source "${BITBOT_CONTAINER_HOME}/core/util/helpers.sh" 2>/dev/null || true
+
+# Main command router
+main() {
+    # Check if no arguments provided
+    if [[ $# -eq 0 ]]; then
+        "${BITBOT_CONTAINER_HOME}/core/commands/default.sh"
+        return
+    fi
+
+    local command="$1"
+    shift
+
+    case "$command" in
+        start)
+            "${BITBOT_CONTAINER_HOME}/core/commands/start.sh" "$@"
+            ;;
+        resume)
+            "${BITBOT_CONTAINER_HOME}/core/commands/resume.sh" "$@"
+            ;;
+        help|--help|-h)
+            show_help
+            ;;
+        *)
+            echo -e "${RED}Error: Unknown command '${command}'${RESET}" >&2
+            echo ""
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+show_help() {
+    cat <<'EOF'
+BitBot (Container) - AI Agent Assistant
+
+Usage:
+  bitbot [command] [options]
+
+Commands:
+  (default)     Smart launcher: detect sessions, choose launch mode
+  start         Always start fresh Claude in new tmux session
+  resume [name] Resume existing tmux session (or choose from list)
+  help          Show this help message
+
+Examples:
+  # Smart launcher (detects sessions, offers resume/new + launch mode)
+  bitbot
+
+  # Always start fresh session with fresh Claude
+  bitbot start
+
+  # Resume existing session
+  bitbot resume
+
+  # Resume specific session
+  bitbot resume bitbot-20251022-1430
+
+Environment:
+  WORKSPACE     Workspace path (default: /workspace)
+  BITBOT_MODE   Current mode (work/config)
+
+For more information, see /usr/local/bitbot/README.md
+EOF
+}
+
+# Run main
+main "$@"

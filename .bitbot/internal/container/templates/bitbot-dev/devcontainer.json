@@ -1,0 +1,38 @@
+{
+  "workspaceFolder": "/workspace",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {
+      "version": "latest"
+    }
+  },
+  "remoteUser": "root",
+  "$comment": "BitBot Development template details - merged with templates/shared/base.devcontainer.json",
+  "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
+  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/bitbot-dev",
+  "name": "BitBot Development",
+  "dockerFile": "Dockerfile",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.makefile-tools"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "C_Cpp.default.compilerPath": "/usr/bin/x86_64-w64-mingw32-gcc",
+        "C_Cpp.default.intelliSenseMode": "gcc-x64"
+      }
+    }
+  },
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.devcontainer/home/.claude,target=/root/.claude,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer/home/.claude-flow,target=/root/.claude-flow,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer/home/.opencode,target=/root/.opencode,type=bind,consistency=cached"
+  ],
+  "postCreateCommand": "echo '✓ MinGW cross-compiler installed:' && x86_64-w64-mingw32-gcc --version"
+}

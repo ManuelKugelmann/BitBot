@@ -1,0 +1,24 @@
+{
+  "$comment": "Workspace template details - merged with templates/shared/base.devcontainer.json",
+  "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
+  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/workspace",
+
+  "name": "BitBot Workspace",
+  "dockerFile": "Dockerfile",
+
+  "features": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {
+      "version": "latest"
+    }
+  },
+
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+
+    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
+
+    "source=${localWorkspaceFolder}/.devcontainer/home/.claude,target=/root/.claude,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer/home/.claude-flow,target=/root/.claude-flow,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer/home/.opencode,target=/root/.opencode,type=bind,consistency=cached"
+  ]
+}
