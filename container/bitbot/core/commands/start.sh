@@ -19,15 +19,15 @@ create_new_claude_session() {
     info "Creating fresh Claude Code session..."
     echo ""
 
-    # Check if wrapper is available (mounted from $BITBOT_HOME)
-    local wrapper_script="/opt/bitbot/wrapper/claude-wrapper.sh"
+    # Check if wrapper is available (part of container BitBot)
+    local wrapper_script="/usr/local/bitbot/wrapper/claude-wrapper.sh"
     local use_wrapper=false
 
     if [[ -f "$wrapper_script" ]] && [[ -x "$wrapper_script" ]]; then
         use_wrapper=true
         info "Using wrapper (pipe-based IPC + watchdog)"
     else
-        info "Wrapper not mounted, using tmux fallback"
+        info "Wrapper not available, using tmux fallback"
     fi
 
     # Always use fresh interactive Claude (no --resume)
@@ -68,7 +68,7 @@ create_new_claude_session() {
 
 # Main start function
 main() {
-    local wrapper_script="/opt/bitbot/wrapper/claude-wrapper.sh"
+    local wrapper_script="/usr/local/bitbot/wrapper/claude-wrapper.sh"
 
     # Check if wrapper is available (makes tmux optional)
     if [[ -f "$wrapper_script" ]] && [[ -x "$wrapper_script" ]]; then
@@ -81,9 +81,6 @@ main() {
             echo ""
             echo "Please install tmux:"
             echo "  sudo apt-get install tmux"
-            echo ""
-            echo "Alternatively, wrapper can be mounted from \$BITBOT_HOME:"
-            echo "  (Check devcontainer.json mounts)"
             exit 1
         fi
     fi

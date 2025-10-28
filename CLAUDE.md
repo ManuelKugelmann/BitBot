@@ -486,9 +486,10 @@ Before running sync script:
 4. Run sync script: `dev/scripts/sync-claude-md-to-templates.sh`
 
 **Template-Specific Content**:
-Add to `container/templates/{template}/.claude/details.CLAUDE.md` (like `details.devcontainer.json`)
+Add to `container/templates/{template}/details.CLAUDE.md` (like `details.devcontainer.json`)
 
 <!-- Items below this line -->
 
 ---
+
 

@@ -66,9 +66,8 @@ TEMPLATES=(
 # For each template
 for template in "${TEMPLATES[@]}"; do
     TEMPLATE_DIR="$TEMPLATES_DIR/$template"
-    CLAUDE_DIR="$TEMPLATE_DIR/.claude"
-    TARGET_FILE="$CLAUDE_DIR/CLAUDE.md"
-    ADDITIONS_FILE="$CLAUDE_DIR/CLAUDE_ADDITIONS.md"
+    TARGET_FILE="$TEMPLATE_DIR/CLAUDE.md"
+    DETAILS_FILE="$TEMPLATE_DIR/details.CLAUDE.md"
 
     echo "--- Syncing to: $template ---"
 
@@ -77,9 +76,6 @@ for template in "${TEMPLATES[@]}"; do
         echo "⚠ Template directory not found: $template (skipping)"
         continue
     fi
-
-    # Create .claude directory if needed
-    mkdir -p "$CLAUDE_DIR"
 
     # Start with header
     cat > "$TARGET_FILE" <<'EOF'
@@ -121,12 +117,12 @@ EOF
 
 EOF
 
-    # If template has additions file, append it
-    if [ -f "$ADDITIONS_FILE" ]; then
-        cat "$ADDITIONS_FILE" >> "$TARGET_FILE"
-        echo "  ✓ Included template additions"
+    # If template has details file, append it
+    if [ -f "$DETAILS_FILE" ]; then
+        cat "$DETAILS_FILE" >> "$TARGET_FILE"
+        echo "  ✓ Included template details"
     else
-        echo "  ℹ No template additions file"
+        echo "  ℹ No template details file"
     fi
 
     echo "  ✓ Synced to: $TARGET_FILE"
@@ -141,5 +137,5 @@ echo "  Templates synced: ${#TEMPLATES[@]}"
 echo ""
 echo "Next steps:"
 echo "  1. Review generated CLAUDE.md files in each template"
-echo "  2. Create CLAUDE_ADDITIONS.md files for template-specific content"
+echo "  2. Create/edit details.CLAUDE.md files for template-specific content"
 echo "  3. Commit changes"

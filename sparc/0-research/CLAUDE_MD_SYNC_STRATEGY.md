@@ -120,10 +120,10 @@ for template in base config bitbotdev workspace; do
      ============================================================================ -->
 EOF
 
-    # If template has additions file, append it
-    ADDITIONS_FILE="$TEMPLATES_DIR/$template/.claude/CLAUDE_ADDITIONS.md"
-    if [ -f "$ADDITIONS_FILE" ]; then
-        cat "$ADDITIONS_FILE" >> "$TARGET_FILE"
+    # If template has details file, append it
+    DETAILS_FILE="$TEMPLATES_DIR/$template/details.CLAUDE.md"
+    if [ -f "$DETAILS_FILE" ]; then
+        cat "$DETAILS_FILE" >> "$TARGET_FILE"
     fi
 
     echo "✓ Synced to $template"
@@ -132,11 +132,11 @@ done
 
 ---
 
-## Template Additions Files
+## Template Details Files
 
-Each template can have a `CLAUDE_ADDITIONS.md` file with template-specific content:
+Each template can have a `details.CLAUDE.md` file with template-specific content (matching the `details.devcontainer.json` naming pattern):
 
-### bitbot-base/.claude/CLAUDE_ADDITIONS.md
+### bitbot-base/details.CLAUDE.md
 
 ```markdown
 ## Base Template
@@ -149,7 +149,7 @@ You are working in a minimal BitBot container with:
 To add features, edit `.devcontainer/devcontainer.json`.
 ```
 
-### bitbot-config/.claude/CLAUDE_ADDITIONS.md
+### bitbot-config/details.CLAUDE.md
 
 ```markdown
 ## Config Template
@@ -162,7 +162,7 @@ This template includes DevContainer customization skills:
 **Focus**: Help users customize their devcontainer, not BitBot internals.
 ```
 
-### bitbot-dev/.claude/CLAUDE_ADDITIONS.md
+### bitbot-dev/details.CLAUDE.md
 
 ```markdown
 ## BitBot Development Template
@@ -180,7 +180,7 @@ You are working on BitBot itself. This includes:
 See root `CLAUDE.md` for full BitBot development guidance.
 ```
 
-### bitbot-work/.claude/CLAUDE_ADDITIONS.md
+### bitbot-work/details.CLAUDE.md
 
 ```markdown
 ## AI Workspace Template
@@ -217,7 +217,7 @@ git commit -m "Update universal CLAUDE.md content"
 
 ```bash
 # Edit template additions
-vim container/templates/config/.claude/CLAUDE_ADDITIONS.md
+vim container/templates/bitbot-config/details.CLAUDE.md
 
 # Sync (regenerates CLAUDE.md with new additions)
 dev/scripts/sync-claude-md-to-templates.sh
@@ -263,7 +263,7 @@ git commit -m "Update BitBot development guidance"
 
 1. **Identify content type** in current CLAUDE.md:
    - Universal → Keep before marker
-   - Template-specific → Move to CLAUDE_ADDITIONS.md
+   - Template-specific → Move to details.CLAUDE.md
    - Dev-only → Move after marker
 
 2. **Add markers** to CLAUDE.md:
@@ -296,5 +296,5 @@ git commit -m "Update BitBot development guidance"
 
 - Root `CLAUDE.md` - Source of truth
 - `dev/scripts/sync-claude-md-to-templates.sh` - Sync script
-- `container/templates/*/.claude/CLAUDE_ADDITIONS.md` - Template-specific content
-- `container/templates/*/.claude/CLAUDE.md` - Generated files (synced)
+- `container/templates/*/details.CLAUDE.md` - Template-specific content
+- `container/templates/*/CLAUDE.md` - Generated files (synced)
