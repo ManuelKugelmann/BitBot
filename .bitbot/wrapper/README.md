@@ -112,12 +112,38 @@ dev/tests/test-wrapper.sh
 - ✅ All 10 tests passing
 - ✅ Watchdog with Type A/C detection complete
 - ✅ Type C (I/O deadlock) detection implemented
-- ⏳ Needs integration into BitBot startup
+- ✅ Integrated into BitBot container startup
 - ⏳ Needs real-world testing (Type B/C)
+
+## BitBot Integration
+
+The wrapper is automatically installed during `bitbot init` and used by container BitBot:
+
+**During `bitbot init`:**
+- Wrapper scripts copied from BitBot to workspace `.bitbot/wrapper/`
+- Scripts become available in container at `/workspace/.bitbot/wrapper/`
+
+**During `bitbot start`:**
+- Container BitBot checks for `.bitbot/wrapper/claude-wrapper.sh`
+- If present: Launches Claude via wrapper (no tmux required)
+- If absent: Falls back to tmux-based launch
+
+**Advantages:**
+- No tmux dependency (wrapper handles restart internally)
+- Automatic watchdog monitoring (Type A/C stall detection)
+- Session preservation across restarts
+- User-customizable per workspace
+
+**Disabling Watchdog:**
+```bash
+# In container shell before launching:
+export BITBOT_WATCHDOG=false
+bitbot start
+```
 
 ## Next Steps
 
 1. Test watchdog stall detection in real scenarios
-2. Integrate wrapper into BitBot container startup
-3. Create Claude skills for restart commands
-4. Replace tmux-based restart mechanism
+2. Create Claude skills for wrapper-based restart commands
+3. Add Type B (API timeout) detection
+4. Validate false positive rates in production

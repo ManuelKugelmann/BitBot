@@ -94,6 +94,9 @@ create_workspace_structure() {
     print_success "Created .bitbot/internal/"
     print_success "Created .bitbot/internal/local/"
 
+    # Copy wrapper infrastructure
+    copy_wrapper_infrastructure "${workspace_path}"
+
     # Create config.json
     local workspace_name
     workspace_name=$(get_basename "$workspace_path")
@@ -120,6 +123,57 @@ create_workspace_structure() {
     echo "  Name: $workspace_name"
     echo "  Default mode: work"
     echo ""
+}
+
+# ============================================================================
+# Wrapper Infrastructure
+# ============================================================================
+
+copy_wrapper_infrastructure() {
+    # Copy wrapper scripts from BitBot to workspace
+    local workspace_path="$1"
+    local source_wrapper="${BITBOT_HOME}/.bitbot/wrapper"
+    local dest_wrapper="${workspace_path}/.bitbot/wrapper"
+
+    # Check if source wrapper exists
+    if [[ ! -d "$source_wrapper" ]]; then
+        echo "  Warning: Wrapper scripts not found at $source_wrapper"
+        echo "  Skipping wrapper installation (tmux fallback will be used)"
+        return 0
+    fi
+
+    # Create wrapper directory
+    create_directory "$dest_wrapper"
+    create_directory "$dest_wrapper/pipes"
+
+    # Copy wrapper scripts
+    local scripts=(
+        "claude-wrapper.sh"
+        "watchdog.sh"
+        "send-wrapper-command.sh"
+        "README.md"
+        "TYPE-C-DETECTION.md"
+    )
+
+    for script in "${scripts[@]}"; do
+        if [[ -f "${source_wrapper}/${script}" ]]; then
+            cp "${source_wrapper}/${script}" "${dest_wrapper}/${script}"
+            chmod +x "${dest_wrapper}/${script}" 2>/dev/null || true
+        fi
+    done
+
+    # Create .gitignore for wrapper runtime files
+    cat > "${dest_wrapper}/.gitignore" <<'EOF'
+# Wrapper runtime files (generated at runtime)
+pipes/
+.wrapper-session-*.state
+.watchdog-*.state
+EOF
+
+    print_success "Installed wrapper infrastructure"
+    print_success "  - claude-wrapper.sh (pipe-based IPC)"
+    print_success "  - watchdog.sh (Type A/C stall detection)"
+    print_success "  - send-wrapper-command.sh (control helper)"
 }
 
 # ============================================================================
