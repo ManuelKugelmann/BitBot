@@ -4,69 +4,12 @@
 #   - CLAUDE_PID variable
 #   - SESSION_ID variable
 #
-# Prioritizes environment variables set by SessionStart hook,
-# falls back to process tree walking if not available.
+# Uses environment variables set by SessionStart hook.
 
-# Check if already set by SessionStart hook
-if [ -n "$CLAUDE_SESSION_ID" ]; then
-    SESSION_ID="$CLAUDE_SESSION_ID"
-    # CLAUDE_PID might also be set
-    if [ -z "$CLAUDE_PID" ]; then
-        CLAUDE_PID=""
-    fi
-    export CLAUDE_PID
-    export SESSION_ID
-    return 0 2>/dev/null || exit 0
-fi
+# Use environment variables exported by SessionStart hook
+SESSION_ID="${CLAUDE_SESSION_ID:-}"
+CLAUDE_PID="${CLAUDE_PID:-}"
 
-# Find Claude PID by walking up the process tree
-_find_claude_pid() {
-    local pid=$$
-    local max_depth=10
-    local depth=0
-
-    while [ $depth -lt $max_depth ] && [ $pid -gt 1 ]; do
-        local ppid=$(ps -p "$pid" -o ppid= 2>/dev/null | tr -d ' ')
-        if [ -z "$ppid" ] || [ "$ppid" -eq 1 ]; then
-            break
-        fi
-
-        local pname=$(ps -p "$ppid" -o comm= 2>/dev/null | tr -d ' ')
-        if [ "$pname" = "claude" ]; then
-            echo "$ppid"
-            return 0
-        fi
-
-        pid=$ppid
-        depth=$((depth + 1))
-    done
-
-    return 1
-}
-
-# Get session map directory
-_get_session_map_dir() {
-    if [ -d "/workspace" ]; then
-        echo "/workspace/.claude/.pid-session-map"
-    else
-        echo "${CLAUDE_PROJECT_DIR:-.}/.claude/.pid-session-map"
-    fi
-}
-
-# Get Claude PID
-CLAUDE_PID=$(_find_claude_pid || echo "")
-
-# Get Session ID from PID map
-SESSION_ID=""
-if [ -n "$CLAUDE_PID" ]; then
-    MAP_DIR=$(_get_session_map_dir)
-    MAP_FILE="$MAP_DIR/$CLAUDE_PID.txt"
-
-    if [ -f "$MAP_FILE" ]; then
-        SESSION_ID=$(cat "$MAP_FILE" 2>/dev/null || echo "")
-    fi
-fi
-
-# Export variables for use by sourcing script
+# Export for use by sourcing script
 export CLAUDE_PID
 export SESSION_ID

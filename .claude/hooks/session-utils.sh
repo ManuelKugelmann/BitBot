@@ -52,33 +52,3 @@ find_claude_pid() {
 
     return 1
 }
-
-# Get session map directory
-get_session_map_dir() {
-    local project_root
-    if [ -d "/workspace" ]; then
-        project_root="/workspace"
-    elif [ -n "$CLAUDE_PROJECT_DIR" ]; then
-        project_root="$CLAUDE_PROJECT_DIR"
-    else
-        project_root=$(find_project_root)
-    fi
-    echo "$project_root/.claude/.pid-session-map"
-}
-
-# Clean up stale session maps if no other Claude instances running
-cleanup_stale_maps() {
-    local map_dir=$(get_session_map_dir)
-
-    if [ ! -d "$map_dir" ]; then
-        return 0
-    fi
-
-    # Count running Claude instances
-    local claude_count=$(pgrep -c "^claude$" 2>/dev/null || echo "0")
-
-    if [ "$claude_count" -eq 0 ]; then
-        # No Claude instances running, clean up all maps
-        rm -f "$map_dir"/*.txt 2>/dev/null || true
-    fi
-}

@@ -30,23 +30,8 @@ else
 fi
 
 if [ -n "$SESSION_ID" ]; then
+    # Find Claude PID for display purposes
     CLAUDE_PID=$(find_claude_pid || echo "")
-
-    if [ -n "$CLAUDE_PID" ]; then
-        MAP_DIR=$(get_session_map_dir)
-        mkdir -p "$MAP_DIR"
-
-        # Check if any other Claude instances are running
-        # If not (only this one), clean up stale mapping files
-        CLAUDE_COUNT=$(pgrep -c "^claude$" 2>/dev/null || echo "0")
-        if [ "$CLAUDE_COUNT" -le 1 ]; then
-            # Only this Claude instance running, clean up all old maps
-            rm -f "$MAP_DIR"/*.txt 2>/dev/null || true
-        fi
-
-        # Write PID -> SessionID mapping for this instance
-        echo "$SESSION_ID" > "$MAP_DIR/$CLAUDE_PID.txt"
-    fi
 
     # Check if this is a resume (session already exists)
     IS_RESUME=$(echo "$INPUT" | grep -q '"is_resume":true' && echo "resume" || echo "start")
