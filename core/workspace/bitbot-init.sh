@@ -57,11 +57,11 @@ bitbot_init() {
     # Create workspace structure
     create_workspace_structure "$workspace_path"
 
+    # Create/copy .devcontainer if needed (must be before sync_infrastructure)
+    setup_devcontainer "$workspace_path"
+
     # Sync infrastructure (copy container bitbot scripts)
     sync_infrastructure "$workspace_path"
-
-    # Create/copy .devcontainer if needed
-    setup_devcontainer "$workspace_path"
 
     # Launch config mode
     echo ""
