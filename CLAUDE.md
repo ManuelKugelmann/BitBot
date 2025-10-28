@@ -76,14 +76,14 @@ Development-related files organized under `/dev/`:
 
 Templates under `container/templates/`:
 
-| Template          | Purpose                     | Features                               | .claude Content              |
-| ----------------- | --------------------------- | -------------------------------------- | ---------------------------- |
-| `bitbot-base/`    | Minimal BitBot              | Core only, no extras                   | hooks, tools, settings.json  |
-| `bitbot-config/`  | BitBot with configuration   | + Config tools, JSON editing           | + bitbot-config-* skills     |
-| `bitbot-dev/`     | BitBot development          | + Build tools, shared home             | + bitbot-dev-* skills        |
-| `bitbot-work/`    | AI-powered workspaces       | + Claude Code, AI tools, MCP           | + bitbot-work-* skills       |
-| `custom/`         | User custom templates       | User-defined (uses bitbot-work/ base)  | Inherits from bitbot-work/   |
-| `shared/`         | Shared resources            | Scripts, configs used by all           | N/A                          |
+| Template          | Purpose                          | Features                               | .claude Content              |
+| ----------------- | -------------------------------- | -------------------------------------- | ---------------------------- |
+| `bitbot-base/`    | Minimal BitBot                   | Core only, no extras                   | hooks, tools, settings.json  |
+| `bitbot-config/`  | User workspace configuration     | + Config tools, JSON/YAML editing      | + bitbot-config-* skills     |
+| `bitbot-dev/`     | BitBot development               | + Build tools, shared home             | + bitbot-dev-* skills        |
+| `bitbot-work/`    | AI-powered user workspaces       | + Claude Code, AI tools, MCP           | + bitbot-work-* skills       |
+| `custom/`         | User custom templates            | User-defined (uses bitbot-work/ base)  | Inherits from bitbot-work/   |
+| `shared/`         | Shared resources                 | Scripts, configs used by all           | N/A                          |
 
 Each template contains:
 - `Dockerfile` - Container image definition
@@ -225,23 +225,23 @@ After completing a significant implementation phase, proactively remind the user
 
 **IMPORTANT**: BitBot has multiple devcontainer contexts - do NOT confuse them!
 
-| Context                | Location                            | Purpose               | Notes                                      |
-| ---------------------- | ----------------------------------- | --------------------- | ------------------------------------------ |
-| **BitBot Development** | `/.devcontainer/`                   | Develop BitBot itself | MinGW, BitBot dev tools                    |
-| **BitBot Dev Template**| `/container/templates/bitbot-dev/`  | BitBot dev container  | Template for BitBot development            |
-| **User Work Template** | `/container/templates/bitbot-work/` | User AI workspaces    | Claude Code, AI tools, shared home folders |
-| **Config Template**    | `/container/templates/bitbot-config/` | Configuration work  | Config tools, JSON editing                 |
-| **Base Template**      | `/container/templates/bitbot-base/` | Minimal BitBot        | Core only, foundation for all templates    |
+| Context                | Location                            | Purpose                      | Notes                                      |
+| ---------------------- | ----------------------------------- | ---------------------------- | ------------------------------------------ |
+| **BitBot Development** | `/.devcontainer/`                   | Develop BitBot itself        | MinGW, BitBot dev tools                    |
+| **BitBot Dev Template**| `/container/templates/bitbot-dev/`  | BitBot dev container         | Template for BitBot development            |
+| **User Work Template** | `/container/templates/bitbot-work/` | User AI workspaces           | Claude Code, AI tools, shared home folders |
+| **User Config Template**| `/container/templates/bitbot-config/` | User workspace config      | Config tools, JSON/YAML editing            |
+| **Base Template**      | `/container/templates/bitbot-base/` | Minimal BitBot               | Core only, foundation for all templates    |
 
 **Key Points**:
 
 - `/.devcontainer/` = **For Claude Code dev** (developing BitBot with Claude Code)
-- `container/templates/bitbot-dev/` = **BitBot dev template** (for building dev containers)
-- `container/templates/bitbot-work/` = **For BitBot users** (AI-powered development)
-- `container/templates/bitbot-config/` = **For configuration work** (JSON, YAML, etc.)
+- `container/templates/bitbot-dev/` = **BitBot dev template** (for developing BitBot itself)
+- `container/templates/bitbot-work/` = **For users** (AI-powered development workspaces)
+- `container/templates/bitbot-config/` = **For users** (workspace configuration, JSON/YAML editing)
 - `container/templates/bitbot-base/` = **Foundation template** (minimal, base for all)
 - Do NOT modify root `/.devcontainer/` unless working on BitBot itself
-- Work templates include shared home folders for AI tool configs
+- User templates (work, config) include shared home folders for AI tool configs
 - See individual template README.md files for template-specific documentation
 
 ## Available Skills
