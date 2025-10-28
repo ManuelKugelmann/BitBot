@@ -9,14 +9,15 @@
 
 ## Overview
 
-Container BitBot runs **inside** devcontainers with two independent layers:
+Container BitBot runs **inside** devcontainers with a layered architecture:
 
 **Layer 1 (tmux)**: Session persistence
 - Manage tmux sessions (create/attach)
 - Smart launcher with session detection
 - Detach/reattach capability
+- Session naming: `bitbot-YYYYMMDD-HHMM`
 
-**Layer 2 (wrapper)**: Claude operations
+**Layer 2 (wrapper)**: AI tool operations
 - Launch Claude via wrapper
 - Handle restart/resume/compact via IPC
 - Process monitoring and watchdog
@@ -27,10 +28,16 @@ Container Entry → Container BitBot → tmux layer → wrapper layer → Claude
 
 **Two-Layer Architecture**:
 - **tmux**: Session management (bitbot commands)
-- **wrapper**: Claude operations (IPC commands)
+- **wrapper**: AI tool operations (IPC commands)
 - Complete independence between layers
 
-**Key Principle**: Separation of concerns - tmux for sessions, wrapper for Claude
+**Future: Router Layer** (planned)
+- Pre-wrapper routing to different AI tools
+- Support for Claude, OpenCode, and other AI assistants
+- Tool selection based on mode or user preference
+- Wrapper becomes tool-agnostic
+
+**Key Principle**: Separation of concerns - tmux for sessions, wrapper for AI tools
 
 ---
 
@@ -76,7 +83,7 @@ Container BitBot uses two completely independent layers:
 - Create tmux sessions: `tmux new-session -s name "command"`
 - Attach to existing sessions: `tmux attach-session -t name`
 - Detect available sessions
-- Session naming: `claude-YYYYMMDD-HHMMSS`
+- Session naming: `bitbot-YYYYMMDD-HHMMSS`
 
 **Key Points**:
 - Uses `tmux new-session` with command parameter (NOT send-keys)
@@ -172,7 +179,7 @@ FUNCTION start_command(args):
     # Called when: bitbot start [args]
 
     SET wrapper_script = "/usr/local/bitbot/wrapper/claude-wrapper.sh"
-    SET session_name = "claude-" + current_timestamp()  # claude-YYYYMMDD-HHMMSS
+    SET session_name = "bitbot-" + current_timestamp()  # bitbot-YYYYMMDD-HHMMSS
     SET mode = get_bitbot_mode()
     SET workspace = get_workspace()
 
@@ -556,7 +563,7 @@ FUNCTION show_help():
     PRINT ""
     PRINT "  start         Always start fresh Claude in new tmux session"
     PRINT "                • No prompts, no session detection"
-    PRINT "                • Creates: claude-YYYYMMDD-HHMM"
+    PRINT "                • Creates: bitbot-YYYYMMDD-HHMM"
     PRINT ""
     PRINT "  resume [name] Intelligent resume with Claude detection"
     PRINT "                • 0 tmux: create new tmux with 'claude --resume'"
@@ -577,7 +584,7 @@ FUNCTION show_help():
     PRINT "  bitbot resume"
     PRINT ""
     PRINT "  # Resume specific session"
-    PRINT "  bitbot resume claude-20251028-1430"
+    PRINT "  bitbot resume bitbot-20251028-1430"
     PRINT ""
     PRINT "Two-Level Session Management:"
     PRINT "  Level 1: tmux sessions (managed by BitBot)"
@@ -707,7 +714,7 @@ chmod +x .devcontainer/bitbot/wrapper/*.sh
 - `BITBOT_HOME`: Host BitBot installation path (for wrapper mount)
 
 **Session Naming (tmux mode)**:
-- Format: `claude-YYYYMMDD-HHMM` (e.g., `claude-20251028-1430`)
+- Format: `bitbot-YYYYMMDD-HHMM` (e.g., `bitbot-20251028-1430`)
 - Allows multiple sessions
 - Easy to identify and resume
 - Not used in wrapper mode (single instance)

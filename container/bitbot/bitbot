@@ -74,7 +74,7 @@ Examples:
   bitbot resume
 
   # Resume specific session
-  bitbot resume claude-20251022-1430
+  bitbot resume bitbot-20251022-1430
 
 Environment:
   WORKSPACE     Workspace path (default: /workspace)

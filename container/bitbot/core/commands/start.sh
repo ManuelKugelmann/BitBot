@@ -12,7 +12,7 @@ source "${SCRIPT_DIR}/../util/tmux-utils.sh"
 # Main start function
 main() {
     local wrapper_script="/usr/local/bitbot/wrapper/claude-wrapper.sh"
-    local session_name="claude-$(date +%Y%m%d-%H%M%S)"
+    local session_name="bitbot-$(date +%Y%m%d-%H%M%S)"
     local mode="$(get_bitbot_mode)"
     local workspace="$(get_workspace)"
 

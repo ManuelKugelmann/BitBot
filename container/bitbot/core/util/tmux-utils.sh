@@ -68,7 +68,7 @@ attach_session() {
 }
 
 # Generate session name
-# Returns: claude-YYYYMMDD-HHMM
+# Returns: bitbot-YYYYMMDD-HHMM
 generate_session_name() {
-    echo "claude-$(date +%Y%m%d-%H%M)"
+    echo "bitbot-$(date +%Y%m%d-%H%M)"
 }

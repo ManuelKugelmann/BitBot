@@ -223,7 +223,7 @@ fi
 # Test session name generation format
 run_test "tmux-utils.sh - session name format"
 session_name=$(generate_session_name 2>/dev/null || echo "")
-if [[ "$session_name" =~ ^claude-[0-9]{8}-[0-9]{4}$ ]]; then
+if [[ "$session_name" =~ ^bitbot-[0-9]{8}-[0-9]{4}$ ]]; then
     test_passed "tmux-utils.sh - generates valid session name: $session_name"
 else
     test_failed "tmux-utils.sh - invalid session name format: $session_name"
