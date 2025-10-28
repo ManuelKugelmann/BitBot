@@ -7,7 +7,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BITBOT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-BITBOT="$BITBOT_ROOT/bitbot"
+BITBOT="$BITBOT_ROOT/core/bitbot"
 
 # Colors for output
 RED='\033[0;31m'

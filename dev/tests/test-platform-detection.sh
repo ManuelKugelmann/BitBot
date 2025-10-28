@@ -112,7 +112,7 @@ fi
 # ============================================================================
 
 echo "[Test 5] Platform appears in version output..."
-version_output=$(bash "$BITBOT_ROOT/bitbot" version 2>&1)
+version_output=$(bash "$BITBOT_ROOT/core/bitbot" version 2>&1)
 if echo "$version_output" | grep -q "Platform: $platform"; then
     test_pass "Platform shown in version output"
 else

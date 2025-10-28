@@ -154,8 +154,8 @@ fi
 # Test 6: DevContainer Locations (WSL only, skipped in quick mode)
 if [[ "$QUICK" == "true" ]]; then
     run_test "DevContainer Functionality (WSL home and /mnt/c/)" \
-        "${SCRIPT_DIR}/test-devcontainer-locations.sh --quick" \
-        false  # Run quick mode even in quick test
+        "${SCRIPT_DIR}/test-devcontainer-locations.sh" \
+        true  # skip=true in quick mode
 else
     if [[ -f "${SCRIPT_DIR}/test-devcontainer-locations.sh" ]]; then
         run_test "DevContainer Functionality (WSL home and /mnt/c/)" \

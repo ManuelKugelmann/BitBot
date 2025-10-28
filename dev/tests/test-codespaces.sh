@@ -85,26 +85,26 @@ echo ""
 echo -e "${BLUE}═══ Test 2: BitBot CLI ═══${NC}"
 echo ""
 
-if [[ -f "$BITBOT_ROOT/bitbot" ]]; then
+if [[ -f "$BITBOT_ROOT/core/bitbot" ]]; then
     test_pass "BitBot launcher exists"
 else
     test_fail "BitBot launcher not found"
 fi
 
-if [[ -x "$BITBOT_ROOT/bitbot" ]]; then
+if [[ -x "$BITBOT_ROOT/core/bitbot" ]]; then
     test_pass "BitBot launcher is executable"
 else
     test_fail "BitBot launcher not executable"
 fi
 
-if timeout 5 "$BITBOT_ROOT/bitbot" --version &> /tmp/bitbot-version.txt; then
+if timeout 5 "$BITBOT_ROOT/core/bitbot" --version &> /tmp/bitbot-version.txt; then
     VERSION=$(head -1 /tmp/bitbot-version.txt)
     test_pass "BitBot version: $VERSION"
 else
     test_fail "BitBot --version failed or timed out"
 fi
 
-if timeout 5 "$BITBOT_ROOT/bitbot" help &> /dev/null; then
+if timeout 5 "$BITBOT_ROOT/core/bitbot" help &> /dev/null; then
     test_pass "BitBot help command works"
 else
     test_fail "BitBot help command failed or timed out"
