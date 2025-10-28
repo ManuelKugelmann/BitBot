@@ -21,10 +21,11 @@ TESTS_RUN=0
 TESTS_PASSED=0
 TESTS_FAILED=0
 
-# Get script directory
+# Get script directory and find project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WRAPPER_SCRIPT="$SCRIPT_DIR/claude-wrapper.sh"
-SEND_CMD_SCRIPT="$SCRIPT_DIR/send-wrapper-command.sh"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+WRAPPER_SCRIPT="$PROJECT_ROOT/.bitbot/wrapper/claude-wrapper.sh"
+SEND_CMD_SCRIPT="$PROJECT_ROOT/.bitbot/wrapper/send-wrapper-command.sh"
 
 # Test helpers
 run_test() {
