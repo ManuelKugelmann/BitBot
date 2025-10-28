@@ -8,7 +8,7 @@ set -euo pipefail
 
 # Get Claude PID and Session ID
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../../.claude/tools/get-session-info.sh"
+source "$SCRIPT_DIR/../../claude-get-session-info/scripts/get-session-info.sh"
 
 if [ -z "$SESSION_ID" ]; then
     echo "Error: Could not detect session ID"

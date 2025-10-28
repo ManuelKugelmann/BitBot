@@ -24,7 +24,7 @@ esac
 
 # Get script directory and source utility
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../../.claude/tools/get-session-info.sh"
+source "$SCRIPT_DIR/../../claude-get-session-info/scripts/get-session-info.sh"
 
 # Validate Claude PID
 if [ -z "$CLAUDE_PID" ]; then
@@ -85,19 +85,23 @@ case "$MODE" in
 esac
 
 echo ""
-echo "Killing Claude process..."
+echo "Forking restart process..."
 
-# Kill Claude process
-kill -TERM "$CLAUDE_PID" 2>/dev/null || {
-    echo "Failed to kill Claude process"
-    exit 1
-}
+# Fork a detached background process to survive Claude termination
+# Use setsid to create a new session, detaching from parent process tree
+setsid bash -c "
+    # Kill Claude process
+    kill -TERM $CLAUDE_PID 2>/dev/null || exit 1
 
-# Wait for Claude to exit
-sleep 2
+    # Wait for Claude to fully exit
+    sleep 2
 
-# Clear terminal
-clear
+    # Clear terminal
+    clear
 
-# Execute restart command (replaces this script process)
-exec $RESTART_CMD
+    # Execute restart command
+    exec $RESTART_CMD
+" </dev/null >/dev/null 2>&1 &
+
+# Exit immediately - the detached process will handle the restart
+exit 0
