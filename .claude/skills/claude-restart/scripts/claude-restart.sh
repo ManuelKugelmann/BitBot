@@ -87,8 +87,12 @@ esac
 echo ""
 echo "Forking restart process..."
 
+# Get current TTY for terminal access
+TTY=$(tty)
+
 # Fork a detached background process to survive Claude termination
 # Use setsid to create a new session, detaching from parent process tree
+# Preserve terminal access by redirecting to actual TTY
 setsid bash -c "
     # Kill Claude process
     kill -TERM $CLAUDE_PID 2>/dev/null || exit 1
@@ -101,7 +105,7 @@ setsid bash -c "
 
     # Execute restart command
     exec $RESTART_CMD
-" </dev/null >/dev/null 2>&1 &
+" <"$TTY" >"$TTY" 2>&1 &
 
 # Exit immediately - the detached process will handle the restart
 exit 0
