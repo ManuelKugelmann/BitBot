@@ -53,14 +53,16 @@ resume_tmux_session() {
     attach_session "$session_name"
 }
 
-# Create new tmux with Claude --resume
+# Create new tmux with Claude --resume (via wrapper)
 create_tmux_with_resume() {
+    local wrapper_script="/usr/local/bitbot/wrapper/claude-wrapper.sh"
     local session_name="$(generate_session_name)"
     local mode="$(get_bitbot_mode)"
     local workspace="$(get_workspace)"
 
     echo ""
-    info "Creating new tmux session with Claude --resume..."
+    info "No unattached tmux sessions found"
+    info "Creating new session with Claude --resume..."
     echo ""
     info "Claude will show its available sessions for you to select"
     echo ""
@@ -71,24 +73,19 @@ create_tmux_with_resume() {
     info "Session: $session_name"
     echo ""
 
-    # Create tmux session and launch Claude with --resume
-    if ! tmux new-session -d -s "$session_name"; then
-        error "Failed to create tmux session"
-        return 1
+    # Check if wrapper is available
+    if [[ ! -f "$wrapper_script" ]] || [[ ! -x "$wrapper_script" ]]; then
+        error "Wrapper not found or not executable"
+        echo ""
+        echo "Expected location: $wrapper_script"
+        exit 1
     fi
 
-    # Send Claude --resume command
-    tmux send-keys -t "$session_name" "claude --resume" C-m
-
-    # Wait a moment for session to start
-    sleep 1
-
-    # Attach to session
-    success "Session created successfully"
+    success "Creating session..."
     echo ""
-    info "Attaching to session '$session_name'..."
-    echo ""
-    attach_session "$session_name"
+
+    # Create tmux session with wrapper claude --resume (no send-keys)
+    exec tmux new-session -s "$session_name" "$wrapper_script claude --resume"
 }
 
 # Show session menu
