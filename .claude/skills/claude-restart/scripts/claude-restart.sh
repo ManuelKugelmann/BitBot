@@ -85,27 +85,33 @@ case "$MODE" in
 esac
 
 echo ""
+
+# Check if running in tmux
+if [ -z "$TMUX" ]; then
+    echo "Error: Restart requires tmux"
+    echo "Please run Claude inside a tmux session"
+    exit 1
+fi
+
+# Get tmux session target
+TMUX_TARGET=$(tmux display-message -p '#S:#I.#P')
+echo "Detected tmux session: $TMUX_TARGET"
 echo "Forking restart process..."
 
-# Get current TTY for terminal access
-TTY=$(tty)
-
-# Fork a detached background process to survive Claude termination
-# Use setsid to create a new session, detaching from parent process tree
-# Preserve terminal access by redirecting to actual TTY
-setsid bash -c "
+# Fork detached process to kill Claude and send restart command to tmux
+setsid bash <<EOF &
     # Kill Claude process
     kill -TERM $CLAUDE_PID 2>/dev/null || exit 1
 
     # Wait for Claude to fully exit
-    sleep 2
+    sleep 3
 
-    # Clear terminal
-    clear
+    # Send restart command to tmux pane
+    tmux send-keys -t '$TMUX_TARGET' '$RESTART_CMD' C-m
+EOF
 
-    # Execute restart command
-    exec $RESTART_CMD
-" <"$TTY" >"$TTY" 2>&1 &
+# Give fork time to start
+sleep 1
 
-# Exit immediately - the detached process will handle the restart
+# Exit immediately - detached process will handle restart
 exit 0

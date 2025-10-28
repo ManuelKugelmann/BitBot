@@ -38,8 +38,11 @@ if [ -n "$SESSION_ID" ]; then
         echo "$SESSION_ID" > "$MAP_DIR/$CLAUDE_PID.txt"
     fi
 
-    # Echo session ID for visibility
+    # Echo session ID and Claude PID for visibility
     echo "Session ID: $SESSION_ID"
+    if [ -n "$CLAUDE_PID" ]; then
+        echo "Claude PID: $CLAUDE_PID"
+    fi
 fi
 
 exit 0
