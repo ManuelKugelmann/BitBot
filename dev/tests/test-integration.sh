@@ -231,9 +231,34 @@ echo ""
 echo -e "${BLUE}═══ Test 2: DevContainer Build (Optional) ═══${NC}"
 echo ""
 
-# Skip actual container build if CI or quick mode
-if [[ "${BITBOT_TEST_SKIP_BUILD:-}" == "1" ]]; then
+# Build container (controlled by environment variable)
+CONTAINER_BUILT=false
+
+if [[ "${BITBOT_TEST_SKIP_BUILD:-0}" == "1" ]]; then
     echo -e "${YELLOW}⊘ SKIPPED${NC}: Container build (BITBOT_TEST_SKIP_BUILD=1)"
+    echo -e "${YELLOW}ℹ${NC}  To test in-container execution, run: BITBOT_TEST_SKIP_BUILD=0 $0"
+    echo ""
+elif [[ "${BITBOT_TEST_BUILD_ONLY:-0}" == "1" ]]; then
+    run_test "Build DevContainer (build-only mode)"
+
+    # Convert path for Windows if using devcontainer.cmd
+    workspace_arg="$TEST_WORKSPACE"
+    if [[ "$DEVC_CMD" == *"cmd.exe"* ]]; then
+        workspace_arg=$(echo "$TEST_WORKSPACE" | sed 's|/mnt/\([a-z]\)/|\U\1:/|' | sed 's|/|\\|g')
+    fi
+
+    echo "Building container (this may take several minutes)..."
+    if timeout 600 $DEVC_CMD build --workspace-folder "$workspace_arg" &>/tmp/integration-build-$$.log; then
+        test_passed "DevContainer built successfully"
+        CONTAINER_BUILT=true
+    else
+        test_failed "DevContainer build failed"
+        echo "Build log:"
+        tail -20 /tmp/integration-build-$$.log
+        rm -f /tmp/integration-build-$$.log
+    fi
+    rm -f /tmp/integration-build-$$.log
+
     echo ""
 else
     run_test "Build DevContainer"
@@ -247,6 +272,7 @@ else
     echo "Building container (this may take several minutes)..."
     if timeout 600 $DEVC_CMD build --workspace-folder "$workspace_arg" &>/tmp/integration-build-$$.log; then
         test_passed "DevContainer built successfully"
+        CONTAINER_BUILT=true
     else
         test_failed "DevContainer build failed"
         echo "Build log:"
@@ -431,6 +457,79 @@ else
 fi
 
 echo ""
+
+# ============================================================================
+# Test 6: In-Container Execution (Layer 1 Tests)
+# ============================================================================
+
+echo -e "${BLUE}═══ Test 6: In-Container Execution ═══${NC}"
+echo ""
+
+if [[ "$CONTAINER_BUILT" == "false" ]]; then
+    echo -e "${YELLOW}⊘ SKIPPED${NC}: Container not built (tests require built container)"
+    echo -e "${YELLOW}ℹ${NC}  To run these tests: BITBOT_TEST_SKIP_BUILD=0 $0"
+    echo ""
+else
+    # Convert path for devcontainer exec
+    workspace_arg="$TEST_WORKSPACE"
+    if [[ "$DEVC_CMD" == *"cmd.exe"* ]]; then
+        workspace_arg=$(echo "$TEST_WORKSPACE" | sed 's|/mnt/\([a-z]\)/|\U\1:/|' | sed 's|/|\\|g')
+    fi
+
+    # Helper function to run commands in container
+    run_in_container() {
+        local cmd="$1"
+        if [[ "$DEVC_CMD" == *"cmd.exe"* ]]; then
+            timeout 30 cmd.exe /c "cd /d $workspace_arg && devcontainer.cmd exec --workspace-folder $workspace_arg $cmd" 2>&1
+        else
+            timeout 30 devcontainer exec --workspace-folder "$workspace_arg" bash -c "$cmd" 2>&1
+        fi
+    }
+
+    run_test "Test bitbot command in container"
+    if run_in_container "/usr/local/bitbot/bitbot help" | grep -qiE "usage|help|command"; then
+        test_passed "bitbot command works in container"
+    else
+        test_failed "bitbot command failed in container"
+    fi
+
+    run_test "Test wrapper script accessibility"
+    if run_in_container "test -x /usr/local/bitbot/wrapper/claude-wrapper.sh && echo OK" | grep -q "OK"; then
+        test_passed "Wrapper scripts mounted and executable"
+    else
+        test_failed "Wrapper scripts not accessible"
+    fi
+
+    run_test "Test pipe directory can be created"
+    if run_in_container "mkdir -p /workspace/.bitbot/tmp/pipes && echo OK" | grep -q "OK"; then
+        test_passed "Pipe directory creation works"
+    else
+        test_failed "Pipe directory creation failed"
+    fi
+
+    run_test "Test tmux availability in container"
+    if run_in_container "command -v tmux && echo OK" | grep -q "OK"; then
+        test_passed "tmux available in container"
+    else
+        test_failed "tmux not available (required for layer 2)"
+    fi
+
+    run_test "Test helpers.sh functions in container"
+    if run_in_container "source /usr/local/bitbot/core/util/helpers.sh && command_exists bash && echo OK" | grep -q "OK"; then
+        test_passed "helpers.sh works in container"
+    else
+        test_failed "helpers.sh failed in container"
+    fi
+
+    run_test "Test claude command availability"
+    if run_in_container "command -v claude && echo OK" | grep -q "OK"; then
+        test_passed "Claude Code available in container"
+    else
+        test_failed "Claude Code not available (expected in devcontainer)"
+    fi
+
+    echo ""
+fi
 
 # ============================================================================
 # Summary

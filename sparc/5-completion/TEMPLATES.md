@@ -125,11 +125,10 @@ dev/tests/test-container-bitbot.sh
 
 ### Contents
 
-- `base.devcontainer.json` - Common devcontainer settings merged with all templates
+- `bitbot-base/devcontainer.json` - Base template (standalone, no merge needed)
 - `scripts/` - Build and setup automation
-  - `setup-base.sh` - Base system setup
   - `install-dev-tools.sh` - Development tools
-  - `install-ai-tools.sh` - AI tool installation
+  - `install-ai-tools.sh` - AI tool installation (optional)
   - `merge-devcontainer.sh` - Template merge utility
   - `merge-all.sh` - Regenerate all templates
 
