@@ -1,0 +1,54 @@
+{
+  "hooks": {
+    "SessionStart": [
+        {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": ".claude/hooks/session-start.sh",
+                    "timeout": 5000
+                }
+            ]
+        }
+    ],
+    "SessionEnd": [
+        {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": ".claude/hooks/session-end.sh",
+                    "timeout": 5000
+                }
+            ]
+        }
+    ],
+    "UserPromptSubmit": [
+        {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": ".claude/hooks/user-prompt-submit.sh",
+                    "timeout": 10000
+                }
+            ]
+        }
+    ],
+    "Stop": [
+        {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": ".claude/hooks/do-not-stop.sh",
+                    "timeout": 5000
+                }
+            ]
+        }
+    ]
+  },
+
+  "permissions": {
+    "allow": [
+      ".claude/tools/**"
+    ]
+  }
+}

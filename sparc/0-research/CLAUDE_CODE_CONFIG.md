@@ -133,12 +133,14 @@ Memory files contain instructions and preferences that Claude loads automaticall
 ### Hierarchy (precedence order)
 
 1. **Enterprise level** (organization): System directories
-2. **Project level** (team): `./CLAUDE.md` or `./.claude/CLAUDE.md`
+2. **Project level** (team): `./CLAUDE.md` (workspace root) or `./.claude/CLAUDE.md`
 3. **User level** (personal): `~/.claude/CLAUDE.md`
 4. **Local project** (deprecated): `./CLAUDE.local.md`
 
+**Important:** The project CLAUDE.md **must live in the workspace root** (`./CLAUDE.md`) to be loaded by Claude Code. While `./.claude/CLAUDE.md` is also supported, the workspace root location is preferred and ensures consistent loading behavior.
+
 **Version Control:**
-- Project-level CLAUDE.md: ✅ **Commit**
+- Project-level CLAUDE.md: ✅ **Commit** (must be in workspace root)
 - User-level CLAUDE.md: ❌ Keep local (dotfiles)
 - Local CLAUDE.local.md: ❌ Keep local (deprecated)
 
@@ -147,7 +149,7 @@ Memory files contain instructions and preferences that Claude loads automaticall
 - Common commands
 - Project architecture details
 - Coding standards
-- Personal tooling shortcuts
+- Team conventions and workflows
 
 ---
 
@@ -234,9 +236,9 @@ Exclude (sensitive/session):
 
 ### DO Commit
 
+✅ `CLAUDE.md` - Project memory and guidelines (workspace root)
 ✅ `.claude/settings.json` - Shared project configuration
 ✅ `.claude/tools/` - Project tools and scripts
-✅ `CLAUDE.md` - Project memory and guidelines
 
 ### DON'T Commit
 
@@ -248,9 +250,9 @@ Exclude (sensitive/session):
 
 When setting up Claude Code on a new project:
 
-1. Copy `.claude/settings.json` from similar project or create new
-2. Add project-specific tools to `.claude/tools/`
-3. Create `CLAUDE.md` with project guidelines
+1. Create `CLAUDE.md` in workspace root with project guidelines
+2. Copy `.claude/settings.json` from similar project or create new
+3. Add project-specific tools to `.claude/tools/`
 4. Add `.claude/settings.local.json` to `.gitignore`
 5. Test tools with `--dry-run` before auto-approving
 

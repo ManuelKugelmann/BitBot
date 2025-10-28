@@ -55,8 +55,8 @@ credentials.json
 # Claude Code local settings
 .claude/settings.local.json
 
-# BitBot runtime files
-.bitbot/session-map/
+# Claude Code runtime files
+.claude/.pid-session-map/
 
 # Test coverage
 coverage/

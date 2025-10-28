@@ -1,0 +1,3 @@
+# Claude Code runtime and temporary files
+.pid-session-map/
+settings.local.json
