@@ -231,49 +231,18 @@ After completing a significant implementation phase, proactively remind the user
 - Workspace templates include shared home folders for AI tool configs
 - See `container/templates/workspace/README.md` for workspace template docs
 
-## Available Skills and Commands
+## Available Skills
 
-**IMPORTANT**: ALWAYS use these skills/commands instead of raw `dos2unix` or `sed` commands.
+**IMPORTANT**: Use skills instead of raw `dos2unix` or `sed` commands.
 
-### Skills (Model-Invoked)
-
-Claude automatically uses these skills when relevant to the task:
-
-**fix-line-endings** - Converts CRLF→LF only (no syntax check)
-- Use when: `/bin/bash: line 1: $'\r': command not found`
-- Auto-invoked when encountering line ending issues
-
-**check-bash** - Validates bash syntax without execution
-- Use before committing bash scripts
-- Auto-invoked when verifying script correctness
-
-**fix-line-endings-check-bash** ⭐ (recommended) - Fixes CRLF→LF + checks bash syntax
-- Use after creating/editing bash scripts
-- Auto-invoked as the default bash script preparation step
-
-**run-with-timeout** - Runs commands with timeout protection
-- Use for potentially long-running test commands
-- Auto-invoked when timeout protection is needed
-
-**skill-creator** (Anthropic) - Guide for creating effective skills
-- Use when creating or updating custom skills
-- Includes templates and best practices
-
-**template-skill** (Anthropic) - Starting template for new skills
-- Use as a base when creating new skills
-
-**do-not-stop** - Enable Stop hook automation
-- Model invokes when: Starting multi-phase work, automated workflows
-- User invokes: `/do-not-stop [reason]`
-- Use case: Working until finished without manual prompting
-- **Enabled by default in BitBot**
-
-**allow-stop** - Disable Stop hook automation
-- Model invokes when: User asks questions, interactive discussion needed
-- User invokes: `/allow-stop`
-- Use case: Asking, discussing, working together interactively
-
-**DO NOT USE**: `dos2unix file.sh` or `sed -i 's/\r$//' file.sh` directly - use skills above instead!
+**fix-line-endings** - Fix CRLF→LF line endings
+**check-bash** - Validate bash syntax
+**fix-line-endings-check-bash** ⭐ - Fix + check (recommended for bash scripts)
+**run-with-timeout** - Execute commands with timeout protection
+**skill-creator** / **template-skill** - Create custom skills (Anthropic)
+**do-not-stop** - Enable automation (default: "Resume work!") | `/do-not-stop [reason]`
+**allow-stop** - Disable automation, allow normal stop | `/allow-stop`
+**restart** - Reload skills/config or manage context | `/restart [mode]`
 
 ## Statusline (Optional)
 

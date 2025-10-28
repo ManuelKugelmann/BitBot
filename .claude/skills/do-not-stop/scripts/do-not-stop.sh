@@ -24,7 +24,7 @@ if [ $# -gt 0 ]; then
     REASON="$*"
 else
     # Default reason
-    REASON="Continue working. Check TODO list and implement the next pending task."
+    REASON="Resume work!"
 fi
 
 # Write reason to file

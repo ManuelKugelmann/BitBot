@@ -13,4 +13,4 @@ description: Enable Stop hook automation for continuous multi-phase workflows. U
 
 Or user invokes: `/do-not-stop [reason]`
 
-Default reason: "Continue working. Check TODO list and implement the next pending task."
+Default: "Resume work!"
