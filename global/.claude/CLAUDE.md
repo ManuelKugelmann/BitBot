@@ -13,7 +13,7 @@ This file contains your personal Claude Code preferences shared across all BitBo
 
 This is your **global** CLAUDE.md file stored in BitBot's installation directory.
 
-**Location:** `$BITBOT_HOME/container/home/.claude/CLAUDE.md`
+**Location:** `$BITBOT_HOME/global/.claude/CLAUDE.md`
 
 **Mounted to containers:** `/root/.claude/CLAUDE.md` (read-write)
 
@@ -28,7 +28,7 @@ This is your **global** CLAUDE.md file stored in BitBot's installation directory
 
 From BitBot development container or directly edit this file:
 ```bash
-nano $BITBOT_HOME/container/home/.claude/CLAUDE.md
+nano $BITBOT_HOME/global/.claude/CLAUDE.md
 ```
 
 Changes take effect immediately in all running containers (file is mounted, not copied).
