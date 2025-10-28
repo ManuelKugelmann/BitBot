@@ -162,4 +162,8 @@ Urgent:
 - [x] Migrate hooks to .bitbot/ infrastructure ✅
 - [x] Migrate wrapper to .bitbot/ infrastructure ✅
 - [x] Update project detection to use .bitbot/ marker ✅
+- [x] Add watchdog prototype for stall detection ✅
+- [ ] Test watchdog in real-world stall scenarios
 - [ ] Add relevant session info to statusline (session ID, PID, wrapper status)
+- [ ] Integrate wrapper into BitBot container startup
+- [ ] Replace tmux-based restart with pipe-based system
