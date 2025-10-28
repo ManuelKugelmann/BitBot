@@ -11,12 +11,23 @@
             ]
         }
     ],
+    "PreToolUse": [
+        {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": ".claude/hooks/restart-trigger.sh",
+                    "timeout": 5000
+                }
+            ]
+        }
+    ],
     "UserPromptSubmit": [
         {
             "hooks": [
                 {
                     "type": "command",
-                    "command": ".claude/hooks/fix-and-check.sh",
+                    "command": ".claude/hooks/user-prompt-submit.sh",
                     "timeout": 10000
                 }
             ]
@@ -28,11 +39,6 @@
                 {
                     "type": "command",
                     "command": ".claude/hooks/do-not-stop.sh",
-                    "timeout": 5000
-                },
-                {
-                    "type": "command",
-                    "command": ".claude/hooks/restart-handler.sh",
                     "timeout": 5000
                 }
             ]
