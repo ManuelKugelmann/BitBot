@@ -25,9 +25,10 @@ BITBOT_WATCHDOG=false .bitbot/wrapper/claude-wrapper.sh
 Monitors Claude process health and triggers restart on stall.
 
 **Monitors:**
-- Process existence and CPU usage
-- Sustained high CPU (>95% for 5+ minutes)
-- Session file activity
+- **Type A (Infinite Loop):** Sustained high CPU (>95% for 5+ minutes)
+- **Type B (API Timeout):** Session file staleness (warning-only)
+- **Type C (I/O Deadlock):** Uninterruptible sleep (D state) for 60+ seconds
+- Process existence and responsiveness
 - Pipe health
 
 **Configuration:**
@@ -35,7 +36,9 @@ Edit variables at top of `watchdog.sh`:
 - `CHECK_INTERVAL=30` - Check every 30s
 - `CPU_THRESHOLD=95` - High CPU threshold (%)
 - `HIGH_CPU_DURATION=300` - Max high CPU time (seconds)
+- `LOW_CPU_THRESHOLD=5` - Idle CPU threshold (%)
 - `SESSION_UPDATE_TIMEOUT=300` - Session file update timeout
+- `IO_BLOCK_DURATION=60` - Max time in D state (seconds)
 
 **Auto-start:**
 Watchdog launches automatically when:
@@ -107,9 +110,10 @@ dev/tests/test-wrapper.sh
 
 - ✅ Wrapper fully functional
 - ✅ All 10 tests passing
-- ✅ Watchdog prototype complete
+- ✅ Watchdog with Type A/C detection complete
+- ✅ Type C (I/O deadlock) detection implemented
 - ⏳ Needs integration into BitBot startup
-- ⏳ Needs real-world testing
+- ⏳ Needs real-world testing (Type B/C)
 
 ## Next Steps
 

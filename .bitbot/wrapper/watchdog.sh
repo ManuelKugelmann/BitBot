@@ -3,8 +3,9 @@
 #
 # Monitors:
 #   - Process existence and responsiveness
-#   - CPU load (detect infinite loops or hangs)
-#   - Session file activity (detect API stalls)
+#   - CPU load (detect infinite loops or hangs - Type A)
+#   - Session file activity (detect API stalls - Type B)
+#   - I/O deadlock (detect uninterruptible sleep - Type C)
 #
 # Usage: watchdog.sh <claude-pid> <session-id>
 
@@ -13,9 +14,11 @@ set -euo pipefail
 # Configuration
 CHECK_INTERVAL=30           # Check every 30 seconds
 CPU_THRESHOLD=95            # Alert if CPU > 95% for extended period
-HIGH_CPU_DURATION=300       # 5 minutes of high CPU = likely stalled
+HIGH_CPU_DURATION=300       # 5 minutes of high CPU = likely stalled (Type A)
+LOW_CPU_THRESHOLD=5         # Consider idle if CPU < 5%
 NO_ACTIVITY_TIMEOUT=600     # 10 minutes no session activity = stalled
 SESSION_UPDATE_TIMEOUT=300  # 5 minutes no session file update = stalled
+IO_BLOCK_DURATION=60        # 60 seconds in D state = I/O deadlock (Type C)
 
 # Arguments
 CLAUDE_PID="${1:-}"
@@ -60,6 +63,8 @@ WATCHDOG_STATE="$PROJECT_ROOT/.bitbot/wrapper/.watchdog-${CLAUDE_PID}.state"
 HIGH_CPU_START=0
 LAST_SESSION_MTIME=0
 LAST_PIPE_CHECK=0
+IO_BLOCK_START=0
+LAST_BLKIO_TICKS=0
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] WATCHDOG[$CLAUDE_PID]: $*" >&2
@@ -118,6 +123,50 @@ check_pipe_health() {
         return 0
     else
         log "Pipe appears to be blocked or unreadable"
+        return 1
+    fi
+}
+
+# Check for I/O deadlock (Type C stall)
+check_io_deadlock() {
+    # Check process state from /proc/PID/stat (field 3)
+    local stat_data
+    stat_data=$(cat /proc/$CLAUDE_PID/stat 2>/dev/null) || return 1
+
+    local state=$(echo "$stat_data" | awk '{print $3}')
+
+    # D state = uninterruptible sleep (usually I/O wait)
+    if [ "$state" = "D" ]; then
+        # Get wchan (wait channel) to see what kernel function is blocking
+        local wchan=$(cat /proc/$CLAUDE_PID/wchan 2>/dev/null)
+
+        # Get block I/O delay ticks (field 42)
+        local blkio_ticks=$(echo "$stat_data" | awk '{print $42}')
+
+        # Log details
+        log "Process in D state (I/O wait), wchan: ${wchan:-unknown}, blkio_ticks: ${blkio_ticks:-0}"
+
+        # Check for problematic wchan patterns
+        case "$wchan" in
+            *rpc_wait*|*io_schedule*|*wait_on_page*|*sync_buffer*)
+                log "Detected problematic I/O wait pattern: $wchan"
+                ;;
+        esac
+
+        # Track block I/O activity
+        if [ "${LAST_BLKIO_TICKS:-0}" -gt 0 ]; then
+            local blkio_delta=$((blkio_ticks - LAST_BLKIO_TICKS))
+            if [ $blkio_delta -gt 100 ]; then
+                log "Significant I/O delay: +${blkio_delta} ticks"
+            fi
+        fi
+        LAST_BLKIO_TICKS=$blkio_ticks
+
+        echo "D:$wchan"
+        return 0
+    else
+        # Not in D state
+        echo "$state"
         return 1
     fi
 }
@@ -200,7 +249,31 @@ monitor() {
             fi
         fi
 
-        # Check 3: Pipe health (every 5 checks)
+        # Check 3: I/O deadlock detection (Type C)
+        io_state=$(check_io_deadlock)
+        io_check_status=$?
+
+        if [ $io_check_status -eq 0 ]; then
+            # Process is in D state
+            if [ $IO_BLOCK_START -eq 0 ]; then
+                IO_BLOCK_START=$now
+                log "I/O block detected: $io_state"
+            else
+                local io_block_duration=$((now - IO_BLOCK_START))
+                if [ $io_block_duration -gt $IO_BLOCK_DURATION ]; then
+                    trigger_restart "I/O deadlock detected (D state for ${io_block_duration}s): $io_state"
+                    exit 0
+                fi
+            fi
+        else
+            # Not in D state anymore
+            if [ $IO_BLOCK_START -ne 0 ]; then
+                log "I/O block cleared"
+            fi
+            IO_BLOCK_START=0
+        fi
+
+        # Check 4: Pipe health (every 5 checks)
         LAST_PIPE_CHECK=$((LAST_PIPE_CHECK + 1))
         if [ $((LAST_PIPE_CHECK % 5)) -eq 0 ]; then
             if ! check_pipe_health; then
@@ -212,6 +285,8 @@ monitor() {
         echo "last_check=$now" > "$WATCHDOG_STATE"
         echo "cpu_usage=$cpu_usage" >> "$WATCHDOG_STATE"
         echo "high_cpu_start=$HIGH_CPU_START" >> "$WATCHDOG_STATE"
+        echo "io_block_start=$IO_BLOCK_START" >> "$WATCHDOG_STATE"
+        echo "last_blkio_ticks=$LAST_BLKIO_TICKS" >> "$WATCHDOG_STATE"
     done
 }
 
