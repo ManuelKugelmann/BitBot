@@ -159,7 +159,7 @@ BitBot follows the **SPARC** methodology for structured development:
 - **DO NOT** attempt big refactorings or implementation steps in one go
 - **DO NOT** use pwsh to run PowerShell scripts
 - **DO NOT** add 🤖 Generated with [Claude Code] or Co-Authored-By to commits
-- DO step by step, small steps, create TODO list for steps. test after steps. fix. commit if working.
+- DO step by step, small steps, track tasks using TodoWrite tool (session) AND `/sparc/TODOS.md` (persistent). test after steps. fix. commit if working.
 - DON'T: large changes, multiple changes, large combined commits
 - DO use worktrees when doing more complex git work like e.g. a release.
 - **DO** ask the user for manual execution of any commands requiring `sudo`. `sudo`does not work in claude code TUI.
@@ -381,3 +381,4 @@ graph LR
 - test run all code and scripts before committing
 - only commit when all tests are done and pass
 - do not git reset without user confirmation
+- use /sparc/TODOS.md to track Tasks
