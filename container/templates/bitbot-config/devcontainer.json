@@ -9,29 +9,20 @@
     }
   },
   "remoteUser": "root",
-  "$comment": "Config template details - merged with templates/shared/base.devcontainer.json",
-  "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
-  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/bitbot-config",
-  "name": "BitBot Config Mode",
-  "dockerFile": "Dockerfile",
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-vscode-remote.remote-containers",
-        "ms-azuretools.vscode-docker",
-        "redhat.vscode-yaml"
-      ],
-      "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash",
-        "files.associations": {
-          "devcontainer.json": "jsonc",
-          "Dockerfile": "dockerfile"
-        }
-      }
-    }
-  },
+  "$comment_mounts": "Mount structure: copied files + global overlays",
   "mounts": [
     "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-  ]
+    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,consistency=cached"  # RW for config mode,
+    "source=${localWorkspaceFolder}/.bitbot/internal/container/home/.tmux.conf,target=/root/.tmux.conf,type=bind,consistency=cached"  # RW for config mode,
+    "source=${localWorkspaceFolder}/.bitbot/internal/container/home/.config,target=/root/.config,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude,target=/root/.claude,type=bind,consistency=cached",
+    "source=${localEnv:BITBOT_HOME:${localWorkspaceFolder}/.bitbot/internal}/global/.claude/CLAUDE.md,target=/root/.claude/CLAUDE.md,type=bind,consistency=cached",
+    "source=${localEnv:BITBOT_HOME:${localWorkspaceFolder}/.bitbot/internal}/global/.claude/settings.json,target=/root/.claude/settings.json,type=bind,consistency=cached"  # RW for config mode,
+    "source=${localEnv:BITBOT_HOME:${localWorkspaceFolder}/.bitbot/internal}/global/.claude/.credentials.json,target=/root/.claude/.credentials.json,type=bind,consistency=cached"
+  ],
+  "$comment": "Base template details - merged with templates/shared/base.devcontainer.json",
+  "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
+  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/base",
+  "name": "BitBot Config Mode",
+  "dockerFile": "Dockerfile"
 }
