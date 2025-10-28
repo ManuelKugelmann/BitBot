@@ -24,30 +24,36 @@ Claude Code session tracking via hooks with session ID and PID management. Enabl
 **Session Tracking**:
 - Use Claude Code's native session IDs (UUID format)
 - Track Claude process PID for session control
-- Store session state in `.bitbot/wrapper/` for inter-process communication
+- Communicate session info via pipe-based IPC (no state files)
 - No custom session persistence needed (Claude Code handles this)
 
 **Hook-Based Architecture**:
-- SessionStart: Capture session ID and PID at startup
-- SessionEnd: Clean up session state files
+- SessionStart: Capture session ID and send to wrapper via pipe
+- SessionEnd: No cleanup needed (stateless communication)
 - UserPromptSubmit: Optional hook for user interaction tracking
 - Stop: Control continuous workflow behavior (do-not-stop feature)
 
-### 1.2 Session State Storage
+### 1.2 Session Communication
 
+**Pipe-Based IPC**:
+- Session hook sends: `session <SESSION_ID>` → `$WRAPPER_PIPE`
+- Wrapper receives session ID and starts watchdog
+- No state files created (stateless communication)
+
+**Directory Structure**:
 ```
-.bitbot/wrapper/
-├── .wrapper-session-{PID}.state    # Session state for PID
-├── .gitignore                       # Ignore all .wrapper-session-* files
-└── DO-NOT-STOP.txt                  # Stop hook control file
+.bitbot/
+├── tmp/                        # Runtime files (ephemeral)
+│   └── pipes/                  # Named pipes for wrapper IPC
+│       ├── claude-{PID}.pipe   # Control pipe
+│       └── claude-{PID}.ready  # Ready marker
+└── DO-NOT-STOP.txt             # Stop hook control file
 ```
 
-**Session State Format** (`.wrapper-session-{PID}.state`):
-```bash
-SESSION_ID=4c02986e-41d4-4b5f-829a-b097ee844a8e
-IS_RESUME=start     # or "resume"
-START_TIME=1735410000
-```
+**Environment Variables** (set by SessionStart hook):
+- `CLAUDE_SESSION_ID` - Current session UUID
+- `CLAUDE_PID` - Current Claude process ID
+- `CLAUDE_PROJECT_DIR` - Project root directory
 
 ---
 
@@ -66,23 +72,23 @@ START_TIME=1735410000
 **Outputs**:
 - Exports `CLAUDE_SESSION_ID`, `CLAUDE_PID`, `CLAUDE_PROJECT_DIR` to env file
 - Echoes session info: `SessionStart:{start|resume} - Session: {ID}, PID: {PID}`
-- Creates `.bitbot/wrapper/.wrapper-session-{PID}.state` file
+- Sends `session <SESSION_ID>` to wrapper via `$WRAPPER_PIPE` (if running under wrapper)
 
 **Key Features**:
 - Detects resume vs new session
 - Finds Claude PID via process tree inspection
-- Stores state for wrapper script access
+- Communicates with wrapper via pipe (no files)
 - Validates it's being run by Claude Code (not standalone)
 
 ### 2.2 SessionEnd Hook
 
 **File**: `.bitbot/hooks/session-end.sh`
 
-**Purpose**: Clean up session state files when Claude exits
+**Purpose**: Session cleanup when Claude exits (currently minimal)
 
 **Behavior**:
-- Removes `.wrapper-session-{PID}.state` file for current session
-- Cleans up old state files for non-running PIDs
+- No cleanup needed (pipe-based communication is stateless)
+- Hook exists for future session teardown logic
 
 ### 2.3 Stop Hook (Do-Not-Stop)
 
@@ -107,7 +113,7 @@ START_TIME=1735410000
 **Shared Functions**:
 - `find_claude_pid()` - Locate Claude process PID
 - `find_project_root()` - Locate BitBot project root
-- `get_session_id()` - Read session ID from wrapper state
+- `get_session_id()` - Read session ID from environment (`$CLAUDE_SESSION_ID`)
 
 ---
 
@@ -200,16 +206,12 @@ Skills that use session info:
 
 ### 4.2 Git Ignore
 
-**File**: `.bitbot/wrapper/.gitignore`
-
-```
-# Ignore all wrapper session state files
-.wrapper-session-*.state
-```
-
 **File**: `.bitbot/.gitignore`
 
 ```
+# Runtime files (ephemeral)
+tmp/
+
 # Session control files (per-user preference)
 DO-NOT-STOP.txt
 DONOTSTOP-*.txt
@@ -233,12 +235,16 @@ graph TD
     G -->|No| I[Echo: SessionStart:start]
     H --> J[Export env vars to CLAUDE_ENV_FILE]
     I --> J
-    J --> K[Write wrapper state file]
-    K --> L[Claude Code Ready]
+    J --> K{Wrapper Active?}
+    K -->|Yes| L[Send 'session ID' to pipe]
+    K -->|No| M[Skip pipe communication]
+    L --> N[Claude Code Ready]
+    M --> N
 
     style A fill:#4a9eff,stroke:#333,stroke-width:2px
     style G fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
-    style L fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
+    style K fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
+    style N fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
 ```
 
 ### 5.2 Session Restart Flow
@@ -248,7 +254,7 @@ graph TD
     A[User: /claude-restart] --> B[claude-restart skill]
     B --> C[Source session-utils.sh]
     C --> D[Get CLAUDE_PID]
-    D --> E[Get SESSION_ID from state]
+    D --> E[Get SESSION_ID from env]
     E --> F[Kill Claude process PID]
     F --> G[Exec: claude --resume SESSION_ID]
     G --> H[SessionStart hook triggered]
@@ -308,8 +314,8 @@ graph TD
 **Functional Requirements**:
 - [x] Session ID captured at startup
 - [x] Claude PID tracked via process tree
-- [x] Session state persists in wrapper files
-- [x] SessionEnd cleans up state files
+- [x] Session ID communicated via pipe to wrapper
+- [x] SessionEnd hook exists for future use
 - [x] claude-restart skill works reliably
 - [x] Do-not-stop hook enables automation
 
@@ -321,9 +327,9 @@ graph TD
 
 **Reliability Requirements**:
 - [x] Hooks validate they're run by Claude Code
-- [x] State files use unique PIDs (no conflicts)
+- [x] Pipe-based IPC is stateless (no conflicts)
 - [x] Failed hook doesn't break Claude startup
-- [x] Old state files cleaned up automatically
+- [x] No cleanup needed (pipes are ephemeral)
 
 ---
 

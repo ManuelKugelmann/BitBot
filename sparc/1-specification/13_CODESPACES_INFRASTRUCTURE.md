@@ -85,9 +85,8 @@ user-workspace/
 │   │       │   └── .tmux.conf
 │   │       └── bitbot/
 │   │           └── core/
-│   └── tmp/                     ← Runtime files (not mounted separately)
-│       ├── pipes/                   (wrapper IPC pipes)
-│       └── sessions/                (session state files)
+│   └── tmp/                     ← Runtime files (ephemeral, not mounted)
+│       └── pipes/                   (wrapper IPC pipes)
 ├── .devcontainer/
 │   ├── bitbot/                      ← Container BitBot commands
 │   └── home/                        ← Per-workspace AI configs

@@ -307,20 +307,19 @@ EXIT 0
 
 ## State Management
 
-### Wrapper State File Format
+### Session Communication
 
-**File**: `.bitbot/wrapper/.wrapper-session-{PID}.state`
+**Method**: Pipe-based IPC
 
-```bash
-SESSION_ID=4c02986e-41d4-4b5f-829a-b097ee844a8e
-IS_RESUME=start
-START_TIME=1735410000
-```
+**Flow**:
+- SessionStart hook sends: `session <SESSION_ID>` → `$WRAPPER_PIPE`
+- Wrapper receives session ID via pipe reader
+- Session ID exported to environment: `$CLAUDE_SESSION_ID`
 
 **Purpose**:
-- Inter-process communication (hooks → skills)
-- Session info persistence across script invocations
-- PID-based uniqueness (no conflicts between sessions)
+- Inter-process communication (hook → wrapper)
+- Instant, stateless session ID delivery
+- No file I/O needed
 
 ### Control File Format
 
