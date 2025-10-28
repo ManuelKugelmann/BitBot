@@ -2,6 +2,32 @@
 # session-utils.sh - Shared utilities for session hooks
 # Source this file in other hooks
 
+# Find project root by looking for .claude directory
+find_project_root() {
+    local dir="$PWD"
+    local max_depth=10
+    local depth=0
+
+    while [ $depth -lt $max_depth ]; do
+        if [ -d "$dir/.claude" ]; then
+            echo "$dir"
+            return 0
+        fi
+
+        # Reached filesystem root
+        if [ "$dir" = "/" ]; then
+            break
+        fi
+
+        dir=$(dirname "$dir")
+        depth=$((depth + 1))
+    done
+
+    # Fallback to current directory
+    echo "$PWD"
+    return 1
+}
+
 # Find Claude PID by walking up the process tree
 find_claude_pid() {
     local pid=$$
@@ -29,11 +55,15 @@ find_claude_pid() {
 
 # Get session map directory
 get_session_map_dir() {
+    local project_root
     if [ -d "/workspace" ]; then
-        echo "/workspace/.bitbot/session-map"
+        project_root="/workspace"
+    elif [ -n "$CLAUDE_PROJECT_DIR" ]; then
+        project_root="$CLAUDE_PROJECT_DIR"
     else
-        echo "${CLAUDE_PROJECT_DIR:-.}/.bitbot/session-map"
+        project_root=$(find_project_root)
     fi
+    echo "$project_root/.claude/.pid-session-map"
 }
 
 # Clean up stale session maps if no other Claude instances running

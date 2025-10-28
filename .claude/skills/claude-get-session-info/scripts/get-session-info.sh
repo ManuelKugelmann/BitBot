@@ -3,6 +3,21 @@
 # Source this file in other scripts to access:
 #   - CLAUDE_PID variable
 #   - SESSION_ID variable
+#
+# Prioritizes environment variables set by SessionStart hook,
+# falls back to process tree walking if not available.
+
+# Check if already set by SessionStart hook
+if [ -n "$CLAUDE_SESSION_ID" ]; then
+    SESSION_ID="$CLAUDE_SESSION_ID"
+    # CLAUDE_PID might also be set
+    if [ -z "$CLAUDE_PID" ]; then
+        CLAUDE_PID=""
+    fi
+    export CLAUDE_PID
+    export SESSION_ID
+    return 0 2>/dev/null || exit 0
+fi
 
 # Find Claude PID by walking up the process tree
 _find_claude_pid() {
@@ -32,9 +47,9 @@ _find_claude_pid() {
 # Get session map directory
 _get_session_map_dir() {
     if [ -d "/workspace" ]; then
-        echo "/workspace/.bitbot/session-map"
+        echo "/workspace/.claude/.pid-session-map"
     else
-        echo "${CLAUDE_PROJECT_DIR:-.}/.bitbot/session-map"
+        echo "${CLAUDE_PROJECT_DIR:-.}/.claude/.pid-session-map"
     fi
 }
 

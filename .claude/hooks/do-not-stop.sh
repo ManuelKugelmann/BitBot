@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+# Get script directory and source utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/session-utils.sh"
+
 # Read JSON input from stdin
 INPUT=$(cat)
 
@@ -23,13 +27,9 @@ else
     SESSION_ID=$(echo "$INPUT" | grep -o '"session_id":"[^"]*"' | sed 's/"session_id":"\([^"]*\)"/\1/' || echo "")
 fi
 
-# Determine base directory
-# Try /workspace first (for BitBot containers), fallback to project dir
-if [ -d "/workspace" ]; then
-    BASE_DIR="/workspace/.bitbot"
-else
-    BASE_DIR="${CLAUDE_PROJECT_DIR:-.}/.bitbot"
-fi
+# Determine base directory using project root finder
+PROJECT_ROOT=$(find_project_root)
+BASE_DIR="$PROJECT_ROOT/.bitbot"
 
 # Check for session-specific file first, then global fallback
 DO_NOT_STOP_FILE=""

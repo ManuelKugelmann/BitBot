@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 # session-start.sh - Create PID->SessionID map and display session ID
 # Receives JSON via stdin with session_id field
+#
+# NOTE: This hook is NOT standalone - it must be run by Claude Code
+# which provides the CLAUDE_ENV_FILE environment variable.
 
 set -euo pipefail
+
+# Verify this is being run by Claude Code, not standalone
+if [ -z "${CLAUDE_ENV_FILE:-}" ]; then
+    echo "ERROR: CLAUDE_ENV_FILE not set." >&2
+    echo "This hook must be run by Claude Code SessionStart, not standalone." >&2
+    exit 1
+fi
 
 # Source shared utilities
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,6 +50,14 @@ if [ -n "$SESSION_ID" ]; then
 
     # Check if this is a resume (session already exists)
     IS_RESUME=$(echo "$INPUT" | grep -q '"is_resume":true' && echo "resume" || echo "start")
+
+    # Export environment variables for the session
+    PROJECT_ROOT=$(find_project_root)
+    echo "export CLAUDE_SESSION_ID='$SESSION_ID'" >> "$CLAUDE_ENV_FILE"
+    echo "export CLAUDE_PROJECT_DIR='$PROJECT_ROOT'" >> "$CLAUDE_ENV_FILE"
+    if [ -n "$CLAUDE_PID" ]; then
+        echo "export CLAUDE_PID='$CLAUDE_PID'" >> "$CLAUDE_ENV_FILE"
+    fi
 
     # Echo session info in one line
     if [ -n "$CLAUDE_PID" ]; then
