@@ -55,9 +55,10 @@ find_project_root() {
 }
 
 PROJECT_ROOT=$(find_project_root)
-PIPE="$PROJECT_ROOT/.bitbot/wrapper/pipes/claude-${CLAUDE_PID}.pipe"
+RUNTIME_DIR="$PROJECT_ROOT/.bitbot/wrapper-runtime"
+PIPE="$RUNTIME_DIR/pipes/claude-${CLAUDE_PID}.pipe"
 SESSION_DIR="$HOME/.config/Claude/sessions"
-WATCHDOG_STATE="$PROJECT_ROOT/.bitbot/wrapper/.watchdog-${CLAUDE_PID}.state"
+WATCHDOG_STATE="$RUNTIME_DIR/.watchdog-${CLAUDE_PID}.state"
 
 # State tracking
 HIGH_CPU_START=0

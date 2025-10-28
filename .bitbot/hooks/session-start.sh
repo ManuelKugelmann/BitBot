@@ -53,8 +53,8 @@ if [ -n "$SESSION_ID" ]; then
 
     # Post session ID to wrapper if running under wrapper
     if [ -n "$CLAUDE_PID" ]; then
-        WRAPPER_STATE="$PROJECT_ROOT/.bitbot/wrapper/.wrapper-session-${CLAUDE_PID}.state"
-        if mkdir -p "$PROJECT_ROOT/.bitbot/wrapper" 2>/dev/null; then
+        WRAPPER_STATE="$PROJECT_ROOT/.bitbot/wrapper-runtime/.wrapper-session-${CLAUDE_PID}.state"
+        if mkdir -p "$PROJECT_ROOT/.bitbot/wrapper-runtime" 2>/dev/null; then
             echo "SESSION_ID=$SESSION_ID" > "$WRAPPER_STATE"
             echo "IS_RESUME=$IS_RESUME" >> "$WRAPPER_STATE"
             echo "START_TIME=$(date +%s)" >> "$WRAPPER_STATE"

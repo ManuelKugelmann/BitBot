@@ -94,8 +94,8 @@ create_workspace_structure() {
     print_success "Created .bitbot/internal/"
     print_success "Created .bitbot/internal/local/"
 
-    # Copy wrapper infrastructure
-    copy_wrapper_infrastructure "${workspace_path}"
+    # Create wrapper runtime directory
+    create_wrapper_runtime "${workspace_path}"
 
     # Create config.json
     local workspace_name
@@ -126,52 +126,29 @@ create_workspace_structure() {
 }
 
 # ============================================================================
-# Wrapper Infrastructure
+# Wrapper Runtime Directory
 # ============================================================================
 
-copy_wrapper_infrastructure() {
-    # Copy wrapper scripts from BitBot to workspace
+create_wrapper_runtime() {
+    # Create runtime directory for wrapper (pipes, state files)
+    # Note: Wrapper scripts are mounted readonly from $BITBOT_HOME/.bitbot/wrapper
     local workspace_path="$1"
-    local source_wrapper="${BITBOT_HOME}/.bitbot/wrapper"
-    local dest_wrapper="${workspace_path}/.bitbot/wrapper"
+    local runtime_dir="${workspace_path}/.bitbot/wrapper-runtime"
 
-    # Check if source wrapper exists
-    if [[ ! -d "$source_wrapper" ]]; then
-        echo "  Warning: Wrapper scripts not found at $source_wrapper"
-        echo "  Skipping wrapper installation (tmux fallback will be used)"
-        return 0
-    fi
-
-    # Create wrapper directory
-    create_directory "$dest_wrapper"
-    create_directory "$dest_wrapper/pipes"
-
-    # Copy wrapper scripts (executable scripts only, not docs)
-    local scripts=(
-        "claude-wrapper.sh"
-        "watchdog.sh"
-        "send-wrapper-command.sh"
-    )
-
-    for script in "${scripts[@]}"; do
-        if [[ -f "${source_wrapper}/${script}" ]]; then
-            cp "${source_wrapper}/${script}" "${dest_wrapper}/${script}"
-            chmod +x "${dest_wrapper}/${script}" 2>/dev/null || true
-        fi
-    done
+    # Create runtime directory
+    create_directory "$runtime_dir"
+    create_directory "$runtime_dir/pipes"
 
     # Create .gitignore for wrapper runtime files
-    cat > "${dest_wrapper}/.gitignore" <<'EOF'
-# Wrapper runtime files (generated at runtime)
-pipes/
-.wrapper-session-*.state
-.watchdog-*.state
+    cat > "${runtime_dir}/.gitignore" <<'EOF'
+# Wrapper runtime files (all generated at runtime)
+*
+!.gitignore
 EOF
 
-    print_success "Installed wrapper infrastructure"
-    print_success "  - claude-wrapper.sh (pipe-based IPC)"
-    print_success "  - watchdog.sh (Type A/C stall detection)"
-    print_success "  - send-wrapper-command.sh (control helper)"
+    print_success "Created wrapper runtime directory"
+    print_success "  - Wrapper scripts mounted from \$BITBOT_HOME/.bitbot/wrapper (readonly)"
+    print_success "  - Runtime files (pipes, state) in .bitbot/wrapper-runtime/"
 }
 
 # ============================================================================

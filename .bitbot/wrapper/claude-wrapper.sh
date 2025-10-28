@@ -43,9 +43,13 @@ find_project_root() {
 # Determine project directory
 PROJECT_DIR=$(find_project_root)
 
-# Setup pipe infrastructure
-PIPE_DIR="$PROJECT_DIR/.bitbot/wrapper/pipes"
+# Setup pipe infrastructure (use wrapper-runtime in workspace)
+RUNTIME_DIR="$PROJECT_DIR/.bitbot/wrapper-runtime"
+PIPE_DIR="$RUNTIME_DIR/pipes"
 WRAPPER_PID=$$
+
+# Create runtime directories if needed
+mkdir -p "$PIPE_DIR"
 
 # Cleanup function
 cleanup() {
@@ -339,7 +343,7 @@ sleep 0.5
 # Try to detect session ID from wrapper state file
 # Note: session-start hook writes SESSION_ID to this file when Claude starts
 # Format: SESSION_ID=<uuid>\nIS_RESUME=start|resume\nSTART_TIME=<timestamp>
-WRAPPER_STATE="$PROJECT_DIR/.bitbot/wrapper/.wrapper-session-${CLAUDE_PID}.state"
+WRAPPER_STATE="$RUNTIME_DIR/.wrapper-session-${CLAUDE_PID}.state"
 SESSION_ID=""
 
 # Wait up to 5 seconds for session state to be posted
@@ -356,7 +360,9 @@ done
 
 # Start watchdog if enabled and session detected
 if [ "${BITBOT_WATCHDOG:-true}" = "true" ] && [ -n "$SESSION_ID" ]; then
-    WATCHDOG_SCRIPT="$PROJECT_DIR/.bitbot/wrapper/watchdog.sh"
+    # Watchdog script is in same directory as wrapper (mounted)
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    WATCHDOG_SCRIPT="$SCRIPT_DIR/watchdog.sh"
     if [ -x "$WATCHDOG_SCRIPT" ]; then
         echo "Starting watchdog monitor..."
         "$WATCHDOG_SCRIPT" "$CLAUDE_PID" "$SESSION_ID" &
