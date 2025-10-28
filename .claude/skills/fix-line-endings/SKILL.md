@@ -8,7 +8,7 @@ description: Fix CRLF (Windows) to LF (Unix) line endings in files. Use when enc
 Convert CRLF to LF line endings.
 
 ```bash
-.claude/tools/fix-line-endings.sh file1.sh file2.sh
+.claude/skills/fix-line-endings/scripts/fix-line-endings.sh file1.sh file2.sh
 ```
 
 For combined fix + syntax check, use `fix-line-endings-check-bash` instead.

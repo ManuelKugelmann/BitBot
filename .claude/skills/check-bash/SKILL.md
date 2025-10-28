@@ -8,7 +8,7 @@ description: Check bash script syntax without executing. Use before committing b
 Validate syntax without execution.
 
 ```bash
-.claude/tools/check-bash.sh script1.sh script2.sh
+.claude/skills/check-bash/scripts/check-bash.sh script1.sh script2.sh
 ```
 
 For combined fix + check, use `fix-line-endings-check-bash`.

@@ -285,13 +285,13 @@ See `sparc/0-research/CCSTATUSLINE_SETUP.md` for full setup guide.
    - Follow existing test structure (see `dev/tests/test-container-bitbot.sh`)
 1. **Run Tests in WSL**:
 
-   - Fix line endings + check syntax: `.claude/tools/fix-line-endings-check-bash dev/tests/test-<feature>.sh`
-   - Run with timeout: `.claude/tools/run-with-timeout 60 dev/tests/test-<feature>.sh`
+   - Fix line endings + check syntax: `.claude/skills/fix-line-endings-check-bash/scripts/fix-line-endings-check-bash.sh dev/tests/test-<feature>.sh`
+   - Run with timeout: `.claude/skills/run-with-timeout/scripts/run-with-timeout.sh 60 dev/tests/test-<feature>.sh`
    - Debug failures individually before moving on
 1. **Fix Issues**:
 
-   - Fix line endings: `.claude/tools/fix-line-endings file.sh` (or use fix-line-endings-check-bash)
-   - Check syntax only: `.claude/tools/check-bash file.sh`
+   - Fix line endings: `.claude/skills/fix-line-endings/scripts/fix-line-endings.sh file.sh` (or use fix-line-endings-check-bash)
+   - Check syntax only: `.claude/skills/check-bash/scripts/check-bash.sh file.sh`
    - Fix logic errors one at a time
    - Rerun tests after each fix
    - Don't commit until all tests pass
@@ -314,16 +314,16 @@ See `sparc/0-research/CCSTATUSLINE_SETUP.md` for full setup guide.
 vim dev/tests/test-feature.sh
 chmod +x dev/tests/test-feature.sh
 
-# 2. Fix line endings and check syntax (use tools!)
-.claude/tools/fix-line-endings-check-bash dev/tests/test-feature.sh
-.claude/tools/fix-line-endings-check-bash feature/script.sh
+# 2. Fix line endings and check syntax (use skills!)
+.claude/skills/fix-line-endings-check-bash/scripts/fix-line-endings-check-bash.sh dev/tests/test-feature.sh
+.claude/skills/fix-line-endings-check-bash/scripts/fix-line-endings-check-bash.sh feature/script.sh
 
 # 3. Run tests with timeout to prevent hangs
-.claude/tools/run-with-timeout 60 dev/tests/test-feature.sh
+.claude/skills/run-with-timeout/scripts/run-with-timeout.sh 60 dev/tests/test-feature.sh
 
 # 4. Fix issues and rerun
 # ... fix logic errors ...
-.claude/tools/run-with-timeout 60 dev/tests/test-feature.sh
+.claude/skills/run-with-timeout/scripts/run-with-timeout.sh 60 dev/tests/test-feature.sh
 
 # 5. Commit
 git add feature/script.sh

@@ -8,7 +8,7 @@ description: Fix line endings AND check bash syntax in one step (recommended). U
 **Recommended tool** for bash script preparation.
 
 ```bash
-.claude/tools/fix-line-endings-check-bash.sh script1.sh script2.sh
+.claude/skills/fix-line-endings-check-bash/scripts/fix-line-endings-check-bash.sh script1.sh script2.sh
 ```
 
 Converts CRLF→LF, then validates syntax. Stops on first failure.

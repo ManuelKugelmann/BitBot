@@ -8,7 +8,7 @@ description: Run commands with timeout protection to prevent hanging. Use for po
 Execute commands with timeout protection.
 
 ```bash
-.claude/tools/run-with-timeout.sh 60 ./test-script.sh
+.claude/skills/run-with-timeout/scripts/run-with-timeout.sh 60 ./test-script.sh
 ```
 
 Returns exit code 124 if timeout exceeded, otherwise command's exit code.
