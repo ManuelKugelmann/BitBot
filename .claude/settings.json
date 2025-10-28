@@ -5,7 +5,7 @@
             "hooks": [
                 {
                     "type": "command",
-                    "command": ".claude/hooks/session-start.sh",
+                    "command": ".bitbot/hooks/session-start.sh",
                     "timeout": 5000
                 }
             ]
@@ -16,7 +16,7 @@
             "hooks": [
                 {
                     "type": "command",
-                    "command": ".claude/hooks/session-end.sh",
+                    "command": ".bitbot/hooks/session-end.sh",
                     "timeout": 5000
                 }
             ]
@@ -27,7 +27,7 @@
             "hooks": [
                 {
                     "type": "command",
-                    "command": ".claude/hooks/user-prompt-submit.sh",
+                    "command": ".bitbot/hooks/user-prompt-submit.sh",
                     "timeout": 10000
                 }
             ]
@@ -38,7 +38,7 @@
             "hooks": [
                 {
                     "type": "command",
-                    "command": ".claude/hooks/do-not-stop.sh",
+                    "command": ".bitbot/hooks/do-not-stop.sh",
                     "timeout": 5000
                 }
             ]

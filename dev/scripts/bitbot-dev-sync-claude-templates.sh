@@ -53,8 +53,10 @@ TEMPLATES=(
 )
 
 # Base content (shared by all templates)
-BASE_DIRS=("hooks" "tools")
+# Note: hooks are now in .bitbot/hooks/, not .claude/hooks/
+BASE_DIRS=("tools")
 BASE_FILES=("settings.json" ".gitignore")
+BITBOT_BASE="$PROJECT_ROOT/.bitbot"
 
 # Sync base content to a template
 sync_base_content() {
@@ -67,10 +69,17 @@ sync_base_content() {
     # Create .claude directory
     mkdir -p "$target_claude"
 
-    # Copy base directories
+    # Copy hooks from .bitbot/hooks/
+    if [ -d "$BITBOT_BASE/hooks" ]; then
+        echo "  Copying hooks/ from .bitbot/"
+        rm -rf "$target_claude/hooks"
+        cp -r "$BITBOT_BASE/hooks" "$target_claude/"
+    fi
+
+    # Copy base directories from .claude/
     for dir in "${BASE_DIRS[@]}"; do
         if [ -d "$SOURCE_CLAUDE/$dir" ]; then
-            echo "  Copying $dir/"
+            echo "  Copying $dir/ from .claude/"
             rm -rf "$target_claude/$dir"
             cp -r "$SOURCE_CLAUDE/$dir" "$target_claude/"
         fi
@@ -166,6 +175,7 @@ echo ""
 echo -e "${GREEN}✓${NC} Sync complete!"
 echo ""
 echo "Summary:"
-echo "  Base content: hooks, tools, settings.json, shared skills"
+echo "  Hooks: Copied from .bitbot/hooks/"
+echo "  Base content: tools, settings.json, shared skills from .claude/"
 echo "  Template-specific: bitbot-{dev,work,config}-* skills"
 echo ""

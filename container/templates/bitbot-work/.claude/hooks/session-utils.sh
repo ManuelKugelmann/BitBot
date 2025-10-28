@@ -2,14 +2,14 @@
 # session-utils.sh - Shared utilities for session hooks
 # Source this file in other hooks
 
-# Find project root by looking for .claude directory
+# Find project root by looking for .bitbot directory
 find_project_root() {
     local dir="$PWD"
     local max_depth=10
     local depth=0
 
     while [ $depth -lt $max_depth ]; do
-        if [ -d "$dir/.claude" ]; then
+        if [ -d "$dir/.bitbot" ]; then
             echo "$dir"
             return 0
         fi
