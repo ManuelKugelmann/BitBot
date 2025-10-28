@@ -11,12 +11,12 @@
 
 ## Executive Summary
 
-Container BitBot is the container-side companion to host-side BitBot, providing Claude Code launching via wrapper with transparent tmux infrastructure. It runs inside both work and config mode containers at `/usr/local/bitbot/`.
+Container BitBot is the container-side companion to host-side BitBot, providing two-layer session management: tmux for terminal persistence and wrapper for Claude operations. It runs inside both work and config mode containers at `/usr/local/bitbot/`.
 
 **Key Features**:
-- Single-command Claude launcher (`bitbot`)
-- Wrapper-based session management (restart/resume/compact via IPC)
-- Transparent tmux infrastructure (single pane, user doesn't interact with tmux)
+- **Layer 1 (tmux)**: Session persistence with smart launcher, start, and resume commands
+- **Layer 2 (wrapper)**: Claude operations via IPC (restart/resume/compact/clear)
+- Complete separation: tmux manages sessions, wrapper manages Claude
 - Mode-aware operation (work vs config tools)
 
 ---
@@ -71,42 +71,123 @@ RUN apt-get update && apt-get install -y tmux && apt-get clean
 
 ## 2. Commands
 
-### 2.1 Launch Claude (Default)
+### 2.1 Default (Smart Launcher)
 
-**Usage**:
-- `bitbot` - Launch Claude Code
-- `bitbot [args]` - Launch Claude Code with arguments
+**Usage**: `bitbot` (no arguments)
 
 **Behavior**:
-1. Check wrapper and tmux availability
-2. Create transparent tmux session (single pane)
-3. Launch wrapper inside tmux: `claude-wrapper.sh claude [args]`
-4. Attach to session (user sees only Claude interface)
+- **0 tmux sessions**: Offer launch mode choice (fresh/resume/custom)
+- **1 tmux session**: Auto-resume that session
+- **2+ tmux sessions**: Show menu, offer resume/new
 
 **Architecture Flow**:
 ```
-bitbot [args] → tmux session → wrapper → claude [args]
+bitbot → detect sessions → route to start or resume
+```
+
+### 2.2 Start (New Session)
+
+**Usage**: `bitbot start [args]`
+
+**Behavior**:
+1. Check wrapper and tmux availability
+2. Create new tmux session with unique name
+3. Execute wrapper directly: `tmux new-session -s name "wrapper claude [args]"`
+4. No send-keys - wrapper exec'd as session command
+
+**Architecture Flow**:
+```
+bitbot start → tmux new-session → wrapper → claude
 ```
 
 **Example Output**:
 ```
-BitBot - Claude Code Launcher
+BitBot - Start New Session
 
-Starting Claude Code...
-
+Creating new tmux session: claude-20251028-143052
 Workspace: /workspace
 Mode: work
 
 [Claude Code interface appears]
 ```
 
+### 2.3 Resume (Attach or Resume)
+
+**Usage**:
+- `bitbot resume` - Smart resume
+- `bitbot resume <session-name>` - Resume specific session
+
+**Behavior**:
+- **0 tmux sessions**: Create new tmux with `wrapper claude --resume`
+- **1 tmux session**: Auto-attach to that session
+- **2+ tmux sessions**: Show menu for selection
+- **After attach**: Warn if Claude process not detected
+
+**Architecture Flow**:
+```
+bitbot resume (no sessions) → tmux new-session → wrapper claude --resume
+bitbot resume (sessions exist) → tmux attach (wrapper already running)
+```
+
+**Example Output (no sessions)**:
+```
+BitBot - Resume Session
+
+No unattached tmux sessions found
+Creating new session with Claude --resume...
+
+Claude will show its available sessions for you to select
+
+Workspace: /workspace
+Mode: work
+Session: claude-20251028-143102
+
+[Claude's session picker appears]
+```
+
+**Example Output (1 session)**:
+```
+BitBot - Resume Session
+
+Found one session: claude-20251028-143052
+
+Attaching to session 'claude-20251028-143052'...
+
+[Attaches to existing tmux/wrapper/claude]
+```
+
 ---
 
-## 3. Session Management Architecture
+## 3. Two-Layer Architecture
 
-Container BitBot uses a layered architecture: wrapper for Claude operations, tmux for infrastructure.
+Container BitBot separates concerns into two independent layers:
 
-### 3.1 Wrapper Layer (Claude Operations)
+### 3.1 Layer 1: tmux (Session Persistence)
+
+**Purpose**: Terminal session management (detach/reattach)
+
+**Responsibilities**:
+- Create tmux sessions with unique names
+- Attach to existing sessions
+- Detect available sessions
+- Provide session persistence across terminal disconnections
+
+**Commands**:
+- `bitbot` - Smart launcher (detects sessions)
+- `bitbot start` - Create new session
+- `bitbot resume` - Attach to existing or create with `--resume`
+
+**Implementation**:
+- Uses `tmux new-session -s name "command"` (NOT send-keys)
+- Wrapper exec'd directly as session command
+- Single pane per session (no splitting within terminal)
+- Multiple sessions possible across different terminals
+
+**Key Point**: tmux layer only manages session lifecycle, not Claude operations
+
+### 3.2 Layer 2: Wrapper (Claude Operations)
+
+**Purpose**: Claude process management via IPC
 
 **Location**: `/usr/local/bitbot/wrapper/`
 
@@ -117,57 +198,70 @@ Container BitBot uses a layered architecture: wrapper for Claude operations, tmu
 
 **Responsibilities**:
 - Launch Claude Code with arguments
-- Handle restart/resume/compact via named pipe IPC
+- Handle restart/resume/compact/clear via named pipe IPC
 - Monitor Claude process for stalls
 - Pass all arguments through to Claude
 
-**IPC Commands**:
+**IPC Commands** (used from inside Claude):
 ```bash
 # Restart Claude
 /usr/local/bitbot/wrapper/send-wrapper-command.sh restart
 
-# Resume Claude session
+# Resume Claude session (Claude's own session management)
 /usr/local/bitbot/wrapper/send-wrapper-command.sh resume
 
 # Compact Claude context
 /usr/local/bitbot/wrapper/send-wrapper-command.sh compact
+
+# Clear Claude session
+/usr/local/bitbot/wrapper/send-wrapper-command.sh clear
 ```
 
-### 3.2 tmux Layer (Infrastructure)
+**Key Point**: Wrapper operations are completely independent of tmux
 
-**Purpose**: Transparent infrastructure (user doesn't interact with tmux)
+### 3.3 Complete Architecture Flow
 
-**Characteristics**:
-- Single pane only (no multiplexing)
-- Automatically created by `bitbot`
-- Users see only Claude interface
-- No tmux commands needed
-
-**Benefits**:
-- Terminal persistence
-- Detach/reattach capability
-- Process isolation
-- Standard terminal environment
-
-### 3.3 Architecture Flow
-
+**Starting new session**:
 ```
-User runs: bitbot [args]
+bitbot start
   ↓
-Check wrapper exists at /usr/local/bitbot/wrapper/claude-wrapper.sh
+Check wrapper & tmux availability
   ↓
-Check tmux is installed
+tmux new-session -s claude-YYYYMMDD-HHMMSS "/usr/local/bitbot/wrapper/claude-wrapper.sh claude"
   ↓
-Create tmux session: claude-YYYYMMDD-HHMMSS
+Wrapper launches Claude
   ↓
-Send to tmux: /usr/local/bitbot/wrapper/claude-wrapper.sh claude [args]
-  ↓
-Attach to tmux session
-  ↓
-User sees only Claude interface (tmux transparent)
+User sees Claude interface
 ```
 
-**Important**: tmux can have multiple sessions across different terminals, but within each terminal there's only a single pane - no splitting
+**Resuming session**:
+```
+bitbot resume
+  ↓
+Check for tmux sessions
+  ↓
+If sessions exist: tmux attach (wrapper+claude already running)
+If no sessions: tmux new-session "/usr/local/bitbot/wrapper/claude-wrapper.sh claude --resume"
+```
+
+**Claude operations (inside running Claude)**:
+```
+send-wrapper-command.sh restart
+  ↓
+Named pipe IPC to wrapper process
+  ↓
+Wrapper restarts Claude
+  ↓
+No tmux involvement
+```
+
+### 3.4 Independence
+
+**Critical**: The two layers are completely independent:
+- tmux manages terminal session persistence (detach/reattach)
+- Wrapper manages Claude operations (restart/resume/compact)
+- No `tmux send-keys` usage anywhere
+- Claude operations work identically whether in tmux or not
 
 ---
 

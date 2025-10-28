@@ -85,10 +85,11 @@ test_bash_syntax() {
     fi
 }
 
-# Check all bash scripts
+# Check all bash scripts (including wrapper)
 for script in "${CONTAINER_BITBOT_ROOT}/bitbot" \
               "${CONTAINER_BITBOT_ROOT}/core/commands/"*.sh \
-              "${CONTAINER_BITBOT_ROOT}/core/util/"*.sh; do
+              "${CONTAINER_BITBOT_ROOT}/core/util/"*.sh \
+              "${CONTAINER_BITBOT_ROOT}/wrapper/"*.sh; do
     if [[ -f "$script" ]]; then
         test_bash_syntax "$script"
     fi
@@ -301,10 +302,95 @@ fi
 echo ""
 
 # ============================================================================
-# Test 7: File Permissions
+# Test 7: Wrapper Integration
 # ============================================================================
 
-echo -e "${BLUE}═══ Test 7: File Permissions ═══${NC}"
+echo -e "${BLUE}═══ Test 7: Wrapper Integration ═══${NC}"
+echo ""
+
+# Test wrapper directory exists
+run_test "wrapper - directory exists"
+if [[ -d "${CONTAINER_BITBOT_ROOT}/wrapper" ]]; then
+    test_passed "wrapper - directory exists"
+else
+    test_failed "wrapper - directory not found"
+fi
+
+# Test wrapper scripts exist
+run_test "wrapper - claude-wrapper.sh exists"
+if [[ -f "${CONTAINER_BITBOT_ROOT}/wrapper/claude-wrapper.sh" ]]; then
+    test_passed "wrapper - claude-wrapper.sh exists"
+else
+    test_failed "wrapper - claude-wrapper.sh not found"
+fi
+
+run_test "wrapper - watchdog.sh exists"
+if [[ -f "${CONTAINER_BITBOT_ROOT}/wrapper/watchdog.sh" ]]; then
+    test_passed "wrapper - watchdog.sh exists"
+else
+    test_failed "wrapper - watchdog.sh not found"
+fi
+
+run_test "wrapper - send-wrapper-command.sh exists"
+if [[ -f "${CONTAINER_BITBOT_ROOT}/wrapper/send-wrapper-command.sh" ]]; then
+    test_passed "wrapper - send-wrapper-command.sh exists"
+else
+    test_failed "wrapper - send-wrapper-command.sh not found"
+fi
+
+# Test wrapper scripts are executable
+run_test "wrapper - claude-wrapper.sh executable"
+if [[ -x "${CONTAINER_BITBOT_ROOT}/wrapper/claude-wrapper.sh" ]]; then
+    test_passed "wrapper - claude-wrapper.sh executable"
+else
+    test_failed "wrapper - claude-wrapper.sh not executable"
+fi
+
+run_test "wrapper - watchdog.sh executable"
+if [[ -x "${CONTAINER_BITBOT_ROOT}/wrapper/watchdog.sh" ]]; then
+    test_passed "wrapper - watchdog.sh executable"
+else
+    test_failed "wrapper - watchdog.sh not executable"
+fi
+
+run_test "wrapper - send-wrapper-command.sh executable"
+if [[ -x "${CONTAINER_BITBOT_ROOT}/wrapper/send-wrapper-command.sh" ]]; then
+    test_passed "wrapper - send-wrapper-command.sh executable"
+else
+    test_failed "wrapper - send-wrapper-command.sh not executable"
+fi
+
+# Test start.sh references correct wrapper path
+run_test "start.sh - uses /usr/local/bitbot/wrapper/ path"
+if grep -q "/usr/local/bitbot/wrapper/claude-wrapper.sh" "${CONTAINER_BITBOT_ROOT}/core/commands/start.sh"; then
+    test_passed "start.sh - references correct wrapper path"
+else
+    test_failed "start.sh - wrapper path incorrect"
+fi
+
+# Test start.sh does not reference old wrapper path
+run_test "start.sh - no old /opt/bitbot/wrapper/ references"
+if ! grep -q "/opt/bitbot/wrapper" "${CONTAINER_BITBOT_ROOT}/core/commands/start.sh"; then
+    test_passed "start.sh - no old wrapper path references"
+else
+    test_failed "start.sh - still references old /opt/bitbot/wrapper/"
+fi
+
+# Test wrapper can be sourced (basic functionality)
+run_test "wrapper - claude-wrapper.sh basic validation"
+if bash -n "${CONTAINER_BITBOT_ROOT}/wrapper/claude-wrapper.sh" 2>/dev/null; then
+    test_passed "wrapper - claude-wrapper.sh valid bash"
+else
+    test_failed "wrapper - claude-wrapper.sh has syntax errors"
+fi
+
+echo ""
+
+# ============================================================================
+# Test 8: File Permissions
+# ============================================================================
+
+echo -e "${BLUE}═══ Test 8: File Permissions ═══${NC}"
 echo ""
 
 run_test "bitbot - executable"
