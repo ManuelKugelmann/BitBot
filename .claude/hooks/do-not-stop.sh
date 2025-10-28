@@ -55,11 +55,7 @@ if [ -n "$DO_NOT_STOP_FILE" ]; then
 EOF
 else
     # File doesn't exist or is empty, allow normal stopping
-    cat <<EOF
-{
-  "suppressOutput": true,
-  "decision": "allow",
-  "reason": "Allowed to stop working."
-}
-EOF
+    # Output message will appear as "Stop hook succeeded: <message>"
+    echo "Automation disabled - ready to stop"
+    exit 0
 fi
