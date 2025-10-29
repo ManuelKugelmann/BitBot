@@ -75,6 +75,11 @@ Without ccstatusline, shows simple `[Claude] Context: XX%` output.
 
 The wrapper uses atomic writes (`tmp + mv`) to prevent race conditions when multiple status updates occur simultaneously.
 
+**Cleanup:**
+
+- **Automatic**: SessionEnd hook removes session env file when session ends normally
+- **Manual**: `.claude/scripts/cleanup-old-sessions.sh` removes files older than 7 days (for crashed sessions)
+
 ## See Also
 
 - `sparc/0-research/CCSTATUSLINE_SETUP.md` - ccstatusline setup guide

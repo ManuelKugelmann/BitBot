@@ -83,6 +83,7 @@ Claude-specific scripts for extending Claude Code functionality:
 | Script                    | Purpose                              | Location                                    |
 | ------------------------- | ------------------------------------ | ------------------------------------------- |
 | `ccstatusline-wrapper/`   | Token usage tracking                 | `.claude/scripts/ccstatusline-wrapper/`     |
+| `cleanup-old-sessions.sh` | Clean up old session env files       | `.claude/scripts/cleanup-old-sessions.sh`   |
 
 **Usage**: Reference these scripts in `.claude/settings.json` or skills. Store all Claude-specific automation scripts here.
 
