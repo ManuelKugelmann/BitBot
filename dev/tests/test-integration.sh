@@ -9,9 +9,36 @@
 # 3. Template script integrity
 # 4. Configuration file validity
 # 5. Complete component integration
+# 6. Dual-location filesystem compatibility (WSL native + Windows mounts)
 #
-# Note: This test validates the full BitBot system integration.
-# Use --quick flag in run-tests.sh to skip this test.
+# Usage:
+#   ./test-integration.sh [--location wsl|windows|both] [--skip-build]
+#
+# Options:
+#   --location <loc>  Test location(s): wsl, windows, or both (default: both)
+#   --skip-build      Skip devcontainer build (faster, default via BITBOT_TEST_SKIP_BUILD=1)
+#
+# Test Locations:
+#   wsl              WSL native filesystem (ext4) - best performance
+#   windows          Windows mount (/mnt/c/) - 9P filesystem
+#   both             Test both locations (default)
+#
+# Examples:
+#   ./test-integration.sh                              # Test both locations, skip build
+#   ./test-integration.sh --location windows           # Test Windows mount only
+#   BITBOT_TEST_SKIP_BUILD=0 ./test-integration.sh     # Test with devcontainer build
+#
+# Known Limitations:
+#   - devcontainer.cmd cannot accept WSL native paths when called from bash
+#   - WSL home tests are skipped when using devcontainer.cmd
+#   - For full WSL testing, install native devcontainer CLI: npm install -g @devcontainers/cli
+#
+# Performance Notes:
+#   - WSL filesystem (ext4) provides better performance than /mnt/c/ (9P)
+#   - Recommendation: Use WSL filesystem for development (see VS Code documentation)
+#
+# Note: This test validates the full BitBot system integration across
+# different filesystem configurations to ensure compatibility.
 
 set -euo pipefail
 
@@ -26,13 +53,46 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
+# Parse arguments
+TEST_LOCATION="both"  # Default: test both locations
+SKIP_BUILD="${BITBOT_TEST_SKIP_BUILD:-0}"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --location)
+            TEST_LOCATION="$2"
+            shift 2
+            ;;
+        --skip-build)
+            SKIP_BUILD=1
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--location wsl|windows|both] [--skip-build]"
+            exit 1
+            ;;
+    esac
+done
+
+# Validate location argument
+if [[ "$TEST_LOCATION" != "wsl" && "$TEST_LOCATION" != "windows" && "$TEST_LOCATION" != "both" ]]; then
+    echo "Invalid location: $TEST_LOCATION"
+    echo "Must be one of: wsl, windows, both"
+    exit 1
+fi
+
 # Test tracking
 total_tests=0
 passed_tests=0
 failed_tests=0
 
-# Test workspace location (use /mnt/c/ for devcontainer.cmd compatibility)
-TEST_WORKSPACE="/mnt/c/bitbot-integration-test-$$"
+# Test workspaces for both locations
+WSL_TEST_WORKSPACE="$HOME/bitbot-integration-test-$$"
+WIN_TEST_WORKSPACE="/mnt/c/bitbot-integration-test-$$"
+
+# Current test workspace (will be set per test run)
+TEST_WORKSPACE=""
 
 echo ""
 echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
@@ -72,20 +132,27 @@ run_test() {
 
 cleanup() {
     echo ""
-    echo "Cleaning up test workspace..."
+    echo "Cleaning up test workspaces..."
 
-    # Stop any running containers
-    if [[ -f "$TEST_WORKSPACE/.devcontainer/devcontainer.json" ]]; then
-        cd "$TEST_WORKSPACE" 2>/dev/null || true
-        if command -v devcontainer.cmd &>/dev/null; then
-            timeout 30 cmd.exe /c devcontainer.cmd down --workspace-folder "$(echo "$TEST_WORKSPACE" | sed 's|/mnt/\([a-z]\)/|\U\1:/|' | sed 's|/|\\|g')" &>/dev/null || true
-        elif command -v devcontainer &>/dev/null; then
-            timeout 30 devcontainer down --workspace-folder "$TEST_WORKSPACE" &>/dev/null || true
+    # Stop any running containers and remove workspaces
+    for workspace in "$WSL_TEST_WORKSPACE" "$WIN_TEST_WORKSPACE"; do
+        if [[ -f "$workspace/.devcontainer/devcontainer.json" ]]; then
+            cd "$workspace" 2>/dev/null || true
+            if command -v devcontainer.cmd &>/dev/null; then
+                # Convert to Windows path if needed
+                if [[ "$workspace" == /mnt/* ]]; then
+                    local win_path
+                    win_path=$(echo "$workspace" | sed 's|/mnt/\([a-z]\)/|\U\1:/|' | sed 's|/|\\|g')
+                    timeout 30 cmd.exe /c devcontainer.cmd down --workspace-folder "$win_path" &>/dev/null || true
+                fi
+            elif command -v devcontainer &>/dev/null; then
+                timeout 30 devcontainer down --workspace-folder "$workspace" &>/dev/null || true
+            fi
         fi
-    fi
 
-    # Remove test workspace
-    rm -rf "$TEST_WORKSPACE" 2>/dev/null || true
+        # Remove workspace
+        rm -rf "$workspace" 2>/dev/null || true
+    done
 
     # Remove test global config if we created it
     if [[ -f "$BITBOT_ROOT/config.json" ]]; then
@@ -161,6 +228,40 @@ echo -e "${GREEN}✓${NC} Docker daemon running"
 echo ""
 
 # ============================================================================
+# Main Integration Test Function
+# ============================================================================
+
+run_integration_tests_for_location() {
+    local location_name="$1"
+    local workspace_path="$2"
+
+    # Set global TEST_WORKSPACE for all tests
+    TEST_WORKSPACE="$workspace_path"
+
+    # Track container build status for this location
+    local CONTAINER_BUILT=false
+
+    echo ""
+    echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║  Testing Location: $(printf '%-21s' "$location_name")║${NC}"
+    echo -e "${CYAN}║  Path: $(printf '%-29s' "$workspace_path" | head -c 29)║${NC}"
+    echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
+    echo ""
+
+    # Check if using devcontainer.cmd with WSL home (unsupported)
+    if [[ "$DEVC_CMD" == *"cmd.exe"* ]] && [[ "$workspace_path" != /mnt/* ]]; then
+        echo -e "${YELLOW}⊘ SKIPPED${NC}: $location_name"
+        echo ""
+        echo "Reason: devcontainer.cmd cannot accept WSL native paths when called from bash"
+        echo "This is a known limitation (see test-devcontainer-locations.sh)"
+        echo ""
+        echo "To test WSL locations, use native devcontainer CLI:"
+        echo "  npm install -g @devcontainers/cli"
+        echo ""
+        return 0
+    fi
+
+# ============================================================================
 # Test 1: Workspace Initialization
 # ============================================================================
 
@@ -231,10 +332,10 @@ echo ""
 echo -e "${BLUE}═══ Test 2: DevContainer Build (Optional) ═══${NC}"
 echo ""
 
-# Build container (controlled by environment variable)
+# Build container (controlled by argument or environment variable)
 CONTAINER_BUILT=false
 
-if [[ "${BITBOT_TEST_SKIP_BUILD:-0}" == "1" ]]; then
+if [[ "$SKIP_BUILD" == "1" ]]; then
     echo -e "${YELLOW}⊘ SKIPPED${NC}: Container build (BITBOT_TEST_SKIP_BUILD=1)"
     echo -e "${YELLOW}ℹ${NC}  To test in-container execution, run: BITBOT_TEST_SKIP_BUILD=0 $0"
     echo ""
@@ -530,6 +631,32 @@ else
 
     echo ""
 fi
+
+} # End of run_integration_tests_for_location()
+
+# ============================================================================
+# Test Orchestration - Run Tests for Selected Locations
+# ============================================================================
+
+# Determine which locations to test
+locations_to_test=()
+case "$TEST_LOCATION" in
+    wsl)
+        locations_to_test=("WSL Home:$WSL_TEST_WORKSPACE")
+        ;;
+    windows)
+        locations_to_test=("Windows Mount:$WIN_TEST_WORKSPACE")
+        ;;
+    both)
+        locations_to_test=("WSL Home:$WSL_TEST_WORKSPACE" "Windows Mount:$WIN_TEST_WORKSPACE")
+        ;;
+esac
+
+# Run tests for each location
+for location in "${locations_to_test[@]}"; do
+    IFS=':' read -r location_name location_path <<< "$location"
+    run_integration_tests_for_location "$location_name" "$location_path"
+done
 
 # ============================================================================
 # Summary
