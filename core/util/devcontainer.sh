@@ -121,6 +121,8 @@ launch_work_via_devcontainer_cli() {
 launch_work_via_vscode() {
     # Launch VS Code, let devcontainer extension handle container
     local workspace_path="$1"
+    local platform
+    platform=$(detect_platform)
 
     print_step "Launching VS Code..."
 
@@ -128,7 +130,14 @@ launch_work_via_vscode() {
     if command_exists code; then
         code "$workspace_path"
     elif command_exists code.exe; then
-        code.exe "$workspace_path"
+        # On WSL, convert path to Windows format for code.exe
+        if [[ "$platform" == "wsl" ]]; then
+            local windows_path
+            windows_path=$(convert_wsl_to_windows_path "$workspace_path")
+            code.exe "$windows_path"
+        else
+            code.exe "$workspace_path"
+        fi
     else
         print_error "VS Code 'code' command not found"
         return 1
@@ -198,6 +207,8 @@ launch_config_via_devcontainer_cli() {
 launch_config_via_vscode() {
     # Launch VS Code with config devcontainer
     local workspace_path="$1"
+    local platform
+    platform=$(detect_platform)
 
     print_step "Launching VS Code in config mode..."
     print_info "Note: VS Code config mode support is limited in MVP"
@@ -207,7 +218,14 @@ launch_config_via_vscode() {
     if command_exists code; then
         code "$workspace_path"
     elif command_exists code.exe; then
-        code.exe "$workspace_path"
+        # On WSL, convert path to Windows format for code.exe
+        if [[ "$platform" == "wsl" ]]; then
+            local windows_path
+            windows_path=$(convert_wsl_to_windows_path "$workspace_path")
+            code.exe "$windows_path"
+        else
+            code.exe "$workspace_path"
+        fi
     else
         print_error "VS Code 'code' command not found"
         return 1

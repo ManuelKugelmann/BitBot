@@ -229,6 +229,7 @@ start_docker() {
     case "$platform" in
         wsl)
             # Windows: Start Docker Desktop via PowerShell
+            # Use standard Windows path - PowerShell handles it correctly
             if ! powershell.exe -Command "Start-Process 'C:\Program Files\Docker\Docker\Docker Desktop.exe'" 2>/dev/null; then
                 echo "  Could not auto-start Docker Desktop"
                 return 1

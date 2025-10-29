@@ -59,8 +59,26 @@ bitbot_vscode() {
     echo "Workspace: $WORKSPACE_PATH"
     echo ""
 
+    # Detect platform for path conversion
+    local platform
+    platform=$(detect_platform 2>/dev/null || echo "linux")
+
     # VS Code will automatically detect .devcontainer and prompt to reopen in container
-    code "$WORKSPACE_PATH"
+    if command -v code &> /dev/null; then
+        code "$WORKSPACE_PATH"
+    elif command -v code.exe &> /dev/null; then
+        # On WSL, convert path to Windows format for code.exe
+        if [[ "$platform" == "wsl" ]]; then
+            local windows_path
+            windows_path=$(convert_wsl_to_windows_path "$WORKSPACE_PATH")
+            code.exe "$windows_path"
+        else
+            code.exe "$WORKSPACE_PATH"
+        fi
+    else
+        print_error "VS Code 'code' command not found"
+        exit 1
+    fi
 
     echo ""
     print_success "VS Code launched"
