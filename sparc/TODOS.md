@@ -185,3 +185,11 @@ Urgent:
 - [ ] Add relevant session info to statusline (session ID, PID, wrapper status)
 - [ ] Integrate wrapper into BitBot container startup
 - [ ] Replace tmux-based restart with pipe-based system
+
+### Skills Testing (2025-10-29)
+
+- [ ] Test claude-restart-resume skill (config reloads)
+- [ ] Test claude-restart-compact skill (context compaction mid-task)
+- [ ] Test claude-restart-clear skill (fresh start after task)
+- [ ] Test claude-do-not-stop skill (automation hook)
+- [ ] Test claude-allow-stop skill (disable automation)
