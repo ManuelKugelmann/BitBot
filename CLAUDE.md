@@ -88,7 +88,6 @@ BitBot infrastructure scripts (part of the wrapper/session management system):
 | Script                    | Purpose                              | Location                                    |
 | ------------------------- | ------------------------------------ | ------------------------------------------- |
 | `ccstatusline-wrapper/`   | Token usage tracking                 | `.bitbot/scripts/ccstatusline-wrapper/`     |
-| `cleanup-old-sessions.sh` | Clean up old session env files       | `.claude/scripts/cleanup-old-sessions.sh`   |
 
 **Why .bitbot/**:
 - Works with `.bitbot/session-env/` directory structure

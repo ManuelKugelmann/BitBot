@@ -44,6 +44,13 @@ if [ -n "$SESSION_ID" ]; then
         echo "export CLAUDE_PID='$CLAUDE_PID'" >> "$CLAUDE_ENV_FILE"
     fi
 
+    # Clean up ALL session env files (including current session)
+    # Safe because status line recreates files every ~1-2 seconds
+    ENV_DIR="$PROJECT_ROOT/.bitbot/session-env"
+    if [ -d "$ENV_DIR" ]; then
+        rm -f "$ENV_DIR"/*.env 2>/dev/null || true
+    fi
+
     # Echo session info in one line
     if [ -n "$CLAUDE_PID" ]; then
         echo "SessionStart:$IS_RESUME - Session: $SESSION_ID, PID: $CLAUDE_PID"

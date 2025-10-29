@@ -3,33 +3,27 @@
 # Receives JSON via stdin with session_id
 #
 # Cleanup tasks:
-# - Remove session-specific env file from ccstatusline wrapper
+# - Remove ALL session env files (aggressive cleanup)
+#
+# Why: Status line wrapper recreates files on every update (~1-2 seconds)
+# So it's safe to delete all files - active sessions will recreate theirs
+# This prevents accumulation of stale files from crashed sessions
 
 set -euo pipefail
 
 # Read JSON from stdin (required by hook protocol)
 INPUT=$(cat)
 
-# Extract session_id using jq if available, otherwise use grep
-if command -v jq &> /dev/null; then
-    SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
-else
-    # Fallback to grep/sed if jq not available
-    SESSION_ID=$(echo "$INPUT" | grep -o '"session_id":"[^"]*"' | sed 's/"session_id":"\([^"]*\)"/\1/')
-fi
+# Clean up ALL session env files (aggressive)
+ENV_DIR="${CLAUDE_PROJECT_DIR:-.}/.bitbot/session-env"
 
-# Clean up session env file if it exists
-if [ -n "$SESSION_ID" ]; then
-    ENV_DIR="${CLAUDE_PROJECT_DIR:-.}/.bitbot/session-env"
-    ENV_FILE="$ENV_DIR/${SESSION_ID}.env"
+if [ -d "$ENV_DIR" ]; then
+    # Remove all .env files
+    rm -f "$ENV_DIR"/*.env 2>/dev/null || true
 
-    if [ -f "$ENV_FILE" ]; then
-        rm -f "$ENV_FILE"
-    fi
-
-    # Clean up empty directory
-    if [ -d "$ENV_DIR" ] && [ -z "$(ls -A "$ENV_DIR")" ]; then
-        rmdir "$ENV_DIR"
+    # Remove empty directory
+    if [ -z "$(ls -A "$ENV_DIR" 2>/dev/null)" ]; then
+        rmdir "$ENV_DIR" 2>/dev/null || true
     fi
 fi
 

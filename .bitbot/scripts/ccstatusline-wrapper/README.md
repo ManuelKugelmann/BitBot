@@ -77,8 +77,11 @@ The wrapper uses atomic writes (`tmp + mv`) to prevent race conditions when mult
 
 **Cleanup:**
 
-- **Automatic**: SessionEnd hook removes session env file when session ends normally
-- **Manual**: `.claude/scripts/cleanup-old-sessions.sh` removes files older than 7 days (for crashed sessions)
+Session env files are aggressively cleaned up by session hooks:
+- **SessionStart**: Removes ALL session files (including current session)
+- **SessionEnd**: Removes ALL session files
+
+This is safe because the status line wrapper recreates files every ~1-2 seconds. Files are ephemeral and self-healing.
 
 ## See Also
 
