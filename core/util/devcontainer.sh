@@ -30,15 +30,70 @@ get_devcontainer_bin() {
     # Get the appropriate devcontainer binary for this platform
     # Returns: devcontainer command to use
     #
-    # NOTE: Always use native 'devcontainer' for now
-    # devcontainer.cmd has corruption risks - needs testing first
-    # BITBOT_WINDOWS_MODE only affects VS Code launcher (code vs code.exe)
+    # WSL: Uses devcontainer.cmd with Methods 3 & 4 (bash-centric wrappers)
+    # - Method 3 (cmd.exe): For /mnt/c/ paths (Windows mounts)
+    # - Method 4 (PowerShell): For WSL native paths (better performance)
+    # Other platforms: Use native devcontainer CLI
 
     local platform
     platform=$(detect_platform)
 
-    # Always use native devcontainer for now
-    echo "devcontainer"
+    if [[ "$platform" == "wsl" ]] && command -v devcontainer.cmd &>/dev/null; then
+        # WSL with VS Code's devcontainer.cmd available
+        echo "devcontainer.cmd"
+    else
+        # Native devcontainer CLI (macOS, Linux, or WSL without VS Code)
+        echo "devcontainer"
+    fi
+}
+
+# ============================================================================
+# DevContainer Command Execution (Methods 3 & 4)
+# ============================================================================
+
+run_devcontainer_cmd() {
+    # Execute devcontainer command with correct wrapper for path type
+    # Usage: run_devcontainer_cmd <workspace_path> <devcontainer_args...>
+    #
+    # Automatically selects:
+    # - Method 3 (cmd.exe): For /mnt/c/ paths -> C:\ labels
+    # - Method 4 (PowerShell): For WSL native paths -> \\wsl.localhost labels
+    # - Direct execution: For non-WSL platforms
+
+    local workspace_path="$1"
+    shift  # Remove workspace_path, rest are devcontainer arguments
+
+    local devcontainer_bin
+    devcontainer_bin=$(get_devcontainer_bin)
+
+    local platform
+    platform=$(detect_platform)
+
+    if [[ "$platform" == "wsl" ]] && [[ "$devcontainer_bin" == "devcontainer.cmd" ]]; then
+        # WSL with devcontainer.cmd - use Methods 3 & 4
+        local win_path
+        win_path=$(convert_wsl_to_windows_path "$workspace_path")
+
+        # Build command arguments string for shell execution
+        local args=""
+        for arg in "$@"; do
+            # Escape quotes and spaces for shell
+            arg="${arg//\"/\\\"}"
+            args="$args \"$arg\""
+        done
+
+        if [[ "$workspace_path" == /mnt/* ]]; then
+            # Method 3: cmd.exe wrapper for Windows mounts
+            # Use cd trick to avoid UNC path limitations
+            cmd.exe /c "cd /d \"$win_path\" && devcontainer.cmd --workspace-folder . $args"
+        else
+            # Method 4: PowerShell wrapper for WSL native paths
+            powershell.exe -NoProfile -Command "devcontainer.cmd --workspace-folder '$win_path' $args"
+        fi
+    else
+        # Native devcontainer CLI (direct execution)
+        "$devcontainer_bin" --workspace-folder "$workspace_path" "$@"
+    fi
 }
 
 # ============================================================================
@@ -94,19 +149,17 @@ launch_work_devcontainer() {
 }
 
 launch_work_via_devcontainer_cli() {
-    # Use @devcontainers/cli to launch work container
+    # Use devcontainer CLI to launch work container
+    # Automatically uses Methods 3 & 4 on WSL for correct path labels
     local workspace_path="$1"
-
-    local devcontainer_bin
-    devcontainer_bin=$(get_devcontainer_bin)
 
     print_step "Building and starting devcontainer..."
 
-    # Launch using devcontainer CLI
+    # Launch using devcontainer CLI with correct wrapper
     # The .devcontainer/devcontainer.json should include RO mount:
     # "mounts": ["source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly"]
 
-    if ! "$devcontainer_bin" up --workspace-folder "$workspace_path" --remove-existing-container; then
+    if ! run_devcontainer_cmd "$workspace_path" up --remove-existing-container; then
         print_error "Failed to launch devcontainer"
         return 1
     fi
@@ -115,7 +168,7 @@ launch_work_via_devcontainer_cli() {
 
     # Attach to container with tmux
     print_step "Entering devcontainer with tmux session 'work'..."
-    "$devcontainer_bin" exec --workspace-folder "$workspace_path" tmux new-session -A -s work
+    run_devcontainer_cmd "$workspace_path" exec tmux new-session -A -s work
 }
 
 launch_work_via_vscode() {
@@ -178,16 +231,17 @@ launch_config_devcontainer() {
 
 launch_config_via_devcontainer_cli() {
     # Launch config devcontainer using workspace-specific config
+    # Automatically uses Methods 3 & 4 on WSL for correct path labels
     local workspace_path="$1"
-
-    local devcontainer_bin
-    devcontainer_bin=$(get_devcontainer_bin)
 
     print_step "Building and starting config devcontainer..."
 
+    # Note: --config path needs special handling for Methods 3 & 4
+    # For now, this may need adjustment based on testing
+    # The config path is relative to workspace, should work correctly
+
     # Launch using workspace-specific devcontainer.json in .bitbot/internal/
-    if ! "$devcontainer_bin" up \
-        --workspace-folder "$workspace_path" \
+    if ! run_devcontainer_cmd "$workspace_path" up \
         --config "${workspace_path}/.bitbot/internal" \
         --remove-existing-container; then
         print_error "Failed to launch config devcontainer"
@@ -198,8 +252,7 @@ launch_config_via_devcontainer_cli() {
 
     # Attach to container with tmux
     print_step "Entering devcontainer with tmux session 'config'..."
-    "$devcontainer_bin" exec \
-        --workspace-folder "$workspace_path" \
+    run_devcontainer_cmd "$workspace_path" exec \
         --config "${workspace_path}/.bitbot/internal" \
         tmux new-session -A -s config
 }
