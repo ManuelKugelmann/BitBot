@@ -1,6 +1,6 @@
 ---
 name: claude-restart-clear
-description: Start fresh with cleared history after completing a task. Use when finishing a major phase or starting a new unrelated task. Clears all conversation history for a clean slate.
+description: Start fresh with cleared history after task completion. Use PROACTIVELY when user says "done"/"finished", all tasks complete, or starting new unrelated work. Clears all history.
 ---
 
 Clearing history and starting fresh...

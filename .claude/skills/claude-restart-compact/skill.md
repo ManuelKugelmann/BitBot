@@ -1,6 +1,6 @@
 ---
 name: claude-restart-compact
-description: Compact context to free up tokens and continue working. Use when context is getting full during a long task or multi-phase implementation. Summarizes conversation and resumes work.
+description: Compact context to free up tokens and continue working. Use PROACTIVELY when token usage >150k, long conversations (>100 messages), or multi-phase implementations. Summarizes and resumes.
 ---
 
 Compacting context and resuming work...

@@ -303,6 +303,105 @@ After completing a significant implementation phase, proactively remind the user
 
 **Note:** Claude Code's TUI requires physical keyboard input to execute commands. Programmatic execution via tmux or other automation is not possible.
 
+## Proactive Session Management
+
+**IMPORTANT**: Claude should proactively manage its own session using restart skills when appropriate.
+
+### Available Skills
+
+**claude-restart-resume** - Quick restart to reload configuration
+- Use when: Skills added/modified, settings changed, hooks updated, MCP services configured
+- Action: Automatically invoke when files in `.claude/` are modified
+- Preserves conversation history
+
+**claude-restart-compact** - Compact context and continue working
+- Use when: Token usage high (>150k), multi-phase tasks, long conversations
+- Action: Proactively invoke when context is getting full but task not complete
+- Summarizes and resumes with compact history
+
+**claude-restart-clear** - Fresh start after task completion
+- Use when: Task complete and committed, starting new unrelated work
+- Action: Proactively invoke after major milestones when user says work is done
+- Clears all conversation history
+
+**claude-do-not-stop** - Enable continuous work mode
+- Use when: User says "keep working", "don't stop", "finish", "complete all tasks"
+- Action: Invoke immediately when user requests continuous work
+- Continue until all tasks complete
+
+**claude-allow-stop** - Disable automation, allow normal stops
+- Use when: Work is finished, user wants interactive mode back
+- Action: Invoke after completing all requested work
+- Returns to normal stop behavior
+
+### When to Use Proactively
+
+**Restart-Resume** (Config Reloads):
+- After creating/modifying skills in `.claude/skills/`
+- After changing `.claude/settings.json`
+- After modifying hooks in `.claude/hooks/`
+- After configuring MCP services
+
+**Restart-Compact** (Mid-Task):
+- When token usage exceeds ~150,000 tokens
+- During multi-phase implementations spanning 100+ messages
+- When context feels "heavy" but work must continue
+- User hasn't indicated work is done
+
+**Restart-Clear** (After Completion):
+- User says "done", "finished", "that's it", similar phrases
+- All tasks in TODO list marked completed
+- Work committed and pushed to git
+- Starting completely new unrelated task
+
+**Do-Not-Stop** (Continuous Work):
+- User explicitly says "keep working", "don't stop", "finish everything"
+- User provides a list of multiple tasks to complete
+- User says "work until done", "complete all tasks"
+- Beginning multi-phase implementation work
+
+**Allow-Stop** (Return to Normal):
+- After completing all tasks in do-not-stop mode
+- Work is committed and tests pass
+- Natural stopping point reached
+- User asks for interactive mode back
+
+### Proactive Usage Examples
+
+```markdown
+# After modifying .claude/skills/
+"I've created the new skill. Let me restart to load it..."
+[Invokes claude-restart-resume]
+
+# During long implementation (150k+ tokens)
+"Context is getting large. Let me compact and continue working..."
+[Invokes claude-restart-compact]
+
+# After user says "that's it, thanks"
+"All work is complete and committed. Starting fresh for next task..."
+[Invokes claude-restart-clear]
+
+# User says "implement all TODOs, don't stop until done"
+"Enabling continuous work mode to complete all tasks..."
+[Invokes claude-do-not-stop]
+"All tasks complete. Returning to normal mode..."
+[Invokes claude-allow-stop]
+```
+
+### Context Size Awareness
+
+**Note**: Claude cannot directly check token count programmatically (no API/hook access), but can see token budget in system reminders:
+- Example: `<budget:token_budget>200000</budget:token_budget>`
+- Current usage shown as: `Token usage: 93470/200000; 106530 remaining`
+
+**Heuristics for when context is getting large:**
+- Message count >100 messages
+- Long conversations (>2 hours of work)
+- Repeated context about same topics
+- Token usage shown in reminders approaching 150k+
+
+**Action**: When token usage exceeds ~150k (75% of 200k budget), proactively invoke `claude-restart-compact` to free up space and continue working.
+
 ## DevContainer Context
 
 **IMPORTANT**: BitBot has multiple devcontainer contexts - do NOT confuse them!

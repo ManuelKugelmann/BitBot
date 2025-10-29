@@ -1,6 +1,6 @@
 ---
 name: claude-restart-resume
-description: Quick restart to reload configuration changes (skills, settings, hooks). Use when skills have been added/modified or configuration files changed. Preserves conversation history.
+description: Quick restart to reload configuration changes (skills, settings, hooks, MCP services). Use PROACTIVELY after modifying .claude/ files. Preserves conversation history.
 ---
 
 Restarting Claude Code to reload configuration...
