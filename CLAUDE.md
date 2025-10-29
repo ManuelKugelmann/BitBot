@@ -187,34 +187,72 @@ RUN apt-get update && apt-get install -y \
 }
 ```
 
-## SPARC Process
+## SPARC Methodology
 
-BitBot follows the **SPARC** methodology for structured development:
+BitBot follows the **SPARC** methodology for structured development. When working on features, use appropriate SPARC phases and folders:
 
-| Phase                   | Folder                   | Purpose                                      |
-| ----------------------- | ------------------------ | -------------------------------------------- |
-| **0. Research**         | `sparc/0-research/`      | Background research, standards, constraints  |
-| **1. Specification**    | `sparc/1-specification/` | Requirements, use cases, acceptance criteria |
-| **2. Pseudocode**       | `sparc/2-pseudocode/`    | Algorithm design, logic flows                |
-| **3. Architecture**     | `sparc/3-architecture/`  | System design, diagrams, component structure |
-| **4. Refinement**       | `sparc/4-refinement/`    | POCs, tests, iterations, optimizations       |
-| **5. Completion**       | `sparc/5-completion/`    | Completion metadata, TODOs, progress tracking |
+| Phase                   | Folder                   | Content Type                | File Naming                          |
+| ----------------------- | ------------------------ | --------------------------- | ------------------------------------ |
+| **0. Research**         | `sparc/0-research/`      | Background research         | `UPPERCASE_UNDERSCORE.md`            |
+| **1. Specification**    | `sparc/1-specification/` | Requirements, use cases     | `01_NUMBERED_UPPERCASE.md`           |
+| **2. Pseudocode**       | `sparc/2-pseudocode/`    | Algorithm design            | `numbered-kebab-case.md`             |
+| **3. Architecture**     | `sparc/3-architecture/`  | System design, diagrams     | `numbered-kebab-case.md`             |
+| **4. Refinement**       | `sparc/4-refinement/`    | POCs, tests, iterations     | `poc-*/`, `test-*.sh`                |
+| **5. Completion**       | `sparc/5-completion/`    | TODOs, progress tracking    | `TODO-TRACKER.md`, `SPEC-TODO.md`    |
 
-**Usage Guidelines**:
-- Research findings → `sparc/0-research/`
-- Specifications → `sparc/1-specification/`
-- Design docs → `sparc/3-architecture/`
-- POC tests → `sparc/4-refinement/poc-tests/`
-- Completion metadata → `sparc/5-completion/` (TODO-TRACKER.md, SPEC-TODO.md, progress docs)
-- Release scripts → `dev/scripts/`
-- Source code (e.g. launcher) → `dev/src/`
-- Test suites → `dev/tests/`
-- Core implementation → `/core/` (host-side BitBot shell scripts)
+### When to Use Each Phase
+
+**0. Research** - Before starting new features:
+- Standards research (UPPERCASE_UNDERSCORE.md)
+- Technology evaluation
+- Best practices
+- Constraints and limitations
+- **Examples**: `POWERSHELL_WSL_REFERENCE.md`, `MERMAID_DIAGRAM_STANDARDS.md`, `TESTING_PROCESS.md`
+
+**1. Specification** - Defining what to build:
+- Requirements documents (numbered)
+- Use cases and scenarios
+- Acceptance criteria
+- **Examples**: `01_CONTAINER_ORCHESTRATION.md`, `12_MOUNT_STRUCTURE.md`
+
+**2. Pseudocode** - Planning how to build (rarely used):
+- Algorithm design
+- Logic flows before coding
+- **Use sparingly** - prefer direct implementation with good docs
+
+**3. Architecture** - System design:
+- System diagrams (numbered)
+- Component interactions
+- Data flows
+- **Examples**: `01-system-overview.md`, `diagrams/07-complete-workflow.md`
+
+**4. Refinement** - Iterating and testing:
+- Proof of concepts (`poc-*/`)
+- Experiments and trials
+- Performance testing
+- **Not for final tests** - use `dev/tests/` instead
+
+**5. Completion** - Tracking progress:
+- `TODO-TRACKER.md` - Current sprint tasks
+- `SPEC-TODO.md` - Specification gaps
+- Progress tracking documents
+- **Check here** before starting new work
+
+### Implementation Locations (NOT in sparc/)
+
+- Core implementation → `/core/` (host-side BitBot)
 - Container runtime → `/container/bitbot/` (container-side BitBot)
-- Container templates → `container/templates/` (base, config, bitbotdev, workspace)
-- Custom templates → `container/templates/custom/` (user workload templates)
-- DO NOT put core implementation code in sparc/ folders
-- DO reference sparc/ docs when implementing features
+- Templates → `/container/templates/` (base, config, dev, work)
+- Release scripts → `/dev/scripts/`
+- Source code → `/dev/src/` (e.g., Windows launcher)
+- **Final test suites** → `/dev/tests/` (not sparc/4-refinement)
+
+### Guidelines
+
+- **DO** reference sparc/ docs when implementing features
+- **DO NOT** put implementation code in sparc/ folders
+- **DO** update completion docs (`sparc/5-completion/`) as work progresses
+- **DO** check existing research before starting new research
 
 ## General Guidelines
 
@@ -478,130 +516,15 @@ After completing a significant implementation phase, proactively remind the user
 **claude-get-session-info** - Shared utility for session management (sourced by other skills)
 **claude-restart** - Restart Claude to reload skills/manage context | Modes: resume (default), compact, clear | Self-pkill + exec restart
 
-## Statusline (Optional)
+## Reference Documentation
 
-**Recommended**: Use [ccstatusline](https://github.com/sirmalloc/ccstatusline) to display git branch, model, cost, and context info.
+**Quick references** (see sparc/0-research/ for full details):
 
-```bash
-bunx ccstatusline@latest  # Interactive TUI setup
-```
-
-See `sparc/0-research/CCSTATUSLINE_SETUP.md` for full setup guide.
-
-## PowerShell/CMD from WSL
-
-**PowerShell commands**:
-
-- Single command: `powershell.exe -Command "command"`
-- Run script: `powershell.exe -File "script.ps1"`
-- Faster (no profile): `powershell.exe -NoProfile -Command "..."`
-
-**CMD files (.cmd/.bat)**:
-
-- ALWAYS use cmd.exe: `cmd.exe /c "command.cmd args"`
-- For devcontainer: `cmd.exe /c "cd /d C:\Path && devcontainer.cmd build --workspace-folder ."`
-- **DO NOT** call .cmd files via PowerShell - use cmd.exe wrapper
-
-**Paths**:
-
-- WSL paths work: `/mnt/c/Projects/...`
-- Windows paths: `C:\Projects\...` (escape backslashes in quotes)
-
-## Testing Guidelines
-
-**Process**: Step-by-step testing with todo list tracking
-
-1. **Create Tests**:
-
-   - Write test script in `dev/tests/test-<feature>.sh`
-   - Include bash syntax check, unit tests, integration tests
-   - Use clear test names and section headers
-   - Follow existing test structure (see `dev/tests/test-container-bitbot.sh`)
-1. **Run Tests in WSL**:
-
-   - Fix line endings + check syntax: `.claude/skills/fix-line-endings-check-bash/scripts/fix-line-endings-check-bash.sh dev/tests/test-<feature>.sh`
-   - Run with timeout: `.claude/skills/run-with-timeout/scripts/run-with-timeout.sh 60 dev/tests/test-<feature>.sh`
-   - Debug failures individually before moving on
-1. **Fix Issues**:
-
-   - Fix line endings: `.claude/skills/fix-line-endings/scripts/fix-line-endings.sh file.sh` (or use fix-line-endings-check-bash)
-   - Check syntax only: `.claude/skills/check-bash/scripts/check-bash.sh file.sh`
-   - Fix logic errors one at a time
-   - Rerun tests after each fix
-   - Don't commit until all tests pass
-1. **Commit After Success**:
-
-   - Commit line ending fixes separately
-   - Commit test suite with results in commit message
-   - Add test to `dev/tests/run-tests.sh` if appropriate
-1. **Test Framework**:
-
-   - Use `run_test()`, `test_passed()`, `test_failed()` helpers
-   - Show colored output (GREEN=pass, RED=fail, BLUE=section)
-   - Print summary with success rate
-   - Exit 0 if all pass, exit 1 if any fail
-
-**Example Workflow**:
-
-```bash
-# 1. Create test
-vim dev/tests/test-feature.sh
-chmod +x dev/tests/test-feature.sh
-
-# 2. Fix line endings and check syntax (use skills!)
-.claude/skills/fix-line-endings-check-bash/scripts/fix-line-endings-check-bash.sh dev/tests/test-feature.sh
-.claude/skills/fix-line-endings-check-bash/scripts/fix-line-endings-check-bash.sh feature/script.sh
-
-# 3. Run tests with timeout to prevent hangs
-.claude/skills/run-with-timeout/scripts/run-with-timeout.sh 60 dev/tests/test-feature.sh
-
-# 4. Fix issues and rerun
-# ... fix logic errors ...
-.claude/skills/run-with-timeout/scripts/run-with-timeout.sh 60 dev/tests/test-feature.sh
-
-# 5. Commit
-git add feature/script.sh
-git commit -m "Fix line endings"
-git add dev/tests/test-feature.sh
-git commit -m "Add feature test suite (28/28 pass)"
-```
-
-## Mermaid Diagram Guidelines
-
-**Color Scheme** (simplified from FLOW_INNER_BITBOT):
-
-```
-Entry/CLI:       #4a9eff  (blue)     - User input, CLI, entry points
-Decisions:       #ffa726  (orange)   - Prompts, checks, config, warnings
-Success/Work:    #66bb6a  (green)    - Work mode, done, safe operations
-Errors:          #ef5350  (red)      - Errors only
-```
-
-**Text Color Rules**:
-
-- Blue (#4a9eff): No color needed (dark enough)
-- Orange (#ffa726): ALWAYS add `color:#333` (dark text on bright background)
-- Green (#66bb6a): ALWAYS add `color:#333` (dark text on bright background)
-- Red (#ef5350): ALWAYS add `color:#333` (dark text on bright background)
-- Format: `fill:#COLOR,stroke:#333,stroke-width:2px,color:#333`
-
-**Width**: Keep diagrams narrow (~60 chars per line) for terminal viewing
-
-**Example**:
-
-```mermaid
-graph LR
-    A[User Input] --> B[Decision]
-    B --> C[Work Mode]
-    style A fill:#4a9eff,stroke:#333,stroke-width:2px
-    style B fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
-    style C fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
-```
-- never abort research or work on an approach without explicit instruction
-- test run all code and scripts before committing
-- only commit when all tests are done and pass
-- do not git reset without user confirmation
-- use /sparc/TODOS.md to track Tasks
+- **PowerShell/CMD from WSL**: See `sparc/0-research/POWERSHELL_WSL_REFERENCE.md`
+- **Testing Process**: See `sparc/0-research/TESTING_PROCESS.md`
+- **Mermaid Diagrams**: See `sparc/0-research/MERMAID_DIAGRAM_STANDARDS.md`
+- **Statusline Setup**: See `sparc/0-research/CCSTATUSLINE_SETUP.md`
+- **Mount Structure**: See `sparc/1-specification/12_MOUNT_STRUCTURE.md`
 
 ---
 
