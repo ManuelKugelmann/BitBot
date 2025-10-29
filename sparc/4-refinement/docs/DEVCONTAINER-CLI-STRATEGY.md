@@ -264,7 +264,11 @@ powershell.exe -NoProfile -Command "devcontainer.cmd up --workspace-folder '\\\\
 
 **Success**: PowerShell can use UNC paths as arguments (not as current directory via `cd`).
 
-**Availability**: PowerShell 5.1+ is built into all Windows 10 and Windows 11 installations. No additional installation required.
+**Availability**:
+- PowerShell 5.1 (`powershell.exe`) is built into Windows 10 (1607+) and Windows 11
+- No installation required - ships as built-in OS component
+- Note: This is Windows PowerShell 5.1, NOT PowerShell Core (`pwsh`)
+- Cross-platform PowerShell 7+ (`pwsh`) requires separate installation
 
 ### Empirical Verification
 
@@ -332,15 +336,20 @@ powershell.exe -NoProfile -Command "devcontainer.cmd up --workspace-folder '\\\\
 cmd.exe /c "cd /d C:\Projects\project && devcontainer.cmd up --workspace-folder ."
 ```
 
-**Why:**
+**Why Hybrid Approach (Not PowerShell Everywhere):**
 - ✅ Bash-compatible (BitBot's core scripting)
 - ✅ Supports both WSL native (best performance) and Windows mounts
 - ✅ Windows path labels (VS Code compatible)
 - ✅ Uses VS Code's own CLI (always in sync)
 - ✅ Label-based container discovery works for all cases
+- ✅ cmd.exe faster for simple operations (/mnt/c/ paths)
+- ✅ PowerShell only where needed (UNC path support)
 
-**Performance Note:**
-WSL native filesystem (ext4) offers significantly better I/O performance than Windows mounts (9P protocol). Method 4 enables using the faster filesystem.
+**Performance Notes:**
+- WSL native filesystem (ext4) offers significantly better I/O performance than Windows mounts (9P protocol)
+- Method 4 enables using the faster filesystem
+- cmd.exe is lighter/faster than powershell.exe for non-UNC operations
+- Hybrid approach uses the right tool for each job
 
 **Result:**
 BitBot CLI and VS Code can share containers seamlessly through label-based discovery, with optimal filesystem performance!
