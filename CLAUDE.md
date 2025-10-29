@@ -38,9 +38,12 @@ BitBot/
 │       └── shared/        # Shared scripts and configs
 ├── dev/                # Development artifacts (scripts, src, tests)
 ├── sparc/              # SPARC methodology documentation
+├── .bitbot/            # BitBot infrastructure
+│   ├── scripts/       # BitBot scripts (ccstatusline-wrapper, etc.)
+│   └── session-env/   # Per-session environment files (auto-generated)
 ├── .claude/            # Claude Code configuration
 │   ├── hooks/         # Session hooks (session-start, etc.)
-│   ├── scripts/       # Claude-specific scripts (ccstatusline-wrapper, etc.)
+│   ├── scripts/       # Claude-specific scripts
 │   └── skills/        # Custom skills
 ├── .devcontainer/      # BitBot development container
 └── .github/            # GitHub workflows
@@ -56,6 +59,8 @@ BitBot/
 | `/container/templates/shared/` | Shared scripts and configs           | kebab-case          |
 | `/dev/`                        | Development artifacts                | kebab-case          |
 | `/sparc/`                      | SPARC documentation                  | (see SPARC section) |
+| `/.bitbot/`                    | BitBot infrastructure                | kebab-case          |
+| `/.bitbot/scripts/`            | BitBot scripts                       | kebab-case          |
 | `/.claude/`                    | Claude Code config                   | kebab-case          |
 | `/.claude/scripts/`            | Claude-specific scripts              | kebab-case          |
 | `/.devcontainer/`              | BitBot dev container                 | lowercase           |
@@ -76,18 +81,21 @@ Development-related files organized under `/dev/`:
 | `/dev/src/`     | Source code (e.g., Windows launcher) | `launcher_windows/launcher.c`             |
 | `/dev/tests/`   | Test suites                          | `test-container-bitbot.sh`                |
 
-### Claude Code Scripts (/.claude/scripts/)
+### BitBot Scripts (/.bitbot/scripts/)
 
-Claude-specific scripts for extending Claude Code functionality:
+BitBot infrastructure scripts (part of the wrapper/session management system):
 
 | Script                    | Purpose                              | Location                                    |
 | ------------------------- | ------------------------------------ | ------------------------------------------- |
-| `ccstatusline-wrapper/`   | Token usage tracking                 | `.claude/scripts/ccstatusline-wrapper/`     |
+| `ccstatusline-wrapper/`   | Token usage tracking                 | `.bitbot/scripts/ccstatusline-wrapper/`     |
 | `cleanup-old-sessions.sh` | Clean up old session env files       | `.claude/scripts/cleanup-old-sessions.sh`   |
 
-**Usage**: Reference these scripts in `.claude/settings.json` or skills. Store all Claude-specific automation scripts here.
+**Why .bitbot/**:
+- Works with `.bitbot/session-env/` directory structure
+- Part of BitBot wrapper infrastructure (requires wrapper to be useful)
+- Complements `claude-wrapper.sh` in `/container/bitbot/wrapper/`
 
-**Note**: The `claude-wrapper.sh` lives in `/container/bitbot/wrapper/` because it's part of the container runtime infrastructure (mounted readonly to containers), not a Claude Code extension.
+**Claude-specific scripts** (not dependent on BitBot) should go in `.claude/scripts/`.
 
 ### Naming Conventions
 
