@@ -20,5 +20,5 @@ Use this when:
 ⚠️ **Warning**: This clears all conversation history. Only use after work is saved/committed.
 
 ```bash
-.claude/skills/shared/scripts/claude-restart.sh clear
+.claude/skills/claude-restart-resume/scripts/claude-restart.sh clear
 ```

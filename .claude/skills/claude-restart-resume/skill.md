@@ -12,5 +12,5 @@ This will:
 - Preserve your conversation history
 
 ```bash
-.claude/skills/shared/scripts/claude-restart.sh resume
+.claude/skills/claude-restart-resume/scripts/claude-restart.sh resume
 ```

@@ -17,5 +17,5 @@ Use this when:
 - Need to free up space while keeping task continuity
 
 ```bash
-.claude/skills/shared/scripts/claude-restart.sh compact
+.claude/skills/claude-restart-resume/scripts/claude-restart.sh compact
 ```
