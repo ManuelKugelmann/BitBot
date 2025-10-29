@@ -127,6 +127,16 @@ handle_command() {
             echo ""
             echo "Mode: compact"
             echo "Session ID: ${session_id:-<required>}"
+
+            # Parse optional compact prompt from remaining args
+            # Message format: "compact session-id [prompt text...]"
+            local compact_prompt=""
+            if [ $# -gt 2 ]; then
+                shift 2  # Remove 'compact' and 'session_id'
+                compact_prompt="$*"  # Rest is the prompt
+                echo "Prompt: $compact_prompt"
+            fi
+
             echo ""
 
             if [ -z "$session_id" ]; then
@@ -135,6 +145,8 @@ handle_command() {
             fi
 
             if [ -n "${CLAUDE_PID:-}" ]; then
+                # Pass compact prompt via env var
+                export COMPACT_PROMPT="$compact_prompt"
                 do_restart "compact" "$session_id"
             fi
             ;;

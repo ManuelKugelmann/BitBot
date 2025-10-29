@@ -53,9 +53,12 @@ echo "Sending compact command to wrapper..."
 SEND_CMD="/opt/bitbot/wrapper/send-wrapper-command.sh"
 
 if [[ -f "$SEND_CMD" ]]; then
-    # Send compact command with session ID
-    # Wrapper will use COMPACT_PROMPT env var if set
-    exec "$SEND_CMD" compact "$SESSION_ID"
+    # Send compact command with session ID and optional prompt
+    if [[ -n "$CUSTOM_PROMPT" ]]; then
+        exec "$SEND_CMD" compact "$SESSION_ID" "$CUSTOM_PROMPT"
+    else
+        exec "$SEND_CMD" compact "$SESSION_ID"
+    fi
 else
     echo "Error: Wrapper not found at $SEND_CMD"
     echo "Are you running inside BitBot container?"
