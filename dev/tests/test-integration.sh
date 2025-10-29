@@ -28,17 +28,13 @@
 #   ./test-integration.sh --location windows           # Test Windows mount only
 #   BITBOT_TEST_SKIP_BUILD=0 ./test-integration.sh     # Test with devcontainer build
 #
-# Known Limitations:
-#   - devcontainer.cmd cannot accept WSL native paths when called from bash
-#     * Reason: .cmd files are Windows batch scripts; path translation fails when invoked from bash
-#     * Workaround: Use cmd.exe wrapper with Windows paths (Method 3)
-#     * Reference: sparc/4-refinement/docs/DEVCONTAINER-CLI-STRATEGY.md
-#     * Test: sparc/4-refinement/tests/vscode_devcontainer_interop/test-devcontainercmd-wsl.ps1
-#   - WSL home tests are skipped when using devcontainer.cmd
-#   - For full WSL testing, install native devcontainer CLI: npm install -g @devcontainers/cli
+# DevContainer CLI Strategy:
+#   - Method 3 (cmd.exe wrapper): For Windows mounts (/mnt/c/) - converts to C:\ paths
+#   - Method 4 (PowerShell wrapper): For WSL native paths - uses \\wsl.localhost\<distro>\... format
+#   - Reference: sparc/4-refinement/docs/DEVCONTAINER-CLI-STRATEGY.md
 #
 # Performance Notes:
-#   - WSL filesystem (ext4) provides better performance than /mnt/c/ (9P)
+#   - WSL filesystem (ext4) provides better performance than /mnt/c/ (9P protocol)
 #   - Recommendation: Use WSL filesystem for development (see VS Code documentation)
 #
 # Note: This test validates the full BitBot system integration across
@@ -143,11 +139,18 @@ cleanup() {
         if [[ -f "$workspace/.devcontainer/devcontainer.json" ]]; then
             cd "$workspace" 2>/dev/null || true
             if command -v devcontainer.cmd &>/dev/null; then
-                # Convert to Windows path if needed
+                # Convert path and use appropriate wrapper
+                local win_path
+                local distro="${WSL_DISTRO_NAME:-Ubuntu}"
+
                 if [[ "$workspace" == /mnt/* ]]; then
-                    local win_path
+                    # Method 3: cmd.exe with Windows path
                     win_path=$(echo "$workspace" | sed 's|/mnt/\([a-z]\)/|\U\1:/|' | sed 's|/|\\|g')
-                    timeout 30 cmd.exe /c devcontainer.cmd down --workspace-folder "$win_path" &>/dev/null || true
+                    timeout 30 cmd.exe /c "cd /d $win_path && devcontainer.cmd down --workspace-folder ." &>/dev/null || true
+                else
+                    # Method 4: PowerShell with UNC path
+                    win_path="\\\\wsl.localhost\\${distro}${workspace}"
+                    timeout 30 powershell.exe -NoProfile -Command "devcontainer.cmd down --workspace-folder '$win_path'" &>/dev/null || true
                 fi
             elif command -v devcontainer &>/dev/null; then
                 timeout 30 devcontainer down --workspace-folder "$workspace" &>/dev/null || true
@@ -232,6 +235,36 @@ echo -e "${GREEN}✓${NC} Docker daemon running"
 echo ""
 
 # ============================================================================
+# Path Conversion Helpers
+# ============================================================================
+
+# Convert WSL path to Windows format for devcontainer.cmd
+# Uses wslpath built-in tool (supports both /mnt/c/ and WSL native paths)
+convert_to_windows_path() {
+    local wsl_path="$1"
+    wslpath -w "$wsl_path"
+}
+
+# Get appropriate devcontainer command wrapper for a path
+get_devcontainer_cmd() {
+    local workspace_path="$1"
+
+    if [[ "$DEVC_CMD" == *"cmd.exe"* ]]; then
+        # Using devcontainer.cmd - need wrapper
+        if [[ "$workspace_path" == /mnt/* ]]; then
+            # Method 3: cmd.exe for Windows mounts
+            echo "cmd.exe /c"
+        else
+            # Method 4: PowerShell for WSL native
+            echo "powershell.exe -NoProfile -Command"
+        fi
+    else
+        # Using devcontainer CLI directly
+        echo ""
+    fi
+}
+
+# ============================================================================
 # Main Integration Test Function
 # ============================================================================
 
@@ -248,30 +281,9 @@ run_integration_tests_for_location() {
     echo ""
     echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
     echo -e "${CYAN}║  Testing Location: $(printf '%-21s' "$location_name")║${NC}"
-    echo -e "${CYAN}║  Path: $(printf '%-29s' "$workspace_path" | head -c 29)║${NC}"
+    echo -e "${CYAN}║  Path: $(printf '%-29s' "$workspace_path")║${NC}"
     echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
     echo ""
-
-    # Check if using devcontainer.cmd with WSL home (unsupported)
-    if [[ "$DEVC_CMD" == *"cmd.exe"* ]] && [[ "$workspace_path" != /mnt/* ]]; then
-        echo -e "${YELLOW}⊘ SKIPPED${NC}: $location_name"
-        echo ""
-        echo "Reason: devcontainer.cmd cannot accept WSL native paths when called from bash"
-        echo ""
-        echo "Technical Details:"
-        echo "  - devcontainer.cmd is a Windows batch script (.cmd file)"
-        echo "  - When called from bash, WSL path translation fails for batch scripts"
-        echo "  - Windows paths (/mnt/c/) work because they convert cleanly to C:\\"
-        echo "  - WSL native paths ($HOME) cannot be translated to Windows format"
-        echo ""
-        echo "Workaround: Use cmd.exe wrapper with Windows paths (implemented)"
-        echo "Reference: sparc/4-refinement/docs/DEVCONTAINER-CLI-STRATEGY.md (Method 3)"
-        echo ""
-        echo "To test WSL locations, install native devcontainer CLI:"
-        echo "  npm install -g @devcontainers/cli"
-        echo ""
-        return 0
-    fi
 
 # ============================================================================
 # Test 1: Workspace Initialization
@@ -354,21 +366,33 @@ if [[ "$SKIP_BUILD" == "1" ]]; then
 elif [[ "${BITBOT_TEST_BUILD_ONLY:-0}" == "1" ]]; then
     run_test "Build DevContainer (build-only mode)"
 
-    # Convert path for Windows if using devcontainer.cmd
-    workspace_arg="$TEST_WORKSPACE"
-    if [[ "$DEVC_CMD" == *"cmd.exe"* ]]; then
-        workspace_arg=$(echo "$TEST_WORKSPACE" | sed 's|/mnt/\([a-z]\)/|\U\1:/|' | sed 's|/|\\|g')
-    fi
+    # Convert path and get appropriate command wrapper
+    win_path=$(convert_to_windows_path "$TEST_WORKSPACE")
+    cmd_wrapper=$(get_devcontainer_cmd "$TEST_WORKSPACE")
 
     echo "Building container (this may take several minutes)..."
-    if timeout 600 $DEVC_CMD build --workspace-folder "$workspace_arg" &>/tmp/integration-build-$$.log; then
-        test_passed "DevContainer built successfully"
-        CONTAINER_BUILT=true
+    if [[ "$TEST_WORKSPACE" == /mnt/* ]]; then
+        # Method 3: cmd.exe with cd trick
+        if timeout 600 $cmd_wrapper "cd /d $win_path && devcontainer.cmd build --workspace-folder ." &>/tmp/integration-build-$$.log; then
+            test_passed "DevContainer built successfully"
+            CONTAINER_BUILT=true
+        else
+            test_failed "DevContainer build failed"
+            echo "Build log:"
+            tail -20 /tmp/integration-build-$$.log
+            rm -f /tmp/integration-build-$$.log
+        fi
     else
-        test_failed "DevContainer build failed"
-        echo "Build log:"
-        tail -20 /tmp/integration-build-$$.log
-        rm -f /tmp/integration-build-$$.log
+        # Method 4: PowerShell with UNC path
+        if timeout 600 $cmd_wrapper "devcontainer.cmd build --workspace-folder '$win_path'" &>/tmp/integration-build-$$.log; then
+            test_passed "DevContainer built successfully"
+            CONTAINER_BUILT=true
+        else
+            test_failed "DevContainer build failed"
+            echo "Build log:"
+            tail -20 /tmp/integration-build-$$.log
+            rm -f /tmp/integration-build-$$.log
+        fi
     fi
     rm -f /tmp/integration-build-$$.log
 
@@ -376,22 +400,35 @@ elif [[ "${BITBOT_TEST_BUILD_ONLY:-0}" == "1" ]]; then
 else
     run_test "Build DevContainer"
 
-    # Convert path for Windows if using devcontainer.cmd
-    workspace_arg="$TEST_WORKSPACE"
-    if [[ "$DEVC_CMD" == *"cmd.exe"* ]]; then
-        workspace_arg=$(echo "$TEST_WORKSPACE" | sed 's|/mnt/\([a-z]\)/|\U\1:/|' | sed 's|/|\\|g')
-    fi
+    # Convert path and get appropriate command wrapper
+    win_path=$(convert_to_windows_path "$TEST_WORKSPACE")
+    cmd_wrapper=$(get_devcontainer_cmd "$TEST_WORKSPACE")
 
     echo "Building container (this may take several minutes)..."
-    if timeout 600 $DEVC_CMD build --workspace-folder "$workspace_arg" &>/tmp/integration-build-$$.log; then
-        test_passed "DevContainer built successfully"
-        CONTAINER_BUILT=true
+    if [[ "$TEST_WORKSPACE" == /mnt/* ]]; then
+        # Method 3: cmd.exe with cd trick
+        if timeout 600 $cmd_wrapper "cd /d $win_path && devcontainer.cmd build --workspace-folder ." &>/tmp/integration-build-$$.log; then
+            test_passed "DevContainer built successfully"
+            CONTAINER_BUILT=true
+        else
+            test_failed "DevContainer build failed"
+            echo "Build log:"
+            tail -20 /tmp/integration-build-$$.log
+            rm -f /tmp/integration-build-$$.log
+            # Continue with remaining tests even if build fails
+        fi
     else
-        test_failed "DevContainer build failed"
-        echo "Build log:"
-        tail -20 /tmp/integration-build-$$.log
-        rm -f /tmp/integration-build-$$.log
-        # Continue with remaining tests even if build fails
+        # Method 4: PowerShell with UNC path
+        if timeout 600 $cmd_wrapper "devcontainer.cmd build --workspace-folder '$win_path'" &>/tmp/integration-build-$$.log; then
+            test_passed "DevContainer built successfully"
+            CONTAINER_BUILT=true
+        else
+            test_failed "DevContainer build failed"
+            echo "Build log:"
+            tail -20 /tmp/integration-build-$$.log
+            rm -f /tmp/integration-build-$$.log
+            # Continue with remaining tests even if build fails
+        fi
     fi
     rm -f /tmp/integration-build-$$.log
 
@@ -583,19 +620,23 @@ if [[ "$CONTAINER_BUILT" == "false" ]]; then
     echo -e "${YELLOW}ℹ${NC}  To run these tests: BITBOT_TEST_SKIP_BUILD=0 $0"
     echo ""
 else
-    # Convert path for devcontainer exec
-    workspace_arg="$TEST_WORKSPACE"
-    if [[ "$DEVC_CMD" == *"cmd.exe"* ]]; then
-        workspace_arg=$(echo "$TEST_WORKSPACE" | sed 's|/mnt/\([a-z]\)/|\U\1:/|' | sed 's|/|\\|g')
-    fi
+    # Convert path and get appropriate command wrapper
+    win_path=$(convert_to_windows_path "$TEST_WORKSPACE")
+    cmd_wrapper=$(get_devcontainer_cmd "$TEST_WORKSPACE")
 
     # Helper function to run commands in container
     run_in_container() {
         local cmd="$1"
         if [[ "$DEVC_CMD" == *"cmd.exe"* ]]; then
-            timeout 30 cmd.exe /c "cd /d $workspace_arg && devcontainer.cmd exec --workspace-folder $workspace_arg $cmd" 2>&1
+            if [[ "$TEST_WORKSPACE" == /mnt/* ]]; then
+                # Method 3: cmd.exe with cd trick
+                timeout 30 cmd.exe /c "cd /d $win_path && devcontainer.cmd exec --workspace-folder . $cmd" 2>&1
+            else
+                # Method 4: PowerShell with UNC path
+                timeout 30 powershell.exe -NoProfile -Command "devcontainer.cmd exec --workspace-folder '$win_path' $cmd" 2>&1
+            fi
         else
-            timeout 30 devcontainer exec --workspace-folder "$workspace_arg" bash -c "$cmd" 2>&1
+            timeout 30 devcontainer exec --workspace-folder "$TEST_WORKSPACE" bash -c "$cmd" 2>&1
         fi
     }
 

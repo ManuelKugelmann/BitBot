@@ -142,32 +142,45 @@ esac
 
 **Future enhancement**: Research hash matching to enable CI/CD pre-builds (see `test-windows-launch/TODO-HASH-MATCHING.md`)
 
-### 0.5 Windows Path Label Strategy (Method 3)
+### 0.5 Windows Path Label Strategy (Method 3 & 4)
 
-**Critical Finding**: VS Code on Windows uses Windows path format (`C:\...`) in container labels, not WSL paths (`/mnt/c/...`).
+**Critical Finding**: VS Code on Windows uses Windows path format (`C:\...` or `\\wsl.localhost\...`) in container labels, not raw WSL paths (`/mnt/c/...`).
 
 **Root Cause of Path Corruption**:
 - Calling `devcontainer` (Node.js script) creates WSL paths in labels
 - Calling `devcontainer.cmd` (Windows wrapper) creates Windows paths in labels
 - **The `.cmd` wrapper is required**, regardless of which WSL distro is used
 
-**Three Methods Tested**:
+**Four Methods Tested**:
 
-| Method | Command                                                          | Label Format | VS Code Reuse |
-|--------|------------------------------------------------------------------|--------------|---------------|
-| 1      | `wsl bash -c "devcontainer up ..."`                             | WSL paths    | ❌ No          |
-| 2      | `devcontainer.cmd up --workspace-folder "C:\..."`               | Windows      | ✅ Yes         |
-| 3      | `wsl bash -c "cmd.exe /c 'cd /d C:\... && devcontainer.cmd'"` | Windows      | ✅ Yes         |
+| Method | Command                                                          | Label Format | VS Code Reuse | WSL Home Support |
+|--------|------------------------------------------------------------------|--------------|---------------|------------------|
+| 1      | `wsl bash -c "devcontainer up ..."`                             | WSL paths    | ❌ No          | ❌ No            |
+| 2      | `devcontainer.cmd up --workspace-folder "C:\..."`               | Windows      | ✅ Yes         | ❌ No            |
+| 3      | `wsl bash -c "cmd.exe /c 'cd /d C:\... && devcontainer.cmd'"` | Windows      | ✅ Yes         | ❌ No            |
+| 4      | `wsl bash -c "powershell.exe -Command 'devcontainer.cmd ... \\\\wsl.localhost\\...'"` | UNC          | ✅ Yes         | ✅ **YES**       |
 
-**Decision**: ✅ Method 3 chosen (bash-centric approach, produces Windows labels)
+**Decision**: ✅ Hybrid approach (Method 3 for /mnt/c/, Method 4 for WSL home)
 
-**Why Method 3**:
+**Why Hybrid Approach**:
+- **Method 3**: For Windows mounts (/mnt/c/) - converts to `C:\...` paths
+- **Method 4**: For WSL native paths - uses `\\wsl.localhost\<distro>\...` format
 - Works from bash scripts (aligns with BitBot's bash-centric design)
-- Produces Windows path labels that match VS Code expectations
+- Produces Windows-compatible path labels that match VS Code expectations
 - Uses VS Code's bundled `devcontainer.cmd` wrapper (critical for correct paths)
+- Supports best-performance WSL native filesystem (ext4) via Method 4
 - Works from any WSL distro (Ubuntu, Alpine, Debian, etc.)
-- Avoids quote escaping hell via `cd /d` pattern
-- **Latest tests confirm full interoperability** ✅
+- Uses `wslpath -w` for automatic path conversion
+- **Latest tests confirm full interoperability for both path types** ✅
+
+**Path Conversion**:
+```bash
+# Built-in tool handles both path types
+win_path=$(wslpath -w "$workspace_path")
+
+# /mnt/c/Projects/foo -> C:\Projects\foo
+# /home/user/foo -> \\wsl.localhost\Ubuntu\home\user\foo
+```
 
 **Implementation** (`bitbot-core.sh`):
 ```bash
@@ -188,7 +201,7 @@ get_devcontainer_cli() {
 }
 ```
 
-**Note**: Method 3 is primarily for CLI-initiated container builds. The direct URI approach (0.1-0.3) is preferred for BitBot's `bitbot vscode` command as it's simpler and more reliable.
+**Note**: Methods 3 & 4 are primarily for CLI-initiated container builds. The direct URI approach (0.1-0.3) is preferred for BitBot's `bitbot vscode` command as it's simpler and more reliable.
 
 ### 0.6 Windows Multi-Entry-Point Strategy
 
@@ -219,18 +232,30 @@ devcontainer.cmd up --workspace-folder "%WORKSPACE%"
 
 ---
 
-#### Entry Point 3: WSL Bash (Any WSL Distro)
+#### Entry Point 3: WSL Bash (Any WSL Distro) - Recommended
 
 ```bash
 #!/bin/bash
 # bitbot (runs in WSL)
 workspace_win=$(wslpath -w "$PWD")
-cmd.exe /c "cd /d $workspace_win && devcontainer.cmd up --workspace-folder ."
+
+# Determine method based on path type
+if [[ "$PWD" == /mnt/* ]]; then
+    # Method 3: cmd.exe for Windows mounts
+    cmd.exe /c "cd /d $workspace_win && devcontainer.cmd up --workspace-folder ."
+else
+    # Method 4: PowerShell for WSL native (best performance)
+    powershell.exe -NoProfile -Command "devcontainer.cmd up --workspace-folder '$workspace_win'"
+fi
 ```
 
 **Use case**: Bash-centric users, cross-platform consistency, BitBot-Alpine (optional isolation)
 
-**Key point**: All three entry points use `devcontainer.cmd` wrapper to ensure Windows path labels.
+**Key points**:
+- All three entry points use `devcontainer.cmd` wrapper to ensure Windows-compatible path labels
+- WSL native paths ($HOME) use Method 4 for optimal ext4 filesystem performance
+- Windows mounts (/mnt/c/) use Method 3 for compatibility
+- `wslpath -w` automatically handles both path types
 
 ---
 
@@ -242,9 +267,10 @@ cmd.exe /c "cd /d $workspace_win && devcontainer.cmd up --workspace-folder ."
 - ✅ coreutils (`od` for hex encoding)
 - ✅ No Docker/Node.js in WSL needed
 
-**Method 3 Approach (CLI-initiated builds)**:
+**Methods 3 & 4 Approach (CLI-initiated builds)**:
 - ✅ VS Code with Dev Containers extension
 - ✅ bash (any WSL distro or BitBot-Alpine)
+- ✅ Automatic path detection (wslpath -w)
 - ✅ WSL interop (calls Windows `devcontainer.cmd`)
 - ✅ No separate `@devcontainers/cli` installation needed
 
@@ -266,13 +292,22 @@ cmd.exe /c "cd /d $workspace_win && devcontainer.cmd up --workspace-folder ."
 - ✅ Terminal at `/workspace`
 - ✅ Bottom-left shows "Dev Container: BitBot Test"
 
-**Scenario 2: Method 3 (WSL → cmd.exe → devcontainer.cmd)**
-```powershell
+**Scenario 2: Methods 3 & 4 (WSL → wrapper → devcontainer.cmd)**
+```bash
 # Works in ANY WSL distro (Ubuntu, Alpine, Debian, etc.)
-wsl bash -c "cmd.exe /c 'cd /d C:\\Projects\\BitBot && devcontainer.cmd up --workspace-folder .'"
+workspace_win=$(wslpath -w "$PWD")
+
+if [[ "$PWD" == /mnt/* ]]; then
+    # Method 3: Windows mounts
+    cmd.exe /c "cd /d $workspace_win && devcontainer.cmd up --workspace-folder ."
+else
+    # Method 4: WSL native (best performance)
+    powershell.exe -NoProfile -Command "devcontainer.cmd up --workspace-folder '$workspace_win'"
+fi
 ```
-- ✅ Windows path labels created correctly
+- ✅ Windows-compatible path labels created correctly
 - ✅ VS Code discovers and reuses containers
+- ✅ Supports both /mnt/c/ and WSL native paths
 - ✅ No path corruption (`.cmd` wrapper ensures Windows paths)
 - ✅ Works from bash scripts
 - ✅ **Full interoperability confirmed** ✅
@@ -292,7 +327,7 @@ open_vscode_devcontainer "C:\Projects\BitBot"
 ```powershell
 .\test-vscode-discovery-final.ps1
 ```
-- ✅ Method 3 produces Windows path labels
+- ✅ Methods 3 & 4 produce Windows-compatible path labels
 - ✅ VS Code detects and reuses same container
 - ✅ No rebuild on subsequent opens
 - ✅ Container count remains 1 (no duplicates)
@@ -374,7 +409,7 @@ labels:
 - Allows "Attach to Running Container" feature
 - Enables "Reopen in Container" from workspace
 
-**Current Status**: Labels set automatically by VS Code when using direct URI approach. Manual labeling needed only if using Method 3 (devcontainer CLI).
+**Current Status**: Labels set automatically by VS Code when using direct URI approach. Manual labeling needed only if using Methods 3 & 4 (devcontainer CLI).
 
 ### 1.3 Single Root Devcontainer Policy
 
@@ -710,7 +745,7 @@ $ bitbot vscode .
 **Requirements**:
 - CLI must build container with correct labels (Section 1.2)
 - VS Code detects by `devcontainer.local_folder` label
-- Requires Method 3 implementation for label compatibility
+- Requires Methods 3 & 4 implementation for label compatibility
 
 **Status**: ⏳ Future (Phase 2+)
 
@@ -1167,7 +1202,7 @@ docker-compose -f .bitbot/mcp/docker-compose.yml up -d
 - ✅ VS-02: Hex encoding works (PowerShell + bash)
 - ✅ VS-03: Container reuse confirmed (no duplicates)
 - ✅ VS-04: Windows path labels match VS Code expectations
-- ✅ VS-05: Method 3 produces correct labels
+- ✅ VS-05: Methods 3 & 4 produce correct labels
 
 **Pending**:
 - ⏳ VS-06: CLI starts container, VS Code attaches

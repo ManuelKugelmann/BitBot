@@ -7,10 +7,10 @@
 #   - WSL native filesystem (ext4) - best performance
 #   - Windows mount (/mnt/c/) - 9P protocol
 #
-# Known Limitation: devcontainer.cmd cannot accept WSL native paths from bash
-#   - Reason: .cmd files are Windows batch scripts; path translation fails
-#   - Reference: sparc/4-refinement/docs/DEVCONTAINER-CLI-STRATEGY.md (Method 3)
-#   - Test: sparc/4-refinement/tests/vscode_devcontainer_interop/test-devcontainercmd-wsl.ps1
+# DevContainer CLI Strategy:
+#   - Method 3 (cmd.exe wrapper): For Windows mounts (/mnt/c/) - converts to C:\ paths
+#   - Method 4 (PowerShell wrapper): For WSL native paths - uses \\wsl.localhost\<distro>\... format
+#   - Reference: sparc/4-refinement/docs/DEVCONTAINER-CLI-STRATEGY.md
 #
 # Usage: ./test-devcontainer-locations.sh [--quick]
 
@@ -60,11 +60,18 @@ if ! command -v devcontainer &>/dev/null && ! command -v devcontainer.cmd &>/dev
     exit 1
 fi
 
-# Use devcontainer.cmd on Windows/WSL (must wrap with cmd.exe)
+# DevContainer CLI detection
 DEVC_CMD="devcontainer"
 if command -v devcontainer.cmd &>/dev/null; then
-    DEVC_CMD="cmd.exe /c devcontainer.cmd"
+    DEVC_CMD="devcontainer.cmd"
 fi
+
+# Convert WSL path to Windows format for devcontainer.cmd
+# Uses wslpath built-in tool (supports both /mnt/c/ and WSL native paths)
+convert_to_windows_path() {
+    local wsl_path="$1"
+    wslpath -w "$wsl_path"
+}
 
 # Test locations
 WSL_TEST_DIR="$HOME/bitbot-devcontainer-test-wsl"
@@ -121,41 +128,76 @@ test_devcontainer() {
     local start_time=$(date +%s)
     local success=false
 
-    # Convert to Windows path if using cmd.exe
-    local workspace_arg="."
-    if [[ "$DEVC_CMD" == *"cmd.exe"* ]]; then
-        # For WSL paths, we need Windows path format
-        if [[ "$test_dir" == /mnt/* ]]; then
-            # /mnt/c/path -> C:\path
-            workspace_arg=$(echo "$test_dir" | sed 's|/mnt/\([a-z]\)/|\U\1:/|' | sed 's|/|\\|g')
-        else
-            # WSL home paths can't be used with devcontainer.cmd from WSL
-            echo -e "${YELLOW}⚠${NC} WSL native paths not supported by devcontainer.cmd"
-            echo "Skipping build test (devcontainer.cmd requires Windows paths)"
-            echo "0"
-            return
-        fi
-    fi
+    # Convert path and determine command wrapper
+    local win_path=$(convert_to_windows_path "$test_dir")
 
     # Try to build devcontainer
     echo "Building devcontainer..."
-    if cd "$test_dir" && timeout 300 $DEVC_CMD build --workspace-folder "$workspace_arg" &>/tmp/devc-build-$$.log; then
-        echo -e "${GREEN}✓${NC} DevContainer built successfully"
+    cd "$test_dir"
 
-        # Try to run a command in the devcontainer
-        echo "Running test command in devcontainer..."
-        if timeout 60 $DEVC_CMD exec --workspace-folder "$workspace_arg" bash /workspaces/$(basename "$test_dir")/test.sh &>/tmp/devc-exec-$$.log; then
-            echo -e "${GREEN}✓${NC} DevContainer executed command successfully"
-            success=true
+    if [[ "$DEVC_CMD" == "devcontainer.cmd" ]]; then
+        # Using devcontainer.cmd - need wrapper
+        if [[ "$test_dir" == /mnt/* ]]; then
+            # Method 3: cmd.exe with cd trick
+            if timeout 300 cmd.exe /c "cd /d $win_path && devcontainer.cmd build --workspace-folder ." &>/tmp/devc-build-$$.log; then
+                echo -e "${GREEN}✓${NC} DevContainer built successfully"
+
+                # Try to run a command in the devcontainer
+                echo "Running test command in devcontainer..."
+                if timeout 60 cmd.exe /c "cd /d $win_path && devcontainer.cmd exec --workspace-folder . bash /workspaces/$(basename "$test_dir")/test.sh" &>/tmp/devc-exec-$$.log; then
+                    echo -e "${GREEN}✓${NC} DevContainer executed command successfully"
+                    success=true
+                else
+                    echo -e "${RED}✗${NC} DevContainer command execution failed"
+                    echo "Log:"
+                    cat /tmp/devc-exec-$$.log
+                fi
+            else
+                echo -e "${RED}✗${NC} DevContainer build failed"
+                echo "Log:"
+                cat /tmp/devc-build-$$.log
+            fi
         else
-            echo -e "${RED}✗${NC} DevContainer command execution failed"
-            echo "Log:"
-            cat /tmp/devc-exec-$$.log
+            # Method 4: PowerShell with UNC path
+            if timeout 300 powershell.exe -NoProfile -Command "devcontainer.cmd build --workspace-folder '$win_path'" &>/tmp/devc-build-$$.log; then
+                echo -e "${GREEN}✓${NC} DevContainer built successfully"
+
+                # Try to run a command in the devcontainer
+                echo "Running test command in devcontainer..."
+                if timeout 60 powershell.exe -NoProfile -Command "devcontainer.cmd exec --workspace-folder '$win_path' bash /workspaces/$(basename "$test_dir")/test.sh" &>/tmp/devc-exec-$$.log; then
+                    echo -e "${GREEN}✓${NC} DevContainer executed command successfully"
+                    success=true
+                else
+                    echo -e "${RED}✗${NC} DevContainer command execution failed"
+                    echo "Log:"
+                    cat /tmp/devc-exec-$$.log
+                fi
+            else
+                echo -e "${RED}✗${NC} DevContainer build failed"
+                echo "Log:"
+                cat /tmp/devc-build-$$.log
+            fi
         fi
     else
-        echo -e "${RED}✗${NC} DevContainer build failed"
-        echo "Log:"
-        cat /tmp/devc-build-$$.log
+        # Using devcontainer CLI directly
+        if timeout 300 devcontainer build --workspace-folder . &>/tmp/devc-build-$$.log; then
+            echo -e "${GREEN}✓${NC} DevContainer built successfully"
+
+            # Try to run a command in the devcontainer
+            echo "Running test command in devcontainer..."
+            if timeout 60 devcontainer exec --workspace-folder . bash /workspaces/$(basename "$test_dir")/test.sh &>/tmp/devc-exec-$$.log; then
+                echo -e "${GREEN}✓${NC} DevContainer executed command successfully"
+                success=true
+            else
+                echo -e "${RED}✗${NC} DevContainer command execution failed"
+                echo "Log:"
+                cat /tmp/devc-exec-$$.log
+            fi
+        else
+            echo -e "${RED}✗${NC} DevContainer build failed"
+            echo "Log:"
+            cat /tmp/devc-build-$$.log
+        fi
     fi
 
     local end_time=$(date +%s)
@@ -180,34 +222,17 @@ test_devcontainer() {
 echo -e "${CYAN}═══ Test 1: WSL Home Location ═══${NC}"
 echo ""
 
-# Check if we're using devcontainer.cmd (which doesn't support WSL native paths)
-if [[ "$DEVC_CMD" == *"cmd.exe"* ]]; then
-    echo -e "${YELLOW}ℹ${NC} Using devcontainer.cmd from WSL"
-    echo ""
-    echo "Known Limitation: devcontainer.cmd cannot accept WSL native paths from bash"
-    echo "  - devcontainer.cmd is a Windows batch script (.cmd file)"
-    echo "  - When called from bash, WSL path translation fails for batch scripts"
-    echo "  - This is a limitation of calling Windows .cmd files from WSL shell"
-    echo ""
-    echo "References:"
-    echo "  - Strategy: sparc/4-refinement/docs/DEVCONTAINER-CLI-STRATEGY.md (Method 3)"
-    echo "  - Test: sparc/4-refinement/tests/vscode_devcontainer_interop/test-devcontainercmd-wsl.ps1"
-    echo ""
-    echo -e "${YELLOW}⊘ SKIPPED${NC}: WSL home test (path translation limitation)"
-    WSL_SUCCESS="skip"
+echo "Creating test project in WSL home..."
+create_test_project "$WSL_TEST_DIR"
+echo -e "${GREEN}✓${NC} Test project created"
+echo ""
+
+WSL_SUCCESS=$(test_devcontainer "$WSL_TEST_DIR" "WSL home")
+
+if [[ "$WSL_SUCCESS" == "1" ]]; then
+    echo -e "${GREEN}✓ PASSED${NC}: DevContainer works in WSL home location"
 else
-    echo "Creating test project in WSL home..."
-    create_test_project "$WSL_TEST_DIR"
-    echo -e "${GREEN}✓${NC} Test project created"
-    echo ""
-
-    WSL_SUCCESS=$(test_devcontainer "$WSL_TEST_DIR" "WSL home")
-
-    if [[ "$WSL_SUCCESS" == "1" ]]; then
-        echo -e "${GREEN}✓ PASSED${NC}: DevContainer works in WSL home location"
-    else
-        echo -e "${RED}✗ FAILED${NC}: DevContainer failed in WSL home location"
-    fi
+    echo -e "${RED}✗ FAILED${NC}: DevContainer failed in WSL home location"
 fi
 echo ""
 
@@ -253,8 +278,6 @@ echo ""
 
 if [[ "$WSL_SUCCESS" == "1" ]]; then
     echo -e "WSL Home: ${GREEN}✓ PASSED${NC}"
-elif [[ "$WSL_SUCCESS" == "skip" ]]; then
-    echo -e "WSL Home: ${YELLOW}⊘ SKIPPED${NC} (devcontainer.cmd limitation)"
 else
     echo -e "WSL Home: ${RED}✗ FAILED${NC}"
 fi
@@ -270,44 +293,13 @@ fi
 echo ""
 
 # Determine overall result
-# Success cases:
-# 1. WSL test passed
-# 2. WSL test skipped (devcontainer.cmd) but /mnt/c/ tested (even with warning)
-# 3. Both tests skipped in quick mode with devcontainer.cmd (informational)
 if [[ "$WSL_SUCCESS" == "1" ]]; then
     # WSL test passed - full success
     echo -e "${GREEN}✓ OVERALL: DevContainer functionality verified${NC}"
     echo ""
     exit 0
-elif [[ "$WSL_SUCCESS" == "skip" && "$QUICK" == "true" ]]; then
-    # Quick mode with devcontainer.cmd - nothing testable, but not a failure
-    echo -e "${YELLOW}⊘ OVERALL: Tests skipped (quick mode + devcontainer.cmd limitation)${NC}"
-    echo ""
-    echo "In quick mode with devcontainer.cmd, no paths are testable:"
-    echo "  - WSL home: Not accessible to devcontainer.cmd"
-    echo "  - /mnt/c/: Skipped in quick mode"
-    echo ""
-    echo "Run without --quick flag to test /mnt/c/ location"
-    echo ""
-    exit 0
-elif [[ "$WSL_SUCCESS" == "skip" && "$QUICK" != "true" ]]; then
-    # devcontainer.cmd from WSL - tested /mnt/c/ (even if it has issues)
-    echo -e "${YELLOW}⊘ OVERALL: Limited testing due to path translation${NC}"
-    echo ""
-    echo -e "${YELLOW}Note${NC}: WSL home test skipped due to path translation issues"
-    echo "When calling devcontainer.cmd from bash, WSL paths cannot be passed"
-    echo "Only /mnt/c/ paths (Windows drives) are testable in this configuration"
-    echo ""
-    if [[ "$WIN_SUCCESS" != "1" ]]; then
-        echo -e "${YELLOW}Note${NC}: /mnt/c/ location has issues (expected due to 9P filesystem)"
-        echo "This is a known limitation and does not indicate a BitBot problem"
-        echo ""
-    fi
-    echo "Recommendation: For full testing, use native devcontainer CLI (npm install -g @devcontainers/cli)"
-    echo ""
-    exit 0
 else
-    # Actual failure (non-devcontainer.cmd case)
+    # Test failed
     echo -e "${RED}✗ OVERALL: DevContainer test failed${NC}"
     echo ""
     exit 1
