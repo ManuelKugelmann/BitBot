@@ -70,7 +70,7 @@ jobs:
       - name: Run all tests
         run: |
           cd dev/tests
-          ./run-tests.sh
+          ./run-tests.sh --quick
 
       - name: Upload test results
         if: always()

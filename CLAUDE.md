@@ -390,17 +390,27 @@ After completing a significant implementation phase, proactively remind the user
 
 ### Context Size Awareness
 
-**Note**: Claude cannot directly check token count programmatically (no API/hook access), but can see token budget in system reminders:
-- Example: `<budget:token_budget>200000</budget:token_budget>`
-- Current usage shown as: `Token usage: 93470/200000; 106530 remaining`
+**Token Budget Information Sources:**
+
+1. **System Reminders** (passive):
+   - Token budget shown: `<budget:token_budget>200000</budget:token_budget>`
+   - Current usage: `Token usage: 98324/200000; 101676 remaining`
+
+2. **Status Line JSON** (programmatic):
+   - Claude Code passes JSON via stdin to status line commands
+   - Contains context usage percentage, token counts, model info
+   - Can be accessed via custom status line script
+   - See: `.claude/settings.json` → `statusLine.command`
 
 **Heuristics for when context is getting large:**
+- Token usage shown in reminders approaching 150k+ (75% of 200k budget)
 - Message count >100 messages
 - Long conversations (>2 hours of work)
 - Repeated context about same topics
-- Token usage shown in reminders approaching 150k+
 
 **Action**: When token usage exceeds ~150k (75% of 200k budget), proactively invoke `claude-restart-compact` to free up space and continue working.
+
+**Note**: Claude Code auto-compacts at ~160k tokens (80% usage). Proactive compaction at 150k leaves buffer before automatic compaction.
 
 ## DevContainer Context
 
