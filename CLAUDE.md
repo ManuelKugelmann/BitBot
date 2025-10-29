@@ -38,7 +38,10 @@ BitBot/
 │       └── shared/        # Shared scripts and configs
 ├── dev/                # Development artifacts (scripts, src, tests)
 ├── sparc/              # SPARC methodology documentation
-├── .claude/            # Claude Code configuration (CLAUDE.md, tools/)
+├── .claude/            # Claude Code configuration
+│   ├── hooks/         # Session hooks (session-start, etc.)
+│   ├── scripts/       # Claude-specific scripts (ccstatusline-wrapper, etc.)
+│   └── skills/        # Custom skills
 ├── .devcontainer/      # BitBot development container
 └── .github/            # GitHub workflows
 ```
@@ -54,6 +57,7 @@ BitBot/
 | `/dev/`                        | Development artifacts                | kebab-case          |
 | `/sparc/`                      | SPARC documentation                  | (see SPARC section) |
 | `/.claude/`                    | Claude Code config                   | kebab-case          |
+| `/.claude/scripts/`            | Claude-specific scripts              | kebab-case          |
 | `/.devcontainer/`              | BitBot dev container                 | lowercase           |
 
 **Workspace Directory Structure:**
@@ -71,6 +75,18 @@ Development-related files organized under `/dev/`:
 | `/dev/scripts/` | BitBot development scripts           | `bitbot-dev-create-release-branch.sh`     |
 | `/dev/src/`     | Source code (e.g., Windows launcher) | `launcher_windows/launcher.c`             |
 | `/dev/tests/`   | Test suites                          | `test-container-bitbot.sh`                |
+
+### Claude Code Scripts (/.claude/scripts/)
+
+Claude-specific scripts for extending Claude Code functionality:
+
+| Script                    | Purpose                              | Location                                    |
+| ------------------------- | ------------------------------------ | ------------------------------------------- |
+| `ccstatusline-wrapper/`   | Token usage tracking                 | `.claude/scripts/ccstatusline-wrapper/`     |
+
+**Usage**: Reference these scripts in `.claude/settings.json` or skills. Store all Claude-specific automation scripts here.
+
+**Note**: The `claude-wrapper.sh` lives in `/container/bitbot/wrapper/` because it's part of the container runtime infrastructure (mounted readonly to containers), not a Claude Code extension.
 
 ### Naming Conventions
 
@@ -280,6 +296,7 @@ BitBot follows the **SPARC** methodology for structured development. When workin
 - **DO NOT** use pwsh to run PowerShell scripts
 - **DO NOT** add 🤖 Generated with [Claude Code] or Co-Authored-By to commits
 - DO step by step, small steps, track tasks using TodoWrite tool (session) AND `/sparc/TODOS.md` (persistent). test after steps. fix. commit if working.
+- DO use test-workflow skill for iterative development: implement → test → fix → commit → push
 - DON'T: large changes, multiple changes, large combined commits
 - DO use worktrees when doing more complex git work like e.g. a release.
 - **DO** ask the user for manual execution of any commands requiring `sudo`. `sudo`does not work in claude code TUI.

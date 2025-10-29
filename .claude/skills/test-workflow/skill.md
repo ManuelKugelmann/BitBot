@@ -1,23 +1,29 @@
 ---
 name: test-workflow
-description: Run BitBot's standard test workflow: fix line endings, check syntax, run tests with timeout. Use PROACTIVELY after creating/modifying shell scripts or test files.
+description: Run BitBot's iterative test workflow (implement → test → fix → commit → push). Use PROACTIVELY during development to ensure quality before committing.
 ---
 
 Running BitBot test workflow...
 
-This workflow:
-1. Fixes line endings (CRLF → LF)
-2. Checks bash syntax
-3. Runs tests with timeout protection
-4. Reports results
+This workflow supports the full development cycle:
+1. **Implement** - Write/modify code
+2. **Test** - Fix line endings, check syntax, run tests
+3. **Fix** - Address failures iteratively
+4. **Commit** - Once all tests pass
+5. **Push** - Share your work
 
 ## Usage
 
-Provide the script/test file to process:
-
+**Single file check** (basic mode):
 ```bash
 .claude/skills/test-workflow/scripts/test-workflow.sh <file>
 ```
+
+**Implementation loop** (use this in practice):
+1. Make changes to implementation file
+2. Run workflow on implementation + test file
+3. If tests fail, fix issues and repeat from step 2
+4. Once tests pass, commit and push
 
 ## What It Does
 
@@ -37,22 +43,34 @@ Provide the script/test file to process:
 
 ## When to Use Proactively
 
-**After creating shell scripts:**
+**During iterative development (recommended):**
 ```bash
-# Just wrote new script
+# 1. Implement feature
+vim core/util/feature.sh
+
+# 2. Test implementation
+.claude/skills/test-workflow/scripts/test-workflow.sh core/util/feature.sh
+
+# 3. Create/update tests
+vim dev/tests/test-feature.sh
+
+# 4. Run test suite
+.claude/skills/test-workflow/scripts/test-workflow.sh dev/tests/test-feature.sh
+
+# 5. If tests fail, fix and repeat steps 2-4
+# 6. Once all tests pass, commit
+git add core/util/feature.sh dev/tests/test-feature.sh
+git commit -m "Add feature with tests (all passing)"
+git push
+```
+
+**Quick single-file checks:**
+```bash
+# After creating/modifying shell script
 .claude/skills/test-workflow/scripts/test-workflow.sh core/util/new-script.sh
-```
 
-**After modifying existing scripts:**
-```bash
-# Updated implementation
-.claude/skills/test-workflow/scripts/test-workflow.sh core/workspace/bitbot-work.sh
-```
-
-**After creating test files:**
-```bash
-# Created new test suite
-.claude/skills/test-workflow/scripts/test-workflow.sh dev/tests/test-new-feature.sh
+# After updating test file
+.claude/skills/test-workflow/scripts/test-workflow.sh dev/tests/test-feature.sh
 ```
 
 ## See Also
