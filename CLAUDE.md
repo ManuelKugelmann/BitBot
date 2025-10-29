@@ -518,5 +518,4 @@ Add to `container/templates/{template}/details.CLAUDE.md` (like `details.devcont
 <!-- Items below this line -->
 
 ---
-
-
+- order in mermaid defines tb columns and lr rows

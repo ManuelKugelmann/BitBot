@@ -2,19 +2,50 @@
 
 ## Test Results Summary
 
-We tested three methods of calling the devcontainer CLI:
+We tested four methods of calling the devcontainer CLI:
 
-| Method | Path Format | VS Code Compatible | BitBot Compatible |
-|--------|-------------|-------------------|-------------------|
-| 1. WSL → devcontainer | `/mnt/c/...` | ❌ No | ✅ Yes |
-| 2. PS → devcontainer.cmd | `C:\...` | ✅ Yes | ❌ No (PowerShell) |
-| 3. WSL → cmd.exe → devcontainer.cmd | `C:\...` | ✅ Yes | ✅ Yes |
+| Method | Path Format | VS Code Compatible | BitBot Compatible | WSL Home Support |
+|--------|-------------|-------------------|-------------------|------------------|
+| 1. WSL → devcontainer | `/mnt/c/...` | ❌ No | ✅ Yes | ❌ No |
+| 2. PS → devcontainer.cmd | `C:\...` | ✅ Yes | ❌ No (PowerShell) | ❌ No |
+| 3. WSL → cmd.exe → devcontainer.cmd | `C:\...` | ✅ Yes | ✅ Yes | ❌ No |
+| 4. WSL → PowerShell → devcontainer.cmd | `\\wsl.localhost\...` | ✅ Yes | ✅ Yes | ✅ **YES** |
 
-## Winning Strategy: Method 3
+## Winning Strategies
 
-**Command pattern:**
+### Method 4: WSL Home (\\wsl.localhost\...) - **NEW & RECOMMENDED**
+
+**For WSL native filesystem paths** (best performance):
+
 ```bash
-# From WSL bash
+# From WSL bash - WSL home directory
+WSL_PATH="/home/mk/my-project"
+WSL_DISTRO="${WSL_DISTRO_NAME:-Ubuntu}"
+WIN_PATH="\\\\wsl.localhost\\${WSL_DISTRO}${WSL_PATH}"
+
+powershell.exe -NoProfile -Command "devcontainer.cmd up --workspace-folder '$WIN_PATH'"
+```
+
+**Why This Works:**
+- PowerShell can use UNC paths as arguments (cmd.exe cannot as current directory)
+- `\\wsl.localhost\<distro>\...` is Windows' native WSL filesystem access protocol
+- devcontainer.cmd receives path as parameter (no `cd` operation needed)
+- Docker can mount `\\wsl.localhost` paths
+- VS Code recognizes containers with these labels
+
+**Result:**
+```
+Container labels:
+  devcontainer.local_folder = \\wsl.localhost\Ubuntu\home\mk\my-project  ✅
+  devcontainer.config_file = \Ubuntu\home\mk\my-project\.devcontainer\devcontainer.json
+```
+
+### Method 3: Windows Mount (/mnt/c/) - **FALLBACK**
+
+**For Windows filesystem paths** (when needed):
+
+```bash
+# From WSL bash - Windows drive mount
 cmd.exe /c "cd /d C:\Path\To\Workspace && devcontainer.cmd up --workspace-folder ."
 ```
 
@@ -87,17 +118,23 @@ cmd.exe /c "cd /d $windows_path && devcontainer.cmd exec --workspace-folder . ba
 
 ## Why Method 1 Doesn't Work
 
-**Method 1 (WSL → devcontainer)** produces WSL paths:
+**Method 1 (WSL → devcontainer)** produces WSL mount paths:
 ```
 devcontainer.local_folder = /mnt/c/Projects/BitBot/test-windows-launch  ❌
 ```
 
-VS Code looks for:
+VS Code looks for (depending on how workspace was opened):
 ```
+# If opened from Windows:
 devcontainer.local_folder = C:\Projects\BitBot\test-windows-launch
+
+# If opened from WSL:
+devcontainer.local_folder = \\wsl.localhost\Ubuntu\mnt\c\Projects\BitBot\test-windows-launch
 ```
 
 **Path mismatch → VS Code won't detect the container**
+
+**Note**: Method 1 could work if VS Code is also using WSL paths internally, but this is unreliable and doesn't match VS Code's expected Windows path format.
 
 ## Why Method 2 Isn't Suitable
 
@@ -196,22 +233,114 @@ Test VS Code detecting a Method 3 container:
 3. Check if "Reopen in Container" appears
 4. Verify it reuses existing container (no rebuild)
 
+## Method 4 Details: PowerShell + \\wsl.localhost
+
+**Added**: 2025-10-29
+**Status**: ✅ Verified Working
+
+### The Discovery
+
+Testing revealed that `devcontainer.cmd` DOES support WSL native paths using the `\\wsl.localhost\<distro>\...` format when called via PowerShell.
+
+### Why cmd.exe Fails with UNC Paths
+
+```bash
+cmd.exe /c "cd /d \\wsl.localhost\Ubuntu\home\mk\project && ..."
+```
+
+**Error**:
+```
+CMD.EXE was started with the above path as the current directory.
+UNC paths are not supported.  Defaulting to Windows directory.
+```
+
+This is a `cmd.exe` limitation, NOT a `devcontainer.cmd` limitation.
+
+### Why PowerShell Succeeds
+
+```bash
+powershell.exe -NoProfile -Command "devcontainer.cmd up --workspace-folder '\\\\wsl.localhost\\Ubuntu\\home\\mk\\project'"
+```
+
+**Success**: PowerShell can use UNC paths as arguments (not as current directory via `cd`).
+
+**Availability**: PowerShell 5.1+ is built into all Windows 10 and Windows 11 installations. No additional installation required.
+
+### Empirical Verification
+
+**Test Date**: 2025-10-29
+**Test Path**: `/home/mk/test-wsl-localhost-path`
+**Container**: `7e8e760ac5ff` (clever_payne)
+
+**Results**:
+- ✅ Container built successfully
+- ✅ Container started with correct labels
+- ✅ VS Code detected container (Reopen in Container popup)
+- ✅ VS Code attached without rebuild
+
+**Labels**:
+```
+devcontainer.local_folder = \\wsl.localhost\Ubuntu\home\mk\test-wsl-localhost-path
+devcontainer.config_file = \Ubuntu\home\mk\test-wsl-localhost-path\.devcontainer\devcontainer.json
+```
+
+### Implementation
+
+```bash
+# Path detection and conversion
+convert_to_windows_path() {
+    local path="$1"
+    local distro="${WSL_DISTRO_NAME:-Ubuntu}"
+
+    if [[ "$path" == /mnt/* ]]; then
+        # Windows mount - use Method 3 (cmd.exe)
+        echo "$path" | sed 's|/mnt/\([a-z]\)/|\U\1:/|' | sed 's|/|\\|g'
+    else
+        # WSL native - use Method 4 (PowerShell + UNC)
+        echo "\\\\wsl.localhost\\${distro}${path}"
+    fi
+}
+
+# Build container
+build_container() {
+    local wsl_path="$1"
+    local win_path=$(convert_to_windows_path "$wsl_path")
+
+    if [[ "$wsl_path" == /mnt/* ]]; then
+        # Method 3: cmd.exe for /mnt/c/ paths
+        cmd.exe /c "cd /d $win_path && devcontainer.cmd up --workspace-folder ."
+    else
+        # Method 4: PowerShell for WSL home paths
+        powershell.exe -NoProfile -Command "devcontainer.cmd up --workspace-folder '$win_path'"
+    fi
+}
+```
+
 ## Summary
 
-**For BitBot, use Method 3:**
-```bash
-# Get VS Code's bundled CLI
-cli_path="$APPDATA/.../devcontainer.cmd"
+**For BitBot, use hybrid approach:**
 
-# Build with Windows path labels
-cmd.exe /c "cd /d C:\Workspace && devcontainer.cmd up --workspace-folder ."
+### WSL Native Paths (Recommended for Performance)
+```bash
+# Method 4: PowerShell + \\wsl.localhost
+powershell.exe -NoProfile -Command "devcontainer.cmd up --workspace-folder '\\\\wsl.localhost\\Ubuntu\\home\\user\\project'"
+```
+
+### Windows Mount Paths
+```bash
+# Method 3: cmd.exe + cd trick
+cmd.exe /c "cd /d C:\Projects\project && devcontainer.cmd up --workspace-folder ."
 ```
 
 **Why:**
 - ✅ Bash-compatible (BitBot's core scripting)
+- ✅ Supports both WSL native (best performance) and Windows mounts
 - ✅ Windows path labels (VS Code compatible)
 - ✅ Uses VS Code's own CLI (always in sync)
-- ✅ Label-based container discovery works
+- ✅ Label-based container discovery works for all cases
+
+**Performance Note:**
+WSL native filesystem (ext4) offers significantly better I/O performance than Windows mounts (9P protocol). Method 4 enables using the faster filesystem.
 
 **Result:**
-BitBot CLI and VS Code can share containers seamlessly through label-based discovery!
+BitBot CLI and VS Code can share containers seamlessly through label-based discovery, with optimal filesystem performance!

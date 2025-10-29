@@ -20,7 +20,7 @@ When working with AI coding assistants like Claude Code, you want them to:
 
 - ✅ Make changes to your application code freely
 - ✅ Run tests and debug issues
-- ✅ Refactor and improve your codebase
+- ✅ Use all tools freely
 - ✅ Install dependencies and tools
 
 But **not** accidentally:
@@ -30,35 +30,33 @@ But **not** accidentally:
 - ❌ Install system-wide packages that affect other projects
 - ❌ Wreck your machine
 
-### Why DevContainers?
+### The Solution: DevContainers
 
 DevContainers are a great standardization that extends plain container definitions with development-specific features, making them perfect for AI-assisted development.
 
-BitBot uses DevContainers to provide isolated, reproducible environments:
-
-**Key Benefits:**
+DevContainers provide isolated, reproducible environments with these key benefits:
 
 - ✅ **Isolation**: AI changes stay in container, host protected, no dependency conflicts
 - ✅ **Reproducible**: Same environment across Windows/macOS/Linux for all developers
 - ✅ **Safe**: Reset/rebuild without affecting host, try risky changes safely
-- ✅ Docker containerization provides reasonable isolation
-- 🚧 WIP: Full VM sandboxing for maximum security
 
 ### BitBot's Two-Mode Solution
 
-### 💚 Work Mode (Default)
+#### 🐿️ Work Mode (Default)
 
 - AI can freely modify application code
 - `.devcontainer/` and optionally other files or folders are **read-only** (protected)
 - Git safety warnings for uncommitted changes
 - Perfect for daily development
 
-### 🔧 Config Mode
+#### 🔧 Config Mode
 
 - **Read-write** access to `.devcontainer/` and whole workspace
 - AI agent optimized for infrastructure tasks
 - Use when you need to modify container configuration
 - Human review advised. Git push is denied to agents.
+
+
 
 ---
 
@@ -66,16 +64,16 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 
 🔒 **AI Agent Sandboxing**
 
-- **Current**: Docker containerization isolates AI agents to reduce risk
+- Containerization isolates AI agents to reduce risk
 - AI works in controlled environment with limited access
 - Infrastructure files protected from accidental modification
-- 🚧 **WIP**: Full VM sandboxing for maximum isolation
+- 🚧 WIP: Optional VM sandboxing for maximum isolation
 
 ✨ **Two-Mode Security**
 
 - Work mode protects infrastructure files
 - Config mode for safe configuration editing
-- Both modes work with VS Code and CLI
+- Both modes work with VS Code and CLI and can run in parallel
 
 🚀 **Cross-Platform**
 
@@ -90,39 +88,43 @@ BitBot uses DevContainers to provide isolated, reproducible environments:
 
 📦 **Preconfigured AI Agent Workspace**
 
-- Ubuntu + AI tools (Claude Code, Claude Flow, Open Code)
-- 🚧 WIP: Agent steering templates for different workloads
+- Ubuntu + AI tools (Claude Code, Claude Flow, Open Code) + config + MCPs + skills
+- 🚧 WIP: Templates for different workloads
+- 🚧 WIP: Skills and tools for self optimization
 
 🌐 **Global AI Tool Configuration**
 
 - Single sign-on: Credentials shared across all BitBot workspaces
-- Global preferences: global CLAUDE.md and settings apply everywhere
-- Workspace isolation: Session data (history, todos) stored per-workspace
-- Per project config: `/workspace/.claude/` works like usually
+- Global preferences: global steering documents and settings apply everywhere
+- Workspace isolation and persistence: Session data (history, todos) stored per-workspace
+- Per-project config works as usual
 
 🛡️ **Git Safety**
 
 - Warnings for uncommitted changes
 - Prompts to review commits before pushing
-- Reminds to check for secrets in staged files
+- Reminders to check for secrets in staged files
 - Non-blocking (won't stop your workflow)
 - Helps prevent AI from making risky changes to dirty repos
 
-🤖 **Self-Improving System** 🚧 **WIP**
+🤖 **Self-Improving System**
 
-- BitBot self-configuration capabilities
-- Agent-driven self-improvement mechanisms
-- AI agents can help optimize their own environment
+- 🚧 WIP: BitBot self-configuration capabilities
+- 🚧 WIP: Agent-driven self-improvement mechanisms
+- 🚧 WIP: AI agents can help optimize their own environment
+
+
 
 ---
 
 ## ⚠️ Security Considerations
 
-BitBot provides Docker containerization by default (reasonable isolation). For projects requiring Docker-in-Docker, rootless Docker is possible, but with limited isolation.
+- ⚠️ Docker containerization provides reasonable isolation for most use cases. Not suitable for untrusted code.
+- ⚠️ For projects requiring Docker-in-Docker, rootless Docker is possible, but with limited isolation.
+- 🚧 WIP: Full VM sandboxing for maximum security
+- 📖 For security analysis: See [Extended Documentation](README_EXTENDED.md#docker-in-docker-security-deep-dive)
 
-**📖 For security analysis, isolation levels, attack vectors:**
 
-**See [Extended Documentation](README_EXTENDED.md#docker-in-docker-security-deep-dive)**
 
 ---
 
@@ -130,19 +132,14 @@ BitBot provides Docker containerization by default (reasonable isolation). For p
 
 ### Prerequisites
 
-**All Platforms:**
-
 - Docker / Docker Desktop
 - VS Code with Dev Containers extension
 - Git
-
-**Windows Only:**
-
-- WSL2
+- WSL2 on Windows
 
 ### Installation
 
-**💡 BitBot is Portable**: Install anywhere! No system-wide installation needed. Just clone/extract and run uonce to add it to PATH.
+**💡 BitBot is Portable**: Install anywhere! No system-wide installation needed. Just clone/extract and run once to add it to PATH.
 
 **Recommended: Clone Release Branch (Easy Updates)**
 
@@ -182,8 +179,7 @@ unzip bitbot-v1.0.0.zip -d [INSTALLFOLDER]/bitbot
    ```
 
    This runs the first-time setup wizard to configure BitBot preferences and add `bitbot` to PATH.
-
-2. **Initialize your workspace:**
+1. **Initialize your workspace:**
 
    ```bash
    cd ~/Projects/MyApp
@@ -191,12 +187,12 @@ unzip bitbot-v1.0.0.zip -d [INSTALLFOLDER]/bitbot
    ```
 
    This reuses an existing `.devcontainer/` or creates one with the base bitbot devcontainer. Then it launches into configuration.
+1. **Start working:**
 
-3. **Start working:***
-
-    ```bash
-    bitbot                # Defaults to Work mode (terminal or VS Code based on setup)
-    ```
+   ```bash
+   cd ~/Projects/MyApp
+   bitbot                # Defaults to Work mode (terminal or VS Code based on setup)
+   ```
 
 ---
 
@@ -205,21 +201,14 @@ unzip bitbot-v1.0.0.zip -d [INSTALLFOLDER]/bitbot
 ### Basic Commands
 
 ```bash
-# Launch work mode (AI can code, infrastructure protected)
-bitbot
-bitbot work
-
-# Launch work mode in VS Code
-bitbot vscode
-bitbot work vscode
-
-# Edit container configuration
-bitbot config
-bitbot config vscode
-bitbot config terminal
-
 # Initialize new workspace
 bitbot init
+
+# Launch work mode
+bitbot [work] [vscode|terminal]
+
+# Launch config mode
+bitbot config [vscode|terminal]
 
 # Help and version
 bitbot help
@@ -235,7 +224,7 @@ cd ~/Projects/MyApp
 bitbot work            # Protected mode, code freely with AI
 ```
 
-**Need to add a VS Code extension?**
+**Need to modify the .devcontainer ?**
 
 ```bash
 bitbot config          # Opens config mode
@@ -264,59 +253,46 @@ graph TB
 
     Context -->|BitBot folder| FirstTime{First<br/>time?}
     FirstTime -->|Yes| Setup[Setup Wizard]
-    FirstTime -->|No| Ready([Ready to use])
+    FirstTime -->|No| Check[Check Status]
+    Check --> Ready([Ready to use])
     Setup --> AddPath[Add to PATH]
     AddPath --> Ready
 
     Context -->|Project folder| Initialized{Workspace<br/>ready?}
 
     Initialized -->|No| Init[bitbot init]
-    Init --> GitSafe[Git safety check]
-    GitSafe --> Structure[Create .bitbot/]
-    Structure --> Template[Setup .devcontainer/]
-    Template --> Guide[AI guides setup]
-    Guide --> WorkReady([Ready to work])
+    Init --> Initialize[Initialize]
+    Initialize --> ConfigEnv[Config Mode]
 
     Initialized -->|Yes| Mode{What do you<br/>want to do?}
-
-    Mode -->|Code| Work[bitbot work]
-    Work --> WorkEnv[Work Mode]
-    WorkEnv --> Code([Code with AI<br/>Infrastructure protected])
 
     Mode -->|Configure| Config[bitbot config]
     Config --> ConfigEnv[Config Mode]
     ConfigEnv --> Configure([Edit .devcontainer<br/>AI guidance])
 
-    Mode -->|VS Code| VSCode[bitbot vscode]
-    VSCode --> WorkEnv
+    Mode -->|Code| Work[bitbot work]
+    Work --> WorkEnv[Work Mode]
+    WorkEnv --> Code([Code with AI<br/>Infrastructure protected])
 
     style Start fill:#4a9eff,stroke:#333,stroke-width:2px
     style Setup fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
-    style Init fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
-    style GitSafe fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
+    style Initialize fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
     style Code fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
     style Configure fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
     style Ready fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
-    style WorkReady fill:#66bb6a,stroke:#333,stroke-width:2px,color:#333
+    style AddPath fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
+    style Check fill:#ffa726,stroke:#333,stroke-width:2px,color:#333
+
 ```
-
-**Key Points:**
-
-1. **First Time**: Run `bitbot` from install folder for setup wizard
-2. **Initialize**: Run `bitbot init` in your project to create workspace
-3. **Daily Work**: Run `bitbot` or `bitbot work` to code with AI protection
-4. **Configuration**: Run `bitbot config` when you need to modify container setup
-5. **VS Code**: Run `bitbot vscode` to open directly in VS Code
-
-**Safety Features:**
-- Git checks warn before making changes
-- Work mode protects `.devcontainer/` from accidents
-- Config mode provides AI guidance for infrastructure
-- Both modes can run simultaneously
 
 ### GitHub Codespaces Support
 
 BitBot workspaces work seamlessly in GitHub Codespaces!
+
+- ✅ Develop from anywhere (browser or VS Code)
+- ✅ No local Docker setup required
+- ✅ Same environment across local and cloud
+- ✅ Share workspace link with team members
 
 **Workflow:**
 
@@ -333,102 +309,47 @@ Then open **your project** in Codespaces (via GitHub web UI):
 
 - Your `.devcontainer` configuration loads automatically
 - You're already inside the BitBot workspace container!
-- Container bitbot scripts available at `/usr/local/bitbot`
-- Start coding immediately - no `bitbot work` needed
+- Container bitbot scripts available at `/usr/local/bitbot` and added to PATH
+- Just run `bitbot` - the codespace is in work mode
+- You can load the `.bitbot/internal/config/.devcontainer` to load the workspace in config mode
 
-**Benefits:**
 
-- ✅ Develop from anywhere (browser or VS Code)
-- ✅ No local Docker setup required
-- ✅ Same environment across local and cloud
-- ✅ Share workspace link with team members
-
-> **For Contributors**: Want to develop BitBot itself? See [DEVELOPMENT.md](DEVELOPMENT.md) for development setup including Codespaces.
-
-See `dev/tests/CODESPACES-TESTING.md` for details.
 
 ---
 
-## Architecture
 
-BitBot uses a **two-mode container system** with separate DevContainers for different security levels:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         BitBot CLI                          │
-│                    (Cross-Platform Router)                  │
-└───────────────────┬────────────────┬────────────────────────┘
-                    │                │
-        ┌───────────▼─────────┐  ┌──▼──────────────────┐
-        │    Work Mode        │  │   Config Mode       │
-        │  (Infrastructure    │  │  (Infrastructure    │
-        │   Protected)        │  │   Editable)         │
-        ├─────────────────────┤  ├─────────────────────┤
-        │ • Code: RW          │  │ • Code: RW          │
-        │ • .devcontainer: RO │  │ • .devcontainer: RW │
-        │ • Docker-in-Docker: │  │ • Docker inside: No │
-        │   Optional (⚠️)     │  │ • Editing tools only│
-        │ • AI: Code-focused  │  │ • AI: Infra-focused │
-        └─────────────────────┘  └─────────────────────┘
-```
+**📖 See [Extended README](README_EXTENDED.md#windowswsl-filesystem-performance-analysis) for:**
 
-### Mode Switching
+- Performance analysis and benchmarks
+- Windows access to WSL files (junction setup)
+- Profiling tools and optimization tips
 
-Modes run in **separate containers** that can run simultaneously:
 
-- Work mode uses `<workspace>/.devcontainer/`
-- Config mode uses `<bitbot>/container/templates/config/`
-- Each mode has its own AI agent configuration
-
-### VS Code Integration
-
-Open workspace in VS Code with container auto-launch:
-
-```bash
-bitbot vscode    # Opens VS Code in dev container (no popup)
-```
-
-**Benefits:** Direct container opening, container reuse, seamless workflow
 
 ---
 
-## Project Structure
+## Development
 
-```
-bitbot/
-├── core/                      # Host-side BitBot implementation
-│   ├── bitbot                 # Main CLI launcher (bash)
-│   ├── bitbot.exe             # Windows launcher (38KB C executable)
-│   ├── bitbot.cmd             # Windows CMD wrapper
-│   ├── shared/                # Shared resources (version tracking)
-│   ├── global/                # Global commands (first-run setup)
-│   ├── workspace/             # Workspace commands (work, config, init)
-│   └── util/                  # Utilities (detect, git, prerequisites)
-├── container/                 # Container-related files
-│   ├── bitbot/                # Container-side BitBot runtime
-│   ├── home/                  # Global dotfiles (mounted to containers)
-│   └── templates/             # DevContainer templates
-│       ├── bitbot-base/       # Minimal BitBot container
-│       ├── bitbot-config/     # Config mode (infrastructure)
-│       ├── bitbot-dev/        # BitBot development
-│       ├── bitbot-work/       # Work mode (AI tools)
-│       ├── custom/            # User custom templates
-│       └── shared/            # Shared scripts and configs
-├── LICENSE                    # MIT License
-└── README.md                  # This file
-```
+Want to develop BitBot itself? See [DEVELOPMENT.md](DEVELOPMENT.md).
 
----
+**Current Status:**
 
-## Development Status
+🚧 **Under Development**
 
-**Current Status:** 🚧 **Under Development** (Pre-Alpha - Not Yet Tested)
+### Implemented Features
 
-### Implemented Features (Untested)
-
-⚙️ Work mode with read-only `.devcontainer/`
+⚙️ Work mode
 
 ⚙️ Config mode for infrastructure editing
+
+⚙️ Workspace initialization with templates
+
+⚙️ Persistent shared global config
+
+⚙️ Persistent workspace config
+
+⚙️ Devcontainer build
 
 ⚙️ VS Code direct container opening
 
@@ -436,93 +357,31 @@ bitbot/
 
 ⚙️ Cross-platform bash core (~2600 lines)
 
-⚙️ Git safety warnings
-
-⚙️ Workspace initialization with templates
-
 ⚙️ Prerequisite validation
 
-**Note:** MVP implementation complete but requires manual testing before release.
+⚙️ Git safety warnings
+
+⚙️ Codespaces
+
+⚙️ Claude code self restart, clear and compation skills via wrapper
+
+⚙️ Session management (tmux)
+
+⚙️ Release mechanism (git, zip)
 
 ### Roadmap
 
-**Phase 2:**
-
-- [ ] macOS testing and packaging
+- [ ] Windows testing and packaging
 - [ ] Linux testing and packaging
-- [ ] Rootless Docker template for Docker-in-Docker workflows
-- [ ] Agent steering templates for different workloads (code, docs, testing)
-
-**Phase 3:**
-
+- [ ] macOS testing and packaging
+- [ ] Templates for different workloads
 - [ ] Full VM sandboxing for maximum isolation
 - [ ] BitBot self-configuration capabilities
 - [ ] Agent-driven self-improvement mechanisms
-- [ ] Multi-container orchestration (Docker Compose)
-- [ ] MCP service architecture
-- [ ] Session management (tmux)
-
-**Future:**
-
-- [ ] Cloud integration (GitHub Codespaces)
 - [ ] Team workspace sharing
 - [ ] Security scanning integration
 
----
 
-## Platform-Specific Notes
-
-### Windows
-
-**Isolated WSL Environment:**
-
-- BitBot uses isolated Alpine WSL distro (~8MB)
-- Separate from your main WSL distribution
-- Installation creates `BitBot-Alpine` automatically
-
-**⚠️ IMPORTANT: Project Location**
-
-Store projects in **WSL filesystem** (`~/projects`), not Windows (`/mnt/c/`):
-
-- WSL: Native ext4 (fast ⭐⭐⭐⭐⭐)
-- Windows mount: 9P protocol (10-40x slower ⚠️)
-
-**Quick check:** `pwd` should show `/home/username/...`, not `/mnt/c/...`
-
-**📖 See [Extended Documentation](README_EXTENDED.md#windowswsl-filesystem-performance-analysis) for:**
-
-- Detailed performance analysis and benchmarks
-- Windows access to WSL files (junction setup)
-- Profiling tools and optimization tips
-
-### macOS / Linux
-
-Native bash execution, no virtualization layer needed.
-
----
-
-## Contributing
-
-Contributions welcome! This project is under active development.
-
-For contribution guidelines, current priorities, and development setup, see [DEVELOPMENT.md](https://github.com/ManuelKugelmann/BitBot/blob/trunk/DEVELOPMENT.md).
-
----
-
-## Documentation
-
-**User Documentation:**
-
-- [README_EXTENDED.md](README_EXTENDED.md) - Detailed security analysis, performance tuning, DevPod integration
-- [container/templates/workspace/README.md](container/templates/workspace/README.md) - Workspace template (AI tools)
-- [container/templates/config/README.md](container/templates/config/README.md) - Config mode details
-- [templates/bitbot/base/README.md](templates/bitbot/base/README.md) - Base template documentation
-
-**Developer Documentation:**
-
-- [DEVELOPMENT.md](https://github.com/ManuelKugelmann/BitBot/blob/trunk/DEVELOPMENT.md) - Development setup and contribution guidelines (trunk branch)
-- [sparc/1-specification/](sparc/1-specification/) - Complete system specifications (authoritative design docs)
-- [sparc/1-specification/README.md](sparc/1-specification/README.md) - Specification overview and index
 
 ---
 
@@ -531,6 +390,8 @@ For contribution guidelines, current priorities, and development setup, see [DEV
 MIT License - see [LICENSE](LICENSE) for details.
 
 Copyright (c) 2025 Manuel Kugelmann, Bitcraft IT Consulting
+
+
 
 ---
 
@@ -542,11 +403,7 @@ Bitcraft IT Consulting
 
 Web: [bitcraft.org](https://bitcraft.org) | LinkedIn: [linkedin.com/in/mkugelmann](https://www.linkedin.com/in/mkugelmann/)
 
----
 
-## Acknowledgments
-
-Built with the assistance of AI coding tools: Claude, Gemini, GitHub Copilot, Perplexity.
 
 ---
 
@@ -554,6 +411,8 @@ Built with the assistance of AI coding tools: Claude, Gemini, GitHub Copilot, Pe
 
 - **Issues**: [GitHub Issues](https://github.com/ManuelKugelmann/BitBot/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/ManuelKugelmann/BitBot/discussions)
+
+
 
 ---
 

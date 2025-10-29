@@ -37,6 +37,7 @@ graph TB
     subgraph WorkspaceCtx[" "]
         direction TB
         WorkspaceContext[Workspace Context Handler] --> CheckWS{is_workspace_initialized?}
+
         CheckWS -->|No| HandleUninit{Command?}
         HandleUninit -->|init| InitCmd[core/workspace/bitbot-init.sh]
         HandleUninit -->|work/none| PromptUser{Prompt:<br/>Initialize?}
@@ -52,6 +53,8 @@ graph TB
         UseExisting --> LaunchConfigInit[launch_config_devcontainer]
         CopyTemplate --> LaunchConfigInit
 
+        LaunchConfigInit --> ConfigDC[Config DevContainer]
+
         CheckWS -->|Yes| ValidatePrereq[validate_prerequisites<br/>util/prerequisites.sh]
         ValidatePrereq --> CheckDocker{Docker<br/>running?}
         CheckDocker -->|No| ErrDocker([Error: Start Docker])
@@ -59,11 +62,10 @@ graph TB
         CheckVSCode -->|No, if needed| ErrVSCode([Error: Install VS Code])
         CheckVSCode -->|Yes| RouteCmd{Route command}
 
-        RouteCmd -->|work/none| WorkCmd[core/workspace/bitbot-work.sh]
         RouteCmd -->|config| ConfigCmd[core/workspace/bitbot-config.sh]
-        RouteCmd -->|vscode| WorkCmd
         RouteCmd -->|help| HelpCmd([core/workspace/bitbot-help.sh])
         RouteCmd -->|version| VersionCmd([core/bitbot-version.sh])
+        RouteCmd -->|work/none| WorkCmd[core/workspace/bitbot-work.sh]
 
         WorkCmd --> GitWarn1[check_git_uncommitted<br/>non-blocking warning]
         GitWarn1 --> LaunchWork[launch_work_devcontainer<br/>util/devcontainer.sh]
@@ -81,7 +83,6 @@ graph TB
 
         LaunchVSCode --> WorkDC[Work DevContainer]
         LaunchTerminal --> WorkDC
-        LaunchConfigInit --> ConfigDC[Config DevContainer]
         LaunchVSCodeConfig --> ConfigDC
         LaunchTerminalConfig --> ConfigDC
 
@@ -95,11 +96,12 @@ graph TB
     subgraph InnerBitbot[" "]
         direction TB
         ContainerBitbot[Container BitBot<br/>/usr/local/bitbot/bitbot] --> InnerCmd{Command?}
+
+        InnerCmd -->|start| StartCmd
         InnerCmd -->|default| DetectSessions[Detect sessions<br/>tmux list-sessions]
         DetectSessions --> LaunchMode{Choose<br/>launch mode}
         LaunchMode -->|Fresh| StartCmd[bitbot start]
         LaunchMode -->|Resume| ResumeCmd[bitbot resume]
-        InnerCmd -->|start| StartCmd
         InnerCmd -->|resume| ResumeCmd
 
         StartCmd --> CreateTmux[Create tmux session<br/>tmux new-session]
