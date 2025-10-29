@@ -3,6 +3,15 @@
 # DevContainer Location Test - WSL home vs /mnt/c/
 # Tests that devcontainers work correctly in both locations
 #
+# This test validates filesystem compatibility for devcontainers:
+#   - WSL native filesystem (ext4) - best performance
+#   - Windows mount (/mnt/c/) - 9P protocol
+#
+# Known Limitation: devcontainer.cmd cannot accept WSL native paths from bash
+#   - Reason: .cmd files are Windows batch scripts; path translation fails
+#   - Reference: sparc/4-refinement/docs/DEVCONTAINER-CLI-STRATEGY.md (Method 3)
+#   - Test: sparc/4-refinement/tests/vscode_devcontainer_interop/test-devcontainercmd-wsl.ps1
+#
 # Usage: ./test-devcontainer-locations.sh [--quick]
 
 set -euo pipefail
@@ -174,10 +183,17 @@ echo ""
 # Check if we're using devcontainer.cmd (which doesn't support WSL native paths)
 if [[ "$DEVC_CMD" == *"cmd.exe"* ]]; then
     echo -e "${YELLOW}ℹ${NC} Using devcontainer.cmd from WSL"
-    echo "Note: devcontainer.cmd cannot accept WSL paths when invoked from bash"
-    echo "This is a limitation of calling Windows batch files from WSL shell"
     echo ""
-    echo -e "${YELLOW}⊘ SKIPPED${NC}: WSL home test (path translation issue)"
+    echo "Known Limitation: devcontainer.cmd cannot accept WSL native paths from bash"
+    echo "  - devcontainer.cmd is a Windows batch script (.cmd file)"
+    echo "  - When called from bash, WSL path translation fails for batch scripts"
+    echo "  - This is a limitation of calling Windows .cmd files from WSL shell"
+    echo ""
+    echo "References:"
+    echo "  - Strategy: sparc/4-refinement/docs/DEVCONTAINER-CLI-STRATEGY.md (Method 3)"
+    echo "  - Test: sparc/4-refinement/tests/vscode_devcontainer_interop/test-devcontainercmd-wsl.ps1"
+    echo ""
+    echo -e "${YELLOW}⊘ SKIPPED${NC}: WSL home test (path translation limitation)"
     WSL_SUCCESS="skip"
 else
     echo "Creating test project in WSL home..."

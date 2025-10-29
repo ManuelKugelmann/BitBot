@@ -30,6 +30,10 @@
 #
 # Known Limitations:
 #   - devcontainer.cmd cannot accept WSL native paths when called from bash
+#     * Reason: .cmd files are Windows batch scripts; path translation fails when invoked from bash
+#     * Workaround: Use cmd.exe wrapper with Windows paths (Method 3)
+#     * Reference: sparc/4-refinement/docs/DEVCONTAINER-CLI-STRATEGY.md
+#     * Test: sparc/4-refinement/tests/vscode_devcontainer_interop/test-devcontainercmd-wsl.ps1
 #   - WSL home tests are skipped when using devcontainer.cmd
 #   - For full WSL testing, install native devcontainer CLI: npm install -g @devcontainers/cli
 #
@@ -253,9 +257,17 @@ run_integration_tests_for_location() {
         echo -e "${YELLOW}⊘ SKIPPED${NC}: $location_name"
         echo ""
         echo "Reason: devcontainer.cmd cannot accept WSL native paths when called from bash"
-        echo "This is a known limitation (see test-devcontainer-locations.sh)"
         echo ""
-        echo "To test WSL locations, use native devcontainer CLI:"
+        echo "Technical Details:"
+        echo "  - devcontainer.cmd is a Windows batch script (.cmd file)"
+        echo "  - When called from bash, WSL path translation fails for batch scripts"
+        echo "  - Windows paths (/mnt/c/) work because they convert cleanly to C:\\"
+        echo "  - WSL native paths ($HOME) cannot be translated to Windows format"
+        echo ""
+        echo "Workaround: Use cmd.exe wrapper with Windows paths (implemented)"
+        echo "Reference: sparc/4-refinement/docs/DEVCONTAINER-CLI-STRATEGY.md (Method 3)"
+        echo ""
+        echo "To test WSL locations, install native devcontainer CLI:"
         echo "  npm install -g @devcontainers/cli"
         echo ""
         return 0
