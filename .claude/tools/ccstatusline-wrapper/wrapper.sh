@@ -36,7 +36,17 @@ echo "$JSON_DATA" > "$RAW_FILE"
 if command -v jq &>/dev/null; then
     METRICS_FILE="$SESSION_DATA_DIR/${SESSION_ID}-metrics.jsonl"
 
-    # Extract key fields and append to JSONL
+    # Extract key fields
+    CONTEXT_PCT=$(echo "$JSON_DATA" | jq -r '.context_percentage // 0')
+    TOKENS_TOTAL=$(echo "$JSON_DATA" | jq -r '.tokens.total // 0')
+    MODEL=$(echo "$JSON_DATA" | jq -r '.model.display_name // "unknown"')
+
+    # Export to environment for tools to access
+    export CLAUDE_CONTEXT_PCT="$CONTEXT_PCT"
+    export CLAUDE_TOKENS_TOTAL="$TOKENS_TOTAL"
+    export CLAUDE_MODEL="$MODEL"
+
+    # Append to JSONL log
     echo "$JSON_DATA" | jq -c "{
         timestamp: \"$TIMESTAMP\",
         session_id: \"$SESSION_ID\",

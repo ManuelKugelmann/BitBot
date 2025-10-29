@@ -224,7 +224,14 @@ do_restart() {
 
         compact)
             echo "Running context compaction..."
-            run_compaction "$session_id"
+
+            # Check for custom compaction prompt
+            local compact_prompt=""
+            if [[ -n "${COMPACT_PROMPT:-}" ]]; then
+                compact_prompt="$COMPACT_PROMPT"
+            fi
+
+            run_compaction "$session_id" "$compact_prompt"
 
             echo "Restarting with session resume: $session_id"
             RESTART_ARGS=("--resume" "$session_id")
@@ -247,6 +254,7 @@ do_restart() {
 # Run context compaction
 run_compaction() {
     local session_id="$1"
+    local compact_prompt="${2:-}"
 
     # Create temp file for compaction output
     local temp_output=$(mktemp)
@@ -254,9 +262,18 @@ run_compaction() {
 
     echo ""
 
+    # Build compaction command - use custom prompt if provided
+    local compact_cmd
+    if [[ -n "$compact_prompt" ]]; then
+        compact_cmd="/compact $compact_prompt"
+        echo "Using custom compaction guidance: $compact_prompt"
+    else
+        compact_cmd="/compact"
+    fi
+
     # Run compaction in background
     (
-        echo '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"/compact"}]}}'
+        echo "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"$compact_cmd\"}]}}"
         echo '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Concise summary:"}]}}'
     ) | timeout 300 claude -p --output-format=stream-json --input-format=stream-json --resume "$session_id" > "$temp_output" 2>&1 &
 

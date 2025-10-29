@@ -90,7 +90,12 @@ case "$MODE" in
         RESTART_CMD="claude --resume $SESSION_ID"
         ;;
     compact)
-        RESTART_CMD="$SCRIPT_DIR/claude-compact-resume.sh $SESSION_ID"
+        # Pass COMPACT_PROMPT env var if set
+        if [[ -n "${COMPACT_PROMPT:-}" ]]; then
+            RESTART_CMD="COMPACT_PROMPT=\"$COMPACT_PROMPT\" $SCRIPT_DIR/claude-compact-resume.sh $SESSION_ID"
+        else
+            RESTART_CMD="$SCRIPT_DIR/claude-compact-resume.sh $SESSION_ID"
+        fi
         ;;
     clear)
         RESTART_CMD="claude"
