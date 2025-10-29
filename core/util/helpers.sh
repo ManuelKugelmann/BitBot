@@ -73,31 +73,21 @@ get_bitbot_install_dir() {
 }
 
 convert_wsl_to_windows_path() {
-    # Convert WSL path to Windows path
+    # Convert WSL path to Windows path using wslpath
     # Usage: convert_wsl_to_windows_path <wsl_path>
     # Returns: Windows path (e.g., C:\Users\...)
+    # Note: wslpath is always available in WSL environments
     local wsl_path="$1"
-
-    if command_exists wslpath; then
-        wslpath -w "$wsl_path"
-    else
-        # Fallback: basic conversion for /mnt/c/ paths
-        echo "$wsl_path" | sed 's|^/mnt/\([a-z]\)/|\U\1:/|'
-    fi
+    wslpath -w "$wsl_path"
 }
 
 convert_windows_to_wsl_path() {
-    # Convert Windows path to WSL path
+    # Convert Windows path to WSL path using wslpath
     # Usage: convert_windows_to_wsl_path <windows_path>
     # Returns: WSL path (e.g., /mnt/c/...)
+    # Note: wslpath is always available in WSL environments
     local windows_path="$1"
-
-    if command_exists wslpath; then
-        wslpath -u "$windows_path"
-    else
-        # Fallback: basic conversion for C:\ paths
-        echo "$windows_path" | sed 's|^\([A-Za-z]\):|/mnt/\L\1|' | sed 's|\\|/|g'
-    fi
+    wslpath -u "$windows_path"
 }
 
 # ============================================================================
