@@ -157,6 +157,38 @@ Urgent:
 
 ## Recent Additions
 
+### Infrastructure & Architecture (2025-10-30)
+
+**Directory Structure & Documentation:**
+- [x] Add Complete Path Reference to 01-directory-structure.md ✅
+- [x] Document all `.bitbot/` paths and container mounts ✅
+- [x] Add environment variable reference table ✅
+- [x] Create directory structure reference in CLAUDE.md ✅
+- [x] Add instruction to keep structure docs updated ✅
+
+**Infrastructure Version Tracking:**
+- [x] Research `.version` and `global/` directory purpose ✅
+- [x] Create design document for hash-based tracking ✅
+- [ ] Decide: Keep `.version` as-is, implement hash-based, or remove entirely
+- [ ] Implement infrastructure verification if needed
+
+**Session Data Organization:**
+- [ ] Consider moving `.bitbot/session-env/` to `.bitbot/tmp/session-env/`
+  - Both are ephemeral (cleaned by hooks)
+  - Both are gitignored
+  - Logical grouping under `tmp/`
+  - Requires updating: wrapper, hooks, skills, docs
+
+**Wrapper Infrastructure:**
+- [x] Move ccstatusline-wrapper to /container/bitbot/wrapper/ ✅
+- [x] Document wrapper mount point in containers ✅
+- [x] Aggressive session cleanup strategy implemented ✅
+- [x] Rename ccstatusline-wrapper to statusline-wrapper (tool-agnostic) ✅
+- [x] Document distinction between claude-wrapper and statusline-wrapper ✅
+- [x] Create wrapper system architecture doc (02-wrapper-system.md) ✅
+- [x] Add wrapper overview to CLAUDE.md ✅
+- [x] Create claude-inspect-context-size skill (.bitbot/scripts/) ✅
+
 ### Infrastructure (2025-10-28)
 
 - [x] Migrate hooks to .bitbot/ infrastructure ✅

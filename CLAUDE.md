@@ -14,6 +14,49 @@ BitBot follows a clean separation between core functionality, development artifa
 
 **Note**: This section and below are for BitBot development, not end-user customization.
 
+### Directory Structure Reference
+
+**Single Source of Truth**: `sparc/3-architecture/01-directory-structure.md`
+
+Complete documentation of:
+- `.bitbot/` workspace structure
+- Container mount points
+- Path mappings between host and container
+- Environment variables
+- Complete path reference table
+
+**IMPORTANT**: After editing any script or template that references `.bitbot/` paths, update the directory structure document to keep it synchronized.
+
+### Claude Context Self-Management System
+
+BitBot includes a wrapper infrastructure that enables Claude to monitor and manage its own context automatically.
+
+**Two Wrappers** (both in `/container/bitbot/wrapper/`):
+
+1. **`claude-wrapper.sh`** - Process wrapper for Claude Code
+   - Creates named pipe for control commands (exit, restart, compact, clear)
+   - Receives commands from skills via pipe at `.bitbot/tmp/pipes/claude-<PID>.pipe`
+   - Handles session restart with resume/compact/clear modes
+   - Starts watchdog monitor to detect stalls
+   - Enables skills to trigger restart/compaction autonomously
+
+2. **`statusline-wrapper/wrapper.sh`** - Status line wrapper
+   - Intercepts Claude's status line JSON output
+   - Extracts context % and session ID using pure bash regex
+   - Stores data in `.bitbot/session-env/<session-id>.env` for skills to source
+   - Passes JSON through to status line tool (e.g., ccstatusline) for display
+   - Runs every 1-2 seconds, providing real-time context tracking
+
+**How They Work Together:**
+- `statusline-wrapper` tracks context % → writes to session env file
+- Skills source session env file → read context %
+- Skills send commands to `claude-wrapper` pipe → trigger restart/compact
+- `claude-wrapper` executes restart → Claude resumes with fresh context
+
+**Result:** Claude can autonomously compact context when threshold reached, preventing context exhaustion mid-task.
+
+See: `sparc/0-research/WRAPPER_INTEGRATION.md` for technical details.
+
 ### Top-Level Organization
 
 ```
@@ -598,3 +641,5 @@ Add to `container/templates/{template}/details.CLAUDE.md` (like `details.devcont
 
 ---
 - order in mermaid defines tb columns and lr rows
+- always update the todolist and the persitent TODOS.md if given a new task
+- always update the todolist and the persitent TODOS.md if given a new task
