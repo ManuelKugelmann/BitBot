@@ -75,10 +75,15 @@ run_test_suite \
     "$SCRIPT_DIR/test-user-flow-init.sh" \
     || true  # Continue even if this suite fails
 
+# Test 2: Moved Installation
+run_test_suite \
+    "Moved Installation" \
+    "$SCRIPT_DIR/test-user-flow-moved.sh" \
+    || true  # Continue even if this suite fails
+
 # Add more test suites here as they are created:
 # run_test_suite "Workspace Init Flow" "$SCRIPT_DIR/test-user-flow-workspace.sh" || true
 # run_test_suite "Container Launch Flow" "$SCRIPT_DIR/test-user-flow-container.sh" || true
-# run_test_suite "Moved Installation" "$SCRIPT_DIR/test-user-flow-moved.sh" || true
 
 # ============================================================================
 # Summary
