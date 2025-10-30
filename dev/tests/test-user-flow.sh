@@ -89,6 +89,9 @@ cleanup() {
         if [[ "$MODE" == "dev" ]]; then
             echo -e "    git restore ."
             echo -e "    rm -f config.json"
+            echo -e "    # Restore shell configs:"
+            [[ -f "$HOME/.bashrc.bitbot-test-backup" ]] && echo -e "    mv ~/.bashrc.bitbot-test-backup ~/.bashrc"
+            [[ -f "$HOME/.zshrc.bitbot-test-backup" ]] && echo -e "    mv ~/.zshrc.bitbot-test-backup ~/.zshrc"
         else
             echo -e "    rm -rf $TEST_ENV"
         fi
@@ -109,6 +112,16 @@ cleanup() {
     if [[ "$MODE" == "dev" ]] && [[ -f "$BITBOT_ROOT/config.json" ]]; then
         test_info "Removing test-generated config..."
         rm -f "$BITBOT_ROOT/config.json"
+    fi
+
+    # Restore shell configs
+    if [[ -f "$HOME/.bashrc.bitbot-test-backup" ]]; then
+        test_info "Restoring ~/.bashrc..."
+        mv "$HOME/.bashrc.bitbot-test-backup" "$HOME/.bashrc"
+    fi
+    if [[ -f "$HOME/.zshrc.bitbot-test-backup" ]]; then
+        test_info "Restoring ~/.zshrc..."
+        mv "$HOME/.zshrc.bitbot-test-backup" "$HOME/.zshrc"
     fi
 }
 
@@ -158,6 +171,22 @@ if [[ "$MODE" == "dev" ]]; then
     fi
 
     test_pass "Git state is clean"
+fi
+
+# ============================================================================
+# Setup: Backup shell configs
+# ============================================================================
+
+echo "[Setup] Backing up shell configurations..."
+
+if [[ -f "$HOME/.bashrc" ]]; then
+    test_info "Backing up ~/.bashrc..."
+    cp "$HOME/.bashrc" "$HOME/.bashrc.bitbot-test-backup"
+fi
+
+if [[ -f "$HOME/.zshrc" ]]; then
+    test_info "Backing up ~/.zshrc..."
+    cp "$HOME/.zshrc" "$HOME/.zshrc.bitbot-test-backup"
 fi
 
 # ============================================================================
@@ -425,6 +454,47 @@ if [[ -f "$BITBOT_ROOT/config.json" ]]; then
     fi
 else
     test_fail "Config file not created"
+fi
+
+# ============================================================================
+# Test 9: Verify shell config modifications
+# ============================================================================
+
+echo ""
+echo "[Test 9] Verifying shell configuration modifications..."
+
+# Detect which shell config file was modified
+shell_config=""
+if [[ -f "$HOME/.bashrc" ]]; then
+    shell_config="$HOME/.bashrc"
+elif [[ -f "$HOME/.zshrc" ]]; then
+    shell_config="$HOME/.zshrc"
+fi
+
+if [[ -n "$shell_config" ]]; then
+    # Check for PATH modification
+    if grep -q "export PATH=.*${BITBOT_ROOT}/core" "$shell_config"; then
+        test_pass "BitBot added to PATH in $(basename $shell_config)"
+    else
+        test_fail "BitBot PATH not found in $(basename $shell_config)"
+    fi
+
+    # Check for BITBOT_HOME
+    if grep -q "export BITBOT_HOME=" "$shell_config"; then
+        test_pass "BITBOT_HOME set in $(basename $shell_config)"
+    else
+        test_fail "BITBOT_HOME not found in $(basename $shell_config)"
+    fi
+
+    # Verify only one BitBot section (no duplicates)
+    bitbot_sections=$(grep -c "# BitBot PATH" "$shell_config" || echo "0")
+    if [[ "$bitbot_sections" -eq 1 ]]; then
+        test_pass "Single BitBot section (no duplicates)"
+    else
+        test_warning "Found $bitbot_sections BitBot sections (expected 1)"
+    fi
+else
+    test_fail "No shell config file found"
 fi
 
 # ============================================================================
