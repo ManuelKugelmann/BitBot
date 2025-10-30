@@ -314,21 +314,21 @@ prompt_choice() {
     local choices=("$@")
     local response
 
-    # Display question
-    echo "$question"
-    echo ""
+    # Display question (to stderr so it's not captured by command substitution)
+    echo "$question" >&2
+    echo "" >&2
 
     # Display choices with numbers
     for i in "${!choices[@]}"; do
         local number=$((i + 1))
         if [[ $i -eq $default_index ]]; then
-            echo "  ${number}. ${choices[$i]} (default)"
+            echo "  [${number}] ${choices[$i]} (default)" >&2
         else
-            echo "  ${number}. ${choices[$i]}"
+            echo "  [${number}] ${choices[$i]}" >&2
         fi
     done
 
-    echo ""
+    echo "" >&2
     read -r -p "Choice [$((default_index + 1))]: " response
 
     # Handle empty response (use default)

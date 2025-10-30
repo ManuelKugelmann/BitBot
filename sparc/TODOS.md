@@ -15,6 +15,7 @@
 - [ ] Fresh install test on Linux
 - [ ] VS Code integration verification (all platforms)
 - [ ] Terminal mode verification (all launchers)
+- [ ] Create tmux-wrapper-based user flow integration tests
 
 ### 2. Config Agent Preparation (P1 - Important)
 
