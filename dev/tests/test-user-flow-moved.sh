@@ -21,6 +21,10 @@ BITBOT_ROOT="$TEST_ENV/bitbot"
 BITBOT_MOVED="$TEST_ENV/bitbot-moved"
 BITBOT="$BITBOT_ROOT/core/bitbot"
 
+# Global config locations
+GLOBAL_CONFIG="$BITBOT_ROOT/global/.bitbot/config.json"
+GLOBAL_CONFIG_MOVED="$BITBOT_MOVED/global/.bitbot/config.json"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -136,11 +140,11 @@ else
     log_tmux_output "bitbot-test-moved" "Setup incomplete"
 fi
 
-# Verify config created
-if [[ -f "$BITBOT_ROOT/config.json" ]]; then
-    test_pass "Config created at original location"
+# Verify config created at new location
+if [[ -f "$GLOBAL_CONFIG" ]]; then
+    test_pass "Config created at global/.bitbot/config.json"
 else
-    test_fail "Config not found at original location"
+    test_fail "Config not found at $GLOBAL_CONFIG"
 fi
 
 tmux kill-session -t bitbot-test-moved 2>/dev/null || true
@@ -162,11 +166,11 @@ else
     exit 1
 fi
 
-# Verify config still exists at new location
-if [[ -f "$BITBOT_MOVED/config.json" ]]; then
-    test_pass "Config file preserved after move"
+# Verify config moved with installation (in global/.bitbot/ subdirectory)
+if [[ -f "$GLOBAL_CONFIG_MOVED" ]]; then
+    test_pass "Config moved with installation to global/.bitbot/"
 else
-    test_fail "Config file lost after move"
+    test_fail "Config not found at moved location: $GLOBAL_CONFIG_MOVED"
 fi
 
 # ============================================================================
@@ -207,7 +211,7 @@ tmux kill-session -t bitbot-test-moved 2>/dev/null || true
 echo ""
 echo "[Test 4] Verifying config still valid after move..."
 
-config_content=$(cat "$BITBOT_MOVED/config.json")
+config_content=$(cat "$GLOBAL_CONFIG_MOVED")
 
 if echo "$config_content" | jq -e . >/dev/null 2>&1; then
     test_pass "Config is valid JSON after move"

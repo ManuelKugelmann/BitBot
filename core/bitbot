@@ -67,6 +67,9 @@ main() {
 handle_global_context() {
     # Running from BitBot install folder
 
+    # Try migration first (if old config exists)
+    migrate_old_config_if_needed
+
     if ! is_global_init_needed; then
         # Already initialized - validate environment
         validate_global_environment

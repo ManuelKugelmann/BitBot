@@ -73,6 +73,29 @@ get_bitbot_install_dir() {
     fi
 }
 
+get_global_config_dir() {
+    # Get global BitBot config directory ($BITBOT_HOME/global/.bitbot/)
+    # Creates directory if it doesn't exist
+    # Returns: Path to global .bitbot directory
+    local bitbot_install
+    bitbot_install=$(get_bitbot_install_dir)
+    local config_dir="${bitbot_install}/global/.bitbot"
+
+    if [[ ! -d "$config_dir" ]]; then
+        mkdir -p "$config_dir"
+    fi
+
+    echo "$config_dir"
+}
+
+get_global_config_file() {
+    # Get global BitBot config file path ($BITBOT_HOME/global/.bitbot/config.json)
+    # Returns: Path to global config file
+    local config_dir
+    config_dir=$(get_global_config_dir)
+    echo "${config_dir}/config.json"
+}
+
 convert_wsl_to_windows_path() {
     # Convert WSL path to Windows path using wslpath
     # Usage: convert_wsl_to_windows_path <wsl_path>

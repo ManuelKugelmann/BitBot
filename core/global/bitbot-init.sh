@@ -24,6 +24,42 @@ source "${BITBOT_HOME}/core/util/prerequisites.sh"
 source "${BITBOT_HOME}/core/util/logo.sh"
 
 # ============================================================================
+# Config Migration
+# ============================================================================
+
+migrate_old_config_if_needed() {
+    # Migrate config from old location ($BITBOT_HOME/config.json)
+    # to new location ($BITBOT_HOME/global/.bitbot/config.json)
+    # Only runs if old config exists and new config doesn't
+
+    local bitbot_install
+    bitbot_install=$(get_bitbot_install_dir)
+    local old_config="${bitbot_install}/config.json"
+    local new_config
+    new_config=$(get_global_config_file)
+
+    if [[ -f "$old_config" ]] && [[ ! -f "$new_config" ]]; then
+        print_info "Migrating config to new location..."
+        echo "  From: $old_config"
+        echo "  To:   $new_config"
+
+        # Copy (not move) for safety
+        cp "$old_config" "$new_config"
+
+        # Backup old config with timestamp
+        local timestamp
+        timestamp=$(date +%Y%m%d-%H%M%S)
+        mv "$old_config" "${old_config}.migrated-${timestamp}"
+
+        print_success "Config migrated successfully"
+        print_info "Old config backed up as: ${old_config}.migrated-${timestamp}"
+        return 0
+    fi
+
+    return 1  # No migration needed
+}
+
+# ============================================================================
 # Global Init Detection
 # ============================================================================
 
@@ -31,9 +67,8 @@ is_global_init_needed() {
     # Check if global initialization is needed
     # Returns: 0 if needed, 1 if already initialized
 
-    local bitbot_install
-    bitbot_install=$(get_bitbot_install_dir)
-    local config_file="${bitbot_install}/config.json"
+    local config_file
+    config_file=$(get_global_config_file)
 
     if [[ ! -f "$config_file" ]]; then
         return 0  # No config → need global init
@@ -269,11 +304,10 @@ check_prerequisites_for_init() {
 # ============================================================================
 
 create_global_config() {
-    # Create config.json in BitBot install folder
+    # Create config.json in global/.bitbot/ directory
 
-    local bitbot_install
-    bitbot_install=$(get_bitbot_install_dir)
-    local config_file="${bitbot_install}/config.json"
+    local config_file
+    config_file=$(get_global_config_file)
 
     # Check if VS Code is installed
     local has_vscode=false
@@ -306,7 +340,7 @@ create_global_config() {
         echo ""
         echo "    To use VS Code integration later:"
         echo "      1. Install VS Code: https://code.visualstudio.com/"
-        echo "      2. Edit ${bitbot_install}/config.json"
+        echo "      2. Edit $config_file"
         echo "      3. Set \"launch_mode\": \"vscode\""
         echo ""
         default_mode="terminal"
@@ -321,7 +355,7 @@ create_global_config() {
         "launch_mode" "$default_mode" \
         "created_at" "$timestamp"
 
-    print_success "Created config.json"
+    print_success "Created config at: $config_file"
     echo "  ✓ Default mode: $default_mode"
 }
 

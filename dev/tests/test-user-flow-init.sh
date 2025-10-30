@@ -51,6 +51,9 @@ else
     BITBOT="$BITBOT_ROOT/core/bitbot"
 fi
 
+# Global config location
+GLOBAL_CONFIG="$BITBOT_ROOT/global/.bitbot/config.json"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -101,7 +104,7 @@ cleanup() {
         echo -e "  Remember to clean up manually:"
         if [[ "$MODE" == "dev" ]]; then
             echo -e "    git restore ."
-            echo -e "    rm -f config.json"
+            echo -e "    rm -f global/.bitbot/config.json"
             echo -e "    # Restore shell configs:"
             [[ -f "$HOME/.bashrc.bitbot-test-backup" ]] && echo -e "    mv ~/.bashrc.bitbot-test-backup ~/.bashrc"
             [[ -f "$HOME/.zshrc.bitbot-test-backup" ]] && echo -e "    mv ~/.zshrc.bitbot-test-backup ~/.zshrc"
@@ -121,10 +124,16 @@ cleanup() {
         rm -rf "$TEST_ENV"
     fi
 
-    # In dev mode, remove the generated config
-    if [[ "$MODE" == "dev" ]] && [[ -f "$BITBOT_ROOT/config.json" ]]; then
-        test_info "Removing test-generated config..."
-        rm -f "$BITBOT_ROOT/config.json"
+    # In dev mode, remove the generated config (both old and new locations)
+    if [[ "$MODE" == "dev" ]]; then
+        if [[ -f "$GLOBAL_CONFIG" ]]; then
+            test_info "Removing test-generated config..."
+            rm -f "$GLOBAL_CONFIG"
+        fi
+        # Also clean old location if test created it
+        if [[ -f "$BITBOT_ROOT/config.json" ]]; then
+            rm -f "$BITBOT_ROOT/config.json"
+        fi
     fi
 
     # Restore shell configs
@@ -452,11 +461,11 @@ fi
 echo ""
 echo "[Test 8] Verifying generated config file..."
 
-if [[ -f "$BITBOT_ROOT/config.json" ]]; then
-    test_pass "Config file exists at expected location"
+if [[ -f "$GLOBAL_CONFIG" ]]; then
+    test_pass "Config created at global/.bitbot/config.json"
 
     # Check config contents
-    config_content=$(cat "$BITBOT_ROOT/config.json")
+    config_content=$(cat "$GLOBAL_CONFIG")
 
     if echo "$config_content" | grep -q '"launch_mode"'; then
         test_pass "Config contains launch_mode field"
@@ -470,7 +479,7 @@ if [[ -f "$BITBOT_ROOT/config.json" ]]; then
         test_fail "Config is not valid JSON"
     fi
 else
-    test_fail "Config file not created"
+    test_fail "Config not found at $GLOBAL_CONFIG"
 fi
 
 # ============================================================================
