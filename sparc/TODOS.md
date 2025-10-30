@@ -15,7 +15,11 @@
 - [ ] Fresh install test on Linux
 - [ ] VS Code integration verification (all platforms)
 - [ ] Terminal mode verification (all launchers)
-- [ ] Create tmux-wrapper-based user flow integration tests
+- [x] Create tmux-wrapper-based user flow integration tests ✅ DONE
+  - `dev/tests/test-user-flow.sh` tests global init flow
+  - Supports test mode (isolated) and dev mode (clean git required)
+  - Git diff analysis for template sync detection
+  - 20/22 tests passing (2 timing-related failures remaining)
 
 ### 2. Config Agent Preparation (P1 - Important)
 
