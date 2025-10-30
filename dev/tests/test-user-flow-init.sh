@@ -383,6 +383,111 @@ else
 fi
 
 # ============================================================================
+# Dev Mode: Check for git differences and template sync needs
+# ============================================================================
+
+if [[ "$MODE" == "dev" ]]; then
+    echo ""
+    echo "[Dev Mode] Analyzing git differences..."
+
+    cd "$BITBOT_DEV_ROOT"
+
+    # Check for any changes made during the test
+    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        echo ""
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${YELLOW}Git Differences Detected${NC}"
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+
+        # Show detailed diff
+        git diff --stat HEAD
+        echo ""
+
+        # Analyze which files changed and what needs template sync
+        changed_files=$(git diff --name-only HEAD)
+
+        template_sync_needed=false
+
+        echo -e "${BLUE}Template Sync Analysis:${NC}"
+        echo ""
+
+        while IFS= read -r file; do
+            case "$file" in
+                .bashrc|.zshrc|.profile)
+                    echo -e "  ${YELLOW}⚠${NC} $file"
+                    echo -e "     ${BLUE}→${NC} Shell config modified by PATH setup"
+                    echo -e "     ${BLUE}→${NC} No template sync needed (host-specific)"
+                    echo ""
+                    ;;
+
+                .claude/*)
+                    echo -e "  ${GREEN}✓${NC} $file"
+                    echo -e "     ${BLUE}→${NC} Claude Code configuration"
+                    echo -e "     ${BLUE}→${NC} Check if should sync to templates/.claude/"
+                    template_sync_needed=true
+                    echo ""
+                    ;;
+
+                .bitbot/*)
+                    echo -e "  ${GREEN}✓${NC} $file"
+                    echo -e "     ${BLUE}→${NC} BitBot workspace infrastructure"
+                    echo -e "     ${BLUE}→${NC} Should be in template shared scripts"
+                    template_sync_needed=true
+                    echo ""
+                    ;;
+
+                container/*)
+                    echo -e "  ${GREEN}✓${NC} $file"
+                    echo -e "     ${BLUE}→${NC} Container infrastructure change"
+                    echo -e "     ${BLUE}→${NC} May need template sync"
+                    template_sync_needed=true
+                    echo ""
+                    ;;
+
+                config.json)
+                    echo -e "  ${GREEN}✓${NC} $file"
+                    echo -e "     ${BLUE}→${NC} Test-generated config (expected)"
+                    echo -e "     ${BLUE}→${NC} No action needed"
+                    echo ""
+                    ;;
+
+                *)
+                    echo -e "  ${YELLOW}?${NC} $file"
+                    echo -e "     ${BLUE}→${NC} Unexpected change"
+                    echo -e "     ${BLUE}→${NC} Review manually"
+                    template_sync_needed=true
+                    echo ""
+                    ;;
+            esac
+        done <<< "$changed_files"
+
+        if [[ "$template_sync_needed" == "true" ]]; then
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${YELLOW}Action Required:${NC}"
+            echo -e "  Review changes and sync to templates if needed:"
+            echo -e "  • container/templates/bitbot-base/"
+            echo -e "  • container/templates/bitbot-config/"
+            echo -e "  • container/templates/bitbot-dev/"
+            echo -e "  • container/templates/bitbot-work/"
+            echo -e "  • container/templates/shared/"
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo ""
+        fi
+
+        # Show the actual diff content for review
+        echo -e "${BLUE}Full Diff:${NC}"
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        git diff HEAD
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+
+    else
+        test_pass "No git differences detected (test was clean)"
+    fi
+fi
+
+# ============================================================================
 # Summary
 # ============================================================================
 
