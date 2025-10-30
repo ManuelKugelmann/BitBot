@@ -47,5 +47,6 @@
       }
     }
   },
-  "$comment_config_mounts": "Config mode: Override .devcontainer mount to RW"
+  "$comment_config_mounts": "Config mode: Override .devcontainer mount to RW",
+  "postCreateCommand": "npm install -g @devcontainers/cli && echo '✓ DevContainer CLI installed'"
 }

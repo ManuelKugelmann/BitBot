@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# session-start.sh - Create PID->SessionID map and display session ID
+# session-start.sh - Send session ID to wrapper and display session info
 # Receives JSON via stdin with session_id field
 #
 # NOTE: This hook is NOT standalone - it must be run by Claude Code
@@ -44,18 +44,16 @@ if [ -n "$SESSION_ID" ]; then
         echo "export CLAUDE_PID='$CLAUDE_PID'" >> "$CLAUDE_ENV_FILE"
     fi
 
-    # Clean up ALL session env files (including current session)
-    # Safe because status line recreates files every ~1-2 seconds
-    ENV_DIR="$PROJECT_ROOT/.bitbot/session-env"
-    if [ -d "$ENV_DIR" ]; then
-        rm -f "$ENV_DIR"/*.env 2>/dev/null || true
-    fi
-
     # Echo session info in one line
     if [ -n "$CLAUDE_PID" ]; then
         echo "SessionStart:$IS_RESUME - Session: $SESSION_ID, PID: $CLAUDE_PID"
     else
         echo "SessionStart:$IS_RESUME - Session: $SESSION_ID"
+    fi
+
+    # Send session ID to wrapper via pipe if running under wrapper
+    if [ -n "${WRAPPER_PIPE:-}" ] && [ -p "$WRAPPER_PIPE" ]; then
+        echo "session $SESSION_ID" > "$WRAPPER_PIPE"
     fi
 fi
 

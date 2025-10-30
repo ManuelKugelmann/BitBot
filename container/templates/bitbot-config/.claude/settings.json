@@ -47,17 +47,6 @@
   },
 
   "permissions": {
-    "deny": [
-      "Bash(git push:*)",
-      "Bash(git push)",
-      "Bash(git reset --hard:*)",
-      "Bash(git reset --hard)",
-      "Bash(git rebase:*)",
-      "Bash(git rebase)",
-      "Bash(git branch -D:*)",
-      "Bash(git branch -D)",
-      "Bash(git tag -d:*)",
-      "Bash(git tag -d)"
-    ]
+    "allow": []
   }
 }

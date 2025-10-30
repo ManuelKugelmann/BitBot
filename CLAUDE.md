@@ -707,28 +707,3 @@ BitBot includes a Stop hook that automatically continues work after Claude finis
 
 ---
 
-## INBOX
-
-**Purpose**: Temporary holding area for memory commands and quick notes.
-
-**Usage**:
-- Use `# memory` commands to add quick notes here
-- Content must be sorted into appropriate sections before syncing to templates
-- Sync script will block if INBOX section exists
-
-**Instructions**:
-Before running sync script:
-1. Review all items in INBOX
-2. Move each item to its appropriate section (General Guidelines, Skills, etc.)
-3. Delete the ## INBOX section
-4. Run sync script: `dev/scripts/sync-claude-md-to-templates.sh`
-
-**Template-Specific Content**:
-Add to `container/templates/{template}/details.CLAUDE.md` (like `details.devcontainer.json`)
-
-<!-- Items below this line -->
-
----
-- order in mermaid defines tb columns and lr rows
-- always update the todolist and the persitent TODOS.md if given a new task
-- always update the todolist and the persitent TODOS.md if given a new task
