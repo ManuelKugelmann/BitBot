@@ -2,7 +2,7 @@
 
 **Status**: Pre-Alpha → Alpha (v0.1.0)
 
-**Last Updated**: 2025-10-24
+**Last Updated**: 2025-10-30
 
 ---
 
@@ -16,17 +16,19 @@
 - [ ] VS Code integration verification (all platforms)
 - [ ] Terminal mode verification (all launchers)
 - [x] Create tmux-wrapper-based user flow integration tests ✅ DONE
-  - `dev/tests/test-user-flow.sh` tests global init flow
+  - `dev/tests/test-user-flow-init.sh` tests global init flow (27/27 passing)
+  - `dev/tests/test-user-flow-moved.sh` tests moved installation (7/7 passing)
+  - `dev/tests/test-user-flows.sh` master test runner
   - Supports test mode (isolated) and dev mode (clean git required)
   - **Git diff analysis** detects both modified and untracked files
   - Categorizes changes and recommends template sync actions
   - Documents host-side changes (~/.bashrc) as expected
-  - **27/27 tests passing (100%)** ✅
   - Adaptive timing with retry loop (handles Windows env updates)
   - `--no-cleanup` flag for inspecting changes before cleanup
   - **Shell config handling:** Backup/restore ~/.bashrc and ~/.zshrc
   - **Duplicate prevention:** Test 10 verifies no stacking on repeated init
-  - **Bug fix:** Fixed duplicate PATH entry bug in bitbot-init.sh
+  - **Tmux output logging:** log_tmux_output() helper for debugging
+  - **Bug fixes:** Fixed duplicate PATH entry bug, workspace detection in tests
 
 ### 2. Config Agent Preparation (P1 - Important)
 
