@@ -361,10 +361,23 @@ echo "[Test 6] Accepting PATH configuration..."
 # Send "Y" to accept PATH addition
 tmux send-keys -t bitbot-test-flow 'Y' Enter
 
-# Wait for completion
-sleep 3
+# Wait for completion (Windows env updates can take time)
+# Use a retry loop to wait for the completion message
+echo "  Waiting for setup to complete..."
+max_wait=15
+waited=0
+setup_complete=false
 
-output=$(tmux capture-pane -t bitbot-test-flow -p)
+while [[ $waited -lt $max_wait ]]; do
+    sleep 1
+    waited=$((waited + 1))
+    output=$(tmux capture-pane -t bitbot-test-flow -p)
+
+    if echo "$output" | grep -q "Global BitBot setup complete"; then
+        setup_complete=true
+        break
+    fi
+done
 
 # ============================================================================
 # Test 7: Setup completion
@@ -373,10 +386,10 @@ output=$(tmux capture-pane -t bitbot-test-flow -p)
 echo ""
 echo "[Test 7] Verifying setup completion..."
 
-if echo "$output" | grep -q "Global BitBot setup complete"; then
-    test_pass "Setup completed successfully"
+if [[ "$setup_complete" == "true" ]]; then
+    test_pass "Setup completed successfully (waited ${waited}s)"
 else
-    test_fail "Setup completion message not found"
+    test_fail "Setup completion message not found (waited ${waited}s)"
     echo "$output"
 fi
 
