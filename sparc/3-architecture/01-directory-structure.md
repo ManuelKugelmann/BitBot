@@ -531,12 +531,12 @@ Comprehensive table of all significant paths in BitBot:
 | `/core/` | Directory | Host-side BitBot CLI | ❌ Not mounted |
 | `/core/bitbot` | Script | Main CLI entry point | ❌ Not mounted |
 | `/core/*/` | Directories | CLI commands & utilities | ❌ Not mounted |
-| `/container/bitbot/` | Directory | Container-side BitBot runtime | Copied to workspace during init |
-| `/container/bitbot/wrapper/` | Directory | Wrapper infrastructure scripts | TBD (mount point being designed) |
-| `/container/bitbot/wrapper/claude-wrapper.sh` | Script | Main wrapper (pipe control) | TBD |
-| `/container/bitbot/wrapper/send-wrapper-command.sh` | Script | Send commands to wrapper | TBD |
-| `/container/bitbot/wrapper/watchdog.sh` | Script | Session health monitor | TBD |
-| `/container/bitbot/wrapper/ccstatusline-wrapper/` | Directory | Token usage tracking | TBD |
+| `/container/bitbot/` | Directory | Container-side BitBot runtime | → `.bitbot/internal/container/bitbot/` (copy) |
+| `/container/bitbot/wrapper/` | Directory | Wrapper infrastructure | → `.bitbot/internal/container/bitbot/wrapper/` (copy) |
+| `/container/bitbot/wrapper/claude-wrapper.sh` | Script | Main wrapper (pipe control) | Via `.bitbot/internal/` copy |
+| `/container/bitbot/wrapper/send-wrapper-command.sh` | Script | Send commands to wrapper | Via `.bitbot/internal/` copy |
+| `/container/bitbot/wrapper/watchdog.sh` | Script | Session health monitor | Via `.bitbot/internal/` copy |
+| `/container/bitbot/wrapper/ccstatusline-wrapper/` | Directory | Token usage tracking | Via `.bitbot/internal/` copy |
 | `/container/home/` | Directory | Global dotfiles | Mounted readonly |
 | `/container/home/.tmux.conf` | File | Tmux configuration | → `/root/.tmux.conf` (RO) |
 | `/container/templates/` | Directory | DevContainer templates | ❌ Not mounted |
@@ -579,7 +579,7 @@ Comprehensive table of all significant paths in BitBot:
 | `/root/.claude-flow/` | Directory | Workspace mount | Claude Flow config | RW |
 | `/root/.opencode/` | Directory | Workspace mount | OpenCode config | RW |
 | `/root/.config/` | Directory | Workspace mount | AI tool configs | RW |
-| `TBD` | Directory | Wrapper infrastructure | Session management | RO |
+| `/workspace/.bitbot/internal/container/bitbot/wrapper/` | Directory | Wrapper infrastructure (via workspace mount) | Session management | RO |
 
 ### Global Paths (Shared Across Workspaces)
 

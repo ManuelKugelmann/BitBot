@@ -11,12 +11,13 @@
 # {
 #   "statusLine": {
 #     "type": "command",
-#     "command": "<path-to-wrapper>/ccstatusline-wrapper/wrapper.sh"
+#     "command": "/workspace/.bitbot/internal/container/bitbot/wrapper/ccstatusline-wrapper/wrapper.sh"
 #   }
 # }
 #
-# Note: This lives in /container/bitbot/wrapper/ (container infrastructure)
-# Path depends on how BitBot mounts/copies wrapper into workspaces
+# Note: Lives in /container/bitbot/wrapper/ (repository)
+# Copied to .bitbot/internal/container/bitbot/wrapper/ during `bitbot init`
+# Accessed in container via workspace mount
 
 set -euo pipefail
 

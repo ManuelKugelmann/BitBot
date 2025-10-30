@@ -29,7 +29,7 @@ Edit `.claude/settings.json`:
 {
   "statusLine": {
     "type": "command",
-    "command": "/opt/bitbot/wrapper/ccstatusline-wrapper/wrapper.sh"
+    "command": "/workspace/.bitbot/internal/container/bitbot/wrapper/ccstatusline-wrapper/wrapper.sh"
   }
 }
 ```
