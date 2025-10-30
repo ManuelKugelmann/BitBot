@@ -498,6 +498,73 @@ else
 fi
 
 # ============================================================================
+# Test 10: Run init again to verify no stacking/duplicates
+# ============================================================================
+
+echo ""
+echo "[Test 10] Running init again to verify no duplicate stacking..."
+
+# Kill the previous tmux session
+tmux kill-session -t bitbot-test-flow 2>/dev/null || true
+
+# Remove the config to trigger first-run again
+rm -f "$BITBOT_ROOT/config.json"
+
+# Start BitBot again in tmux
+tmux new-session -d -s bitbot-test-flow "export BITBOT_HOME='$BITBOT_ROOT'; bash $BITBOT; exec bash" 2>/dev/null
+sleep 2
+
+# Send through the wizard again
+test_info "Sending inputs through wizard (second run)..."
+sleep 3  # Wait for prerequisites
+tmux send-keys -t bitbot-test-flow '1' Enter  # Select Terminal
+sleep 2
+tmux send-keys -t bitbot-test-flow 'Y' Enter  # Accept PATH addition
+
+# Wait for completion
+echo "  Waiting for second init to complete..."
+max_wait=15
+waited=0
+setup_complete=false
+
+while [[ $waited -lt $max_wait ]]; do
+    sleep 1
+    waited=$((waited + 1))
+    output=$(tmux capture-pane -t bitbot-test-flow -p)
+
+    if echo "$output" | grep -q "Global BitBot setup complete"; then
+        setup_complete=true
+        break
+    fi
+done
+
+if [[ "$setup_complete" == "true" ]]; then
+    test_pass "Second init completed (waited ${waited}s)"
+else
+    test_fail "Second init did not complete (waited ${waited}s)"
+fi
+
+# Now verify shell config still has only ONE BitBot section
+if [[ -n "$shell_config" ]] && [[ -f "$shell_config" ]]; then
+    bitbot_sections=$(grep -c "# BitBot PATH" "$shell_config" || echo "0")
+    if [[ "$bitbot_sections" -eq 1 ]]; then
+        test_pass "Still single BitBot section after second run (no stacking)"
+    else
+        test_fail "Found $bitbot_sections BitBot sections after second run (expected 1)"
+    fi
+
+    # Count total PATH lines
+    path_lines=$(grep -c "export PATH=.*${BITBOT_ROOT}/core" "$shell_config" || echo "0")
+    if [[ "$path_lines" -eq 1 ]]; then
+        test_pass "Single PATH entry (no duplicates)"
+    else
+        test_fail "Found $path_lines PATH entries (expected 1)"
+    fi
+else
+    test_fail "Shell config not found for verification"
+fi
+
+# ============================================================================
 # Dev Mode: Check for git differences and template sync needs
 # ============================================================================
 
