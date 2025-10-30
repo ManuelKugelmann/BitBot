@@ -385,10 +385,11 @@ add_to_path() {
         # Create backup
         cp "$shell_config" "${shell_config}.bitbot.bak"
 
-        # Remove old entries
+        # Remove old entries (case-insensitive, specific patterns only)
         sed -i '/# BitBot PATH/d' "$shell_config"
         sed -i '/BITBOT_HOME/d' "$shell_config"
-        sed -i '/bitbot/d' "$shell_config"
+        # Remove PATH lines containing the BitBot install path (case-insensitive)
+        sed -i "\|${bitbot_install}/core|d" "$shell_config"
     fi
 
     # Add new entries
