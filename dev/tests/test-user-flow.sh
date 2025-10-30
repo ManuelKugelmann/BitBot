@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# Test: BitBot User Flow - Fresh Init
-# Tests the complete user flow for first-time BitBot initialization using tmux
+# Test: BitBot Complete User Flow
+# Tests the complete user flow: global init → workspace init → container launch
 #
 # Usage:
-#   test-user-flow-init.sh [--dev] [--no-cleanup]
+#   test-user-flow.sh [--dev] [--no-cleanup]
 #
 # Modes:
 #   Default: Creates temporary test environment (clean, isolated)
@@ -399,10 +399,10 @@ if [[ -f "$BITBOT_ROOT/config.json" ]]; then
     # Check config contents
     config_content=$(cat "$BITBOT_ROOT/config.json")
 
-    if echo "$config_content" | grep -q '"default_mode"'; then
-        test_pass "Config contains default_mode field"
+    if echo "$config_content" | grep -q '"launch_mode"'; then
+        test_pass "Config contains launch_mode field"
     else
-        test_fail "Config missing default_mode field"
+        test_fail "Config missing launch_mode field"
     fi
 
     if echo "$config_content" | jq -e . >/dev/null 2>&1; then
