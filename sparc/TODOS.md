@@ -19,7 +19,8 @@
   - `dev/tests/test-user-flow.sh` tests global init flow
   - Supports test mode (isolated) and dev mode (clean git required)
   - Git diff analysis for template sync detection
-  - 20/22 tests passing (2 timing-related failures remaining)
+  - **22/22 tests passing (100%)** ✅
+  - Adaptive timing with retry loop (handles Windows env updates)
 
 ### 2. Config Agent Preparation (P1 - Important)
 
