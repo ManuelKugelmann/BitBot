@@ -18,9 +18,12 @@
 - [x] Create tmux-wrapper-based user flow integration tests ✅ DONE
   - `dev/tests/test-user-flow.sh` tests global init flow
   - Supports test mode (isolated) and dev mode (clean git required)
-  - Git diff analysis for template sync detection
+  - **Git diff analysis** detects both modified and untracked files
+  - Categorizes changes and recommends template sync actions
+  - Documents host-side changes (~/.bashrc) as expected
   - **22/22 tests passing (100%)** ✅
   - Adaptive timing with retry loop (handles Windows env updates)
+  - `--no-cleanup` flag for inspecting changes before cleanup
 
 ### 2. Config Agent Preparation (P1 - Important)
 
