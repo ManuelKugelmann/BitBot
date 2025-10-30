@@ -45,6 +45,23 @@ test_info() {
     echo -e "${BLUE}ℹ INFO${NC}: $1"
 }
 
+test_warning() {
+    echo -e "${YELLOW}⚠ WARN${NC}: $1"
+}
+
+log_tmux_output() {
+    # Log tmux pane output for debugging
+    local session_name="$1"
+    local context="${2:-}"
+
+    echo ""
+    echo -e "${BLUE}[Tmux Output${context:+: $context}]${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    tmux capture-pane -t "$session_name" -p 2>/dev/null || echo "(no output captured)"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+}
+
 # Cleanup function
 cleanup() {
     test_info "Cleaning up tmux sessions..."
@@ -74,6 +91,11 @@ mkdir -p "$TEST_ENV"
 test_info "Copying BitBot to: $BITBOT_ROOT"
 cp -r "$BITBOT_DEV_ROOT" "$BITBOT_ROOT"
 
+# Remove workspace artifacts (to avoid workspace detection instead of global init)
+test_info "Cleaning workspace artifacts from test copy..."
+rm -rf "$BITBOT_ROOT/.bitbot"
+rm -rf "$BITBOT_ROOT/.devcontainer"
+
 # Remove any existing config
 rm -f "$BITBOT_ROOT/config.json"
 
@@ -84,23 +106,34 @@ rm -f "$BITBOT_ROOT/config.json"
 echo ""
 echo "[Test 1] Running initial setup at original location..."
 
-# Create tmux session
-tmux new-session -d -s bitbot-test-moved "export BITBOT_HOME='$BITBOT_ROOT'; bash $BITBOT; exec bash" 2>/dev/null
+# Create tmux session (cd to BitBot install to trigger global context)
+tmux new-session -d -s bitbot-test-moved "cd '$BITBOT_ROOT' && bash $BITBOT; exec bash" 2>/dev/null
 sleep 3
+
+log_tmux_output "bitbot-test-moved" "After BitBot launch"
+
+# Wait for launch mode prompt
+sleep 3
+
+log_tmux_output "bitbot-test-moved" "Before sending mode choice"
 
 # Send through wizard
 tmux send-keys -t bitbot-test-moved '1' Enter  # Terminal mode
-sleep 2
+sleep 3
+
+log_tmux_output "bitbot-test-moved" "After mode selection"
+
 tmux send-keys -t bitbot-test-moved 'n' Enter  # Skip PATH (we'll verify manually)
 
-sleep 2
+# Wait for setup to complete
+sleep 5
 output=$(tmux capture-pane -t bitbot-test-moved -p)
 
-if echo "$output" | grep -q "Created config.json"; then
+if echo "$output" | grep -q "Global BitBot setup complete"; then
     test_pass "Initial setup completed at original location"
 else
     test_fail "Initial setup did not complete"
-    echo "$output"
+    log_tmux_output "bitbot-test-moved" "Setup incomplete"
 fi
 
 # Verify config created
@@ -143,17 +176,19 @@ fi
 echo ""
 echo "[Test 3] Running BitBot from moved location..."
 
-# Run from new location
-tmux new-session -d -s bitbot-test-moved "export BITBOT_HOME='$BITBOT_MOVED'; bash $BITBOT_MOVED/core/bitbot; exec bash" 2>/dev/null
+# Run from new location (cd to BitBot install to trigger global context)
+tmux new-session -d -s bitbot-test-moved "cd '$BITBOT_MOVED' && bash $BITBOT_MOVED/core/bitbot; exec bash" 2>/dev/null
 sleep 3
 
 output=$(tmux capture-pane -t bitbot-test-moved -p)
+log_tmux_output "bitbot-test-moved" "After launch from moved location"
 
 # BitBot should detect the config exists but location changed
 if echo "$output" | grep -q "BitBot install location: $BITBOT_MOVED"; then
     test_pass "BitBot detected new install location"
 else
     test_warning "BitBot may not have detected new location"
+    log_tmux_output "bitbot-test-moved" "Location detection check"
 fi
 
 # Should offer to update PATH

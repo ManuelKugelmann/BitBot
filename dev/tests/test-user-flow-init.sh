@@ -79,6 +79,19 @@ test_warning() {
     echo -e "${YELLOW}⚠ WARN${NC}: $1"
 }
 
+log_tmux_output() {
+    # Log tmux pane output for debugging
+    local session_name="$1"
+    local context="${2:-}"
+
+    echo ""
+    echo -e "${BLUE}[Tmux Output${context:+: $context}]${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    tmux capture-pane -t "$session_name" -p 2>/dev/null || echo "(no output captured)"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+}
+
 # Cleanup function
 cleanup() {
     if [[ "$SKIP_CLEANUP" == "true" ]]; then
@@ -241,7 +254,7 @@ if echo "$output" | grep -q "This is your first run"; then
     test_pass "BitBot detected first run and started setup wizard"
 else
     test_fail "BitBot did not start setup wizard"
-    echo "$output"
+    log_tmux_output "bitbot-test-flow" "Failed to detect first run"
     exit 1
 fi
 
@@ -249,6 +262,7 @@ if echo "$output" | grep -q "Checking prerequisites"; then
     test_pass "Prerequisites check started"
 else
     test_fail "Prerequisites check not found"
+    log_tmux_output "bitbot-test-flow" "Missing prerequisites check"
 fi
 
 # ============================================================================
@@ -267,7 +281,7 @@ if echo "$output" | grep -q "All prerequisites checked"; then
     test_pass "Prerequisites verification completed"
 else
     test_fail "Prerequisites verification did not complete"
-    echo "$output"
+    log_tmux_output "bitbot-test-flow" "Prerequisites check incomplete"
 fi
 
 # Check for specific prerequisites
@@ -302,19 +316,21 @@ if echo "$output" | grep -q "Select default launch mode:"; then
     test_pass "Launch mode prompt displayed"
 else
     test_fail "Launch mode prompt not found"
-    echo "$output"
+    log_tmux_output "bitbot-test-flow" "Missing launch mode prompt"
 fi
 
 if echo "$output" | grep -q "\[1\] Terminal"; then
     test_pass "Terminal option displayed with [1] format"
 else
     test_fail "Terminal option not properly formatted"
+    log_tmux_output "bitbot-test-flow" "Terminal option format issue"
 fi
 
 if echo "$output" | grep -q "\[2\] VS Code"; then
     test_pass "VS Code option displayed with [2] format"
 else
     test_fail "VS Code option not properly formatted"
+    log_tmux_output "bitbot-test-flow" "VS Code option format issue"
 fi
 
 # ============================================================================
@@ -419,13 +435,14 @@ if [[ "$setup_complete" == "true" ]]; then
     test_pass "Setup completed successfully (waited ${waited}s)"
 else
     test_fail "Setup completion message not found (waited ${waited}s)"
-    echo "$output"
+    log_tmux_output "bitbot-test-flow" "Setup did not complete"
 fi
 
 if echo "$output" | grep -q "bitbot init"; then
     test_pass "Next steps provided to user"
 else
     test_fail "Next steps not shown"
+    log_tmux_output "bitbot-test-flow" "Missing next steps"
 fi
 
 # ============================================================================
