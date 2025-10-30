@@ -50,7 +50,7 @@ END FUNCTION
 ```pseudocode
 FUNCTION setup_global_config():
     SET bitbot_install = get_bitbot_install_dir()
-    SET config_file = bitbot_install + "/config.json"
+    SET config_file = bitbot_install + "/global/.bitbot/config.json"
 
     # Check if config already exists
     IF file_exists(config_file):

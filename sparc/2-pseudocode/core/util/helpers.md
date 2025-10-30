@@ -83,7 +83,7 @@ FUNCTION get_merged_workspace_config(workspace_path) → object:
     # Merges global BitBot config with workspace config
 
     SET bitbot_install = get_bitbot_install_dir()
-    SET global_config = bitbot_install + "/config.json"
+    SET global_config = bitbot_install + "/global/.bitbot/config.json"
     SET workspace_config = workspace_path + "/.bitbot/config.json"
 
     RETURN merge_configs(global_config, workspace_config)

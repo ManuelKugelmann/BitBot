@@ -90,7 +90,7 @@ FUNCTION get_launch_mode_preference(args) → boolean:
 
     # No explicit flag - check global config default
     SET bitbot_install = get_bitbot_install_dir()
-    SET config_file = bitbot_install + "/config.json"
+    SET config_file = bitbot_install + "/global/.bitbot/config.json"
 
     IF NOT file_exists(config_file):
         # No config - default to terminal

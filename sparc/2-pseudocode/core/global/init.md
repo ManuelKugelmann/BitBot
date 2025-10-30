@@ -31,7 +31,7 @@ FUNCTION is_global_init_needed() → boolean:
     # Config file is in the BitBot install folder, not ~/.bitbot/
 
     SET bitbot_install = get_bitbot_install_dir()
-    SET config_file = bitbot_install + "/config.json"
+    SET config_file = bitbot_install + "/global/.bitbot/config.json"
 
     IF NOT file_exists(config_file):
         RETURN true  # No config → need global init
@@ -253,7 +253,7 @@ END FUNCTION
 FUNCTION create_global_config():
     # Create config.json in BitBot install folder
     SET bitbot_install = get_bitbot_install_dir()
-    SET config_file = bitbot_install + "/config.json"
+    SET config_file = bitbot_install + "/global/.bitbot/config.json"
 
     # Ask user preferences
     PRINT ""

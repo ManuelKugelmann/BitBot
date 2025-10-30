@@ -587,6 +587,8 @@ Comprehensive table of all significant paths in BitBot:
 |------|------|--------|---------|
 | `$BITBOT_HOME` | Env Var | Host | BitBot installation directory |
 | `$BITBOT_HOME/.bitbot/wrapper/` | Directory | Global | Wrapper scripts (for work mode) |
+| `$BITBOT_HOME/global/.bitbot/` | Directory | Global | Global BitBot config directory |
+| `$BITBOT_HOME/global/.bitbot/config.json` | File | Global | Global BitBot config (launch mode, etc.) |
 | `$BITBOT_HOME/global/.claude/` | Directory | Global | Global Claude config |
 | `$BITBOT_HOME/global/.claude/CLAUDE.md` | File | Global | Global instructions |
 | `$BITBOT_HOME/global/.claude/settings.json` | File | Global | Global settings |

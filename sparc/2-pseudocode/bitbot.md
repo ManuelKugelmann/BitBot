@@ -35,7 +35,7 @@ FUNCTION main(args):
 
     IF cwd == bitbot_install:
         # GLOBAL CONTEXT: Running from BitBot install folder
-        IF NOT file_exists(bitbot_install + "/config.json"):
+        IF NOT file_exists(bitbot_install + "/global/.bitbot/config.json"):
             # First run - no config.json → run global init
             CALL run_global_init()  # From lib/global/init.md
             RETURN
