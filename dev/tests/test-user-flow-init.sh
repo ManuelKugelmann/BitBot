@@ -4,11 +4,14 @@
 # Tests the complete user flow for first-time BitBot initialization using tmux
 #
 # Usage:
-#   test-user-flow-init.sh [--dev]
+#   test-user-flow-init.sh [--dev] [--no-cleanup]
 #
 # Modes:
 #   Default: Creates temporary test environment (clean, isolated)
 #   --dev:   Tests against current BitBot dev environment (requires clean git state)
+#
+# Options:
+#   --no-cleanup: Skip cleanup (leave config/changes for inspection)
 
 set -euo pipefail
 
@@ -17,9 +20,23 @@ BITBOT_DEV_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Parse command line arguments
 MODE="test"
-if [[ "${1:-}" == "--dev" ]]; then
-    MODE="dev"
-fi
+SKIP_CLEANUP=false
+
+for arg in "$@"; do
+    case "$arg" in
+        --dev)
+            MODE="dev"
+            ;;
+        --no-cleanup)
+            SKIP_CLEANUP=true
+            ;;
+        *)
+            echo "Unknown argument: $arg"
+            echo "Usage: test-user-flow-init.sh [--dev] [--no-cleanup]"
+            exit 1
+            ;;
+    esac
+done
 
 # Setup paths based on mode
 if [[ "$MODE" == "dev" ]]; then
@@ -64,6 +81,21 @@ test_warning() {
 
 # Cleanup function
 cleanup() {
+    if [[ "$SKIP_CLEANUP" == "true" ]]; then
+        echo ""
+        echo -e "${YELLOW}⚠ WARN${NC}: Cleanup skipped (--no-cleanup flag)"
+        echo -e "  Config and changes left for inspection"
+        echo -e "  Remember to clean up manually:"
+        if [[ "$MODE" == "dev" ]]; then
+            echo -e "    git restore ."
+            echo -e "    rm -f config.json"
+        else
+            echo -e "    rm -rf $TEST_ENV"
+        fi
+        echo ""
+        return
+    fi
+
     test_info "Cleaning up tmux session..."
     tmux kill-session -t bitbot-test-flow 2>/dev/null || true
 
