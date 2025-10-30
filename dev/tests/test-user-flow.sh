@@ -437,20 +437,51 @@ if [[ "$MODE" == "dev" ]]; then
 
     cd "$BITBOT_DEV_ROOT"
 
-    # Check for any changes made during the test
+    # Check for both modified tracked files AND untracked files
+    has_changes=false
+
+    # Check for modified tracked files
     if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        has_changes=true
+    fi
+
+    # Check for new untracked files (excluding expected patterns)
+    untracked_files=$(git ls-files --others --exclude-standard 2>/dev/null | grep -v '^\.bitbot/tmp/' | grep -v '^\.claude/sessions/' || true)
+    if [[ -n "$untracked_files" ]]; then
+        has_changes=true
+    fi
+
+    if [[ "$has_changes" == "true" ]]; then
         echo ""
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${YELLOW}Git Differences Detected${NC}"
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo ""
 
-        # Show detailed diff
-        git diff --stat HEAD
-        echo ""
+        # Show detailed diff for modified files
+        if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+            echo "Modified files:"
+            git diff --stat HEAD
+            echo ""
+        fi
+
+        # Show untracked files
+        if [[ -n "$untracked_files" ]]; then
+            echo "Untracked files:"
+            echo "$untracked_files"
+            echo ""
+        fi
 
         # Analyze which files changed and what needs template sync
-        changed_files=$(git diff --name-only HEAD)
+        # Combine both modified and untracked files
+        changed_files=$(git diff --name-only HEAD 2>/dev/null || true)
+        if [[ -n "$untracked_files" ]]; then
+            if [[ -n "$changed_files" ]]; then
+                changed_files="$changed_files"$'\n'"$untracked_files"
+            else
+                changed_files="$untracked_files"
+            fi
+        fi
 
         template_sync_needed=false
 
@@ -520,11 +551,20 @@ if [[ "$MODE" == "dev" ]]; then
             echo ""
         fi
 
-        # Show the actual diff content for review
-        echo -e "${BLUE}Full Diff:${NC}"
-        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        git diff HEAD
-        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        # Show the actual diff content for review (only for modified files)
+        if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+            echo -e "${BLUE}Full Diff:${NC}"
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            git diff HEAD
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo ""
+        fi
+
+        # Note about host-side changes
+        echo -e "${BLUE}Note:${NC}"
+        echo -e "  Host-side changes (e.g., ~/.bashrc, ~/.zshrc) are not tracked in git."
+        echo -e "  BitBot adds PATH configuration to your shell config during global init."
+        echo -e "  This is expected and does not require template sync."
         echo ""
 
     else
