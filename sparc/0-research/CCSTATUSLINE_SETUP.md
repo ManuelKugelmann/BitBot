@@ -34,17 +34,36 @@ pnpm dlx ccstatusline@latest
 
 ## Quick Setup
 
+### Option 1: Use BitBot Template Configuration (Recommended)
+
+BitBot includes a pre-configured ccstatusline setup with:
+- **Model** display (cyan, bold)
+- **Git Branch** and changes (magenta/yellow)
+- **Context % with color indicators** 🟢🟡🟠🔴
+- **Session cost** and time tracking
+
+The configuration is automatically available in BitBot containers at:
+`~/.config/ccstatusline/settings.json`
+
+Just ensure ccstatusline is installed:
+```bash
+bunx ccstatusline@latest  # Run once to install
+```
+
+### Option 2: Interactive TUI Configuration
+
 ```bash
 # Run interactive TUI configuration
 bunx ccstatusline@latest
 
 # Configure your widgets:
-# 1. Git Branch
-# 2. Git Worktree ⭐ (IMPORTANT for multi-agent)
-# 3. Model Name
-# 4. Session Cost
-# 5. Current Working Directory
-# 6. Git Changes
+# 1. Model Name
+# 2. Git Branch ⭐
+# 3. Git Changes
+# 4. Context Percentage with dynamic colors ⭐
+# 5. Session Cost
+# 6. Session Clock
+# 7. Git Worktree (for multi-agent workflows)
 
 # Select "Install to Claude Code" from menu
 ```
@@ -88,25 +107,83 @@ Shows you're in an isolated worktree
 (widget not shown)
 ```
 
-## Recommended Widget Configuration
+## BitBot Status Line Configuration
+
+BitBot's default configuration organizes information into sensible groups:
+
+**Layout**: `Model │ Git Info │ Context Status │ Session Metrics`
+
+### Functional Groups
+
+**1. Model Information**
+- Model Name (cyan, bold) - Shows which Claude model is active
+
+**2. Git Information**
+- Git Branch (magenta) - Current branch name
+- Git Changes (yellow, raw) - Shows `+42,-10` format for uncommitted changes
+- Auto-hides when not in git repository
+
+**3. Context Status** ⭐
+- Context Percentage with dynamic colors:
+  - 🟢 **Green** (0-49%): Healthy
+  - 🟡 **Yellow** (50-69%): Moderate
+  - 🟠 **Orange** (70-84%): High
+  - 🔴 **Red** (85-100%): Critical
+- Color indicator icon from wrapper
+- Visual cue for work continuation decisions
+
+**4. Session Metrics**
+- Session Cost (green) - Total API cost for session
+- Session Clock (blue, raw) - Elapsed time
+
+### Context Color System
+
+The context colors align with the work continuation strategy:
+- **Healthy** (🟢): Continue normally, compact at natural breaks
+- **Moderate** (🟡): Plan for compaction at next logical break point
+- **High** (🟠): Prioritize finding break point soon
+- **Critical** (🔴): Immediate break point or compact NOW
+
+Colors update automatically every 1-2 seconds via statusline-wrapper.
+
+## Customization
+
+### Interactive TUI
+
+Run the interactive configuration tool:
+```bash
+bunx ccstatusline@latest
+```
+
+Navigate with arrow keys, customize colors, reorder widgets, add/remove items.
+
+### Manual Configuration
+
+Edit `~/.config/ccstatusline/settings.json` directly.
+
+See BitBot's template configuration at:
+`container/templates/bitbot-base/home/.config/ccstatusline/settings.json`
+
+## Recommended Widget Configuration (Custom Setups)
 
 ### Line 1: Essential Context
-- Git Branch
-- Git Worktree ⭐
 - Model Name
-- Current Working Directory
+- Git Branch
+- Git Changes
+- Context Percentage (with dynamic colors) ⭐
 - Session Cost
+- Session Clock
 
-### Line 2: Metrics (Optional)
+### Line 2: Detailed Metrics (Optional)
 - Token counts (Input/Output/Cached)
-- Context usage percentage
+- Current Working Directory
+- Git Worktree (for multi-agent workflows)
 - Block timer
-- Session clock
 
 ### Line 3: Custom (Optional)
 - Custom text (e.g., project name)
 - Custom command output
-- Git changes count
+- Additional separators/formatting
 
 ## Available Widgets
 

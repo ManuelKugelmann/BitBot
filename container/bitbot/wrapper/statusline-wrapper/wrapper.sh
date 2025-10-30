@@ -38,6 +38,26 @@ else
     CONTEXT_PCT="0"
 fi
 
+# Determine context color status (for skills and display)
+CONTEXT_INT=$(printf "%.0f" "$CONTEXT_PCT")
+if [ "$CONTEXT_INT" -lt 50 ]; then
+    CONTEXT_STATUS="healthy"
+    CONTEXT_COLOR="green"
+    CONTEXT_ICON="🟢"
+elif [ "$CONTEXT_INT" -lt 70 ]; then
+    CONTEXT_STATUS="moderate"
+    CONTEXT_COLOR="yellow"
+    CONTEXT_ICON="🟡"
+elif [ "$CONTEXT_INT" -lt 85 ]; then
+    CONTEXT_STATUS="high"
+    CONTEXT_COLOR="orange"
+    CONTEXT_ICON="🟠"
+else
+    CONTEXT_STATUS="critical"
+    CONTEXT_COLOR="red"
+    CONTEXT_ICON="🔴"
+fi
+
 # Store in session-specific env file
 # Tools can source: .bitbot/session-env/<session-id>.env
 ENV_DIR="${CLAUDE_PROJECT_DIR:-.}/.bitbot/session-env"
@@ -52,6 +72,9 @@ cat > "$TMP_FILE" << EOF
 # Session: $SESSION_ID
 export CLAUDE_CONTEXT_PCT='$CONTEXT_PCT'
 export CLAUDE_SESSION_ID='$SESSION_ID'
+export CLAUDE_CONTEXT_STATUS='$CONTEXT_STATUS'
+export CLAUDE_CONTEXT_COLOR='$CONTEXT_COLOR'
+export CLAUDE_CONTEXT_ICON='$CONTEXT_ICON'
 EOF
 mv "$TMP_FILE" "$ENV_FILE"
 
@@ -59,6 +82,6 @@ mv "$TMP_FILE" "$ENV_FILE"
 if command -v ccstatusline &>/dev/null; then
     echo "$JSON_DATA" | ccstatusline
 else
-    # Simple fallback display
-    echo "Context: ${CONTEXT_PCT}%"
+    # Simple fallback display with color indicator
+    echo "${CONTEXT_ICON} Context: ${CONTEXT_PCT}%"
 fi

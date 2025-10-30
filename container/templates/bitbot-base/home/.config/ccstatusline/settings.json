@@ -1,4 +1,96 @@
 {
-  "comment": "ccstatusline configuration for BitBot containers",
-  "note": "This is the base template config - customize per template as needed"
+  "$schema": "https://unpkg.com/ccstatusline@latest/schema.json",
+  "comment": "ccstatusline configuration for BitBot containers - Organized by functional groups",
+
+  "statusLines": [
+    {
+      "name": "Main Status Line",
+      "widgets": [
+        {
+          "type": "model_name",
+          "label": "Model",
+          "color": "cyan",
+          "bold": true
+        },
+        {
+          "type": "separator",
+          "text": " │ ",
+          "color": "gray"
+        },
+        {
+          "type": "git_branch",
+          "label": "Branch",
+          "color": "magenta",
+          "hideNoGit": true
+        },
+        {
+          "type": "git_changes",
+          "label": "",
+          "color": "yellow",
+          "hideNoGit": true,
+          "showRaw": true
+        },
+        {
+          "type": "separator",
+          "text": " │ ",
+          "color": "gray"
+        },
+        {
+          "type": "context_percentage",
+          "label": "Context",
+          "dynamicColor": true,
+          "thresholds": {
+            "healthy": 50,
+            "moderate": 70,
+            "high": 85
+          },
+          "colors": {
+            "healthy": "green",
+            "moderate": "yellow",
+            "high": "#FFA500",
+            "critical": "red"
+          }
+        },
+        {
+          "type": "custom_command",
+          "command": "[ -n \"$CLAUDE_SESSION_ID\" ] && [ -f \".bitbot/session-env/${CLAUDE_SESSION_ID}.env\" ] && source \".bitbot/session-env/${CLAUDE_SESSION_ID}.env\" && echo \" $CLAUDE_CONTEXT_ICON\"",
+          "label": "",
+          "color": "white",
+          "updateInterval": 2000
+        },
+        {
+          "type": "separator",
+          "text": " │ ",
+          "color": "gray"
+        },
+        {
+          "type": "session_cost",
+          "label": "Cost",
+          "color": "green",
+          "showRaw": false
+        },
+        {
+          "type": "session_clock",
+          "label": "",
+          "color": "blue",
+          "showRaw": true
+        }
+      ]
+    }
+  ],
+
+  "globalSettings": {
+    "padding": 1,
+    "separator": " ",
+    "defaultBold": false,
+    "colorMode": "256",
+    "widthMode": "full"
+  },
+
+  "notes": {
+    "groups": "Main line organized as: Model | Git Info | Context Status | Session Metrics",
+    "context_colors": "🟢 <50% healthy, 🟡 50-70% moderate, 🟠 70-85% high, 🔴 85%+ critical",
+    "git_info": "Shows branch name and changes (+insertions,-deletions)",
+    "customization": "Run 'bunx ccstatusline@latest' to customize interactively"
+  }
 }
