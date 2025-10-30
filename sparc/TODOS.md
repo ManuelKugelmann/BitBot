@@ -21,9 +21,12 @@
   - **Git diff analysis** detects both modified and untracked files
   - Categorizes changes and recommends template sync actions
   - Documents host-side changes (~/.bashrc) as expected
-  - **22/22 tests passing (100%)** ✅
+  - **27/27 tests passing (100%)** ✅
   - Adaptive timing with retry loop (handles Windows env updates)
   - `--no-cleanup` flag for inspecting changes before cleanup
+  - **Shell config handling:** Backup/restore ~/.bashrc and ~/.zshrc
+  - **Duplicate prevention:** Test 10 verifies no stacking on repeated init
+  - **Bug fix:** Fixed duplicate PATH entry bug in bitbot-init.sh
 
 ### 2. Config Agent Preparation (P1 - Important)
 
