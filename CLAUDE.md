@@ -406,30 +406,119 @@ BitBot includes a Stop hook that automatically continues work after Claude finis
 - 5 second timeout on hook execution
 - User can disable anytime with `/claude-allow-stop` command
 
-## Context Management
+## Context Management - Work Continuation Strategy
 
-**When to Recommend Context Compaction/Clearing:**
+**Philosophy**: Context management is NOT about hitting thresholds. It's about optimizing work continuation through intelligent compaction at natural break points.
 
-After completing a significant implementation phase, proactively remind the user:
+### When to Compact (Priority Order)
 
-> "This implementation phase is complete. Consider managing context:
-> - **`/compact`** - Summarize recent work, free up tokens (recommended after each phase)
-> - **`/clear`** - Start fresh, clear all history (use between major phases only)"
+**1. Natural Break Points** (BEST - regardless of context %):
+- ✅ Tests passing + code committed
+- ✅ Feature complete + documented
+- ✅ Bug fixed + verified
+- ✅ Before starting new complex task
+- ✅ After significant milestone
 
-**Indicators that a phase is complete:**
-- All tests passing for a feature
-- Documentation updated and committed
-- User says "done", "finished", "that's it", or similar
-- Task list fully completed
-- Natural break point in work
+**2. Context Approaching 70%** (PLAN ahead):
+- Finish current atomic task
+- Commit working code
+- Prepare continuation instructions
+- Compact with detailed resumption prompt
 
-**Important:**
-- **DO** proactively remind users about context management
-- **DO** explain when to use `/compact` vs `/clear`
-- **DO NOT** attempt to execute these commands programmatically
-- User must manually type `/compact` or `/clear` commands
+**3. Context Above 85%** (URGENT - find break point):
+- Stop at next safe point
+- Commit what's working (even WIP)
+- Compact NOW with clear recovery instructions
 
-**Note:** Claude Code's TUI requires physical keyboard input to execute commands. Programmatic execution via tmux or other automation is not possible.
+**4. Context Above 95%** (CRITICAL - immediate action):
+- Save current state immediately
+- Compact with full context preservation prompt
+- Risk of exhaustion mid-critical-work
+
+### Bad Times to Compact
+
+**AVOID compacting when:**
+- ❌ Mid-implementation (partial work)
+- ❌ Tests failing (debugging in progress)
+- ❌ Uncommitted changes (work not saved)
+- ❌ No clear continuation path
+- ❌ About to start trivial task (waste of compaction)
+
+### Effective Compaction Prompts
+
+**BAD** (no continuation context):
+```
+/compact
+```
+
+**GOOD** (includes work state + next steps):
+```
+/compact Completed user auth feature (tests passing, committed to feat/auth).
+         Next: Implement password reset flow. Start with email template
+         design, then backend /api/reset endpoint following existing auth
+         pattern in routes/auth.js
+```
+
+**GOOD** (debugging context):
+```
+/compact Fixed null pointer in data parser (root cause: missing validation
+         in parseUser() line 47). Next: Add comprehensive null safety tests
+         across parser module. Check edge cases documented in spec/parser.md
+```
+
+**GOOD** (partial progress):
+```
+/compact Implemented 3/5 API endpoints (GET, POST, PUT done). Remaining:
+         DELETE user, PATCH profile. All follow RESTful pattern in routes.js.
+         Auth middleware tested and working. Continue with DELETE next.
+```
+
+### Compaction Commands
+
+**With continuation prompt** (RECOMMENDED):
+```bash
+/compact <summary of completed work + next specific steps>
+```
+
+**Using skill** (from BitBot infrastructure):
+```bash
+/claude-inspect-context-size    # Check context + get guidance
+/claude-restart-compact         # Programmatic compaction
+```
+
+**Manual** (for testing):
+```bash
+/compact  # Basic compaction without continuation context
+/clear    # Fresh start (loses all history) - use sparingly
+```
+
+### Proactive Context Monitoring
+
+**Use `/claude-inspect-context-size` to:**
+- Check current context percentage
+- Get intelligent break point recommendations
+- See example compaction prompts
+- Understand current work phase
+
+**When to check:**
+- Before starting large tasks
+- After completing milestones
+- When feeling context is getting full
+- When unsure if should compact
+
+### Important Notes
+
+**DO:**
+- Compact at natural break points (even at 40% context)
+- Always include continuation instructions in `/compact` prompt
+- Commit code before compacting
+- Plan compaction as part of work flow
+
+**DO NOT:**
+- Wait for context threshold before planning compaction
+- Compact mid-implementation without clear break point
+- Use `/clear` unless truly starting fresh
+- Compact without providing next steps
 
 ## Proactive Session Management
 

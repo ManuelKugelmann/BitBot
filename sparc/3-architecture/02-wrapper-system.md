@@ -226,38 +226,85 @@ mv "$TMP_FILE" "$ENV_FILE"  # Atomic rename
 
 ## How They Work Together
 
-### Scenario: Autonomous Context Compaction
+### Philosophy: Work Continuation, Not Thresholds
 
-**1. Continuous Monitoring (statusline-wrapper)**
+The wrapper system enables **intelligent context management** based on work state, not just percentage thresholds.
+
+**Key Principle**: Compact at natural break points with continuation instructions, optimizing work flow rather than reacting to arbitrary thresholds.
+
+### Scenario 1: Natural Break Point Compaction (IDEAL)
+
+**Work Flow:**
 ```
-Every 1-2 seconds:
-  Claude generates status line JSON
+Claude completes feature implementation
+  → Tests passing
+  → Code committed
+  → Documentation updated
     ↓
-  statusline-wrapper extracts context %
+Claude recognizes natural break point
+  → Prepares continuation summary
+  → Includes next specific steps
+  → Sends compact command with resumption prompt
     ↓
-  Writes to .bitbot/session-env/<session>.env
+claude-wrapper executes compaction
+  → /compact with continuation context
+  → Restart with resume
+  → Claude continues with clear direction
 ```
 
-**2. Threshold Detection (Skills)**
+**Context %**: Irrelevant - could be 40% or 80%, compaction happens at logical break
+
+### Scenario 2: High Context with Break Point Strategy
+
+**Work Flow:**
 ```
-Skill execution:
-  Source session env file
+statusline-wrapper monitors context → 75%
+  ↓
+Claude checks context via /claude-inspect-context-size
+  → Sees HIGH status
+  → Gets recommendation: "Find break point soon"
     ↓
-  Check: CLAUDE_CONTEXT_PCT > threshold?
+Claude evaluates current work state:
+  ✓ Can finish current feature? → Complete it first
+  ✓ In middle of complex task? → Find safe stopping point
+  ✓ Tests passing? → Commit and compact
+  ✗ Tests failing? → Fix or save WIP state
     ↓
-  If true: Send command to wrapper pipe
+Claude reaches break point:
+  → Commits working code
+  → Prepares detailed continuation prompt
+  → Compacts with next steps
 ```
 
-**3. Compaction Execution (claude-wrapper)**
+### Scenario 3: Critical Context Recovery
+
+**Emergency Handling:**
 ```
-Command received via pipe:
-  Kill Claude process
-    ↓
-  Run /compact command on session
-    ↓
-  Restart with --resume <session-id>
-    ↓
-  Conversation continues with reduced context
+Context reaches 90%+
+  ↓
+Claude immediately:
+  1. Stops current work at safest point
+  2. Saves state (commit WIP if needed)
+  3. Documents current hypothesis/findings
+  4. Compacts with full recovery instructions
+  5. Resumes with preserved context
+```
+
+**Recovery Prompt Example:**
+```
+/compact CRITICAL CONTEXT RECOVERY:
+         Mid-implementation of user auth system. Tests failing due to
+         session handling bug in auth/middleware.js line 83.
+         Current hypothesis: race condition in token validation.
+
+         WIP committed to branch wip/auth-fix.
+
+         RESUME BY:
+         1. Review auth/middleware.js:83 token validation logic
+         2. Check for race conditions in async token lookup
+         3. Add logging to validateToken() function
+         4. Run test suite: npm test auth
+         5. Expected fix: Add await to token lookup or mutex
 ```
 
 ### Example: claude-restart Skill

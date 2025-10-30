@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# claude-inspect-context-size.sh - Display current context usage and provide recommendations
+# claude-inspect-context-size.sh - Intelligent context management advisor
 #
-# This script helps Claude understand and manage its context usage by:
+# This script helps Claude make intelligent decisions about context compaction by:
 # 1. Reading current context % from session env file
-# 2. Displaying context status with color-coded warnings
-# 3. Providing actionable recommendations based on context level
+# 2. Analyzing work state and identifying natural break points
+# 3. Providing strategic recommendations for work continuation optimization
+# 4. Generating compaction prompts that preserve critical context
+#
+# Philosophy: Context management is about work continuation, not just thresholds.
+# Compact at natural break points with clear instructions for resumption.
 #
 # Dependencies:
 # - BitBot wrapper infrastructure (.bitbot/session-env/<session-id>.env)
-# - ccstatusline or statusline-wrapper to populate session data
+# - statusline-wrapper to populate session data
 #
 # Usage:
 #   claude-inspect-context-size.sh
@@ -65,23 +69,66 @@ CONTEXT_PCT="${CLAUDE_CONTEXT_PCT:-0}"
 # Convert to integer for comparison
 CONTEXT_INT=$(printf "%.0f" "$CONTEXT_PCT")
 
-# Determine status and color
+# Determine status and provide intelligent recommendations
 if [ "$CONTEXT_INT" -lt 50 ]; then
-    STATUS="🟢 GOOD"
+    STATUS="🟢 HEALTHY"
     COLOR="\033[32m"  # Green
-    RECOMMENDATION="Context usage is healthy. Continue working normally."
+    RECOMMENDATION="Context usage is healthy. Continue working normally.
+
+Look for natural break points to compact:
+- After completing a major feature or fix
+- After test suite passes
+- After documentation updates
+- Before starting a new complex task"
+
 elif [ "$CONTEXT_INT" -lt 70 ]; then
     STATUS="🟡 MODERATE"
     COLOR="\033[33m"  # Yellow
-    RECOMMENDATION="Context usage is moderate. Consider compacting after completing current task."
+    RECOMMENDATION="Context usage is moderate. Plan for compaction at next break point.
+
+GOOD break points:
+✓ Tests passing + code committed
+✓ Feature complete + documented
+✓ Bug fixed + verified
+✓ Before starting new implementation phase
+
+BAD break points:
+✗ Mid-implementation
+✗ Tests failing
+✗ Debugging in progress
+✗ Uncommitted changes"
+
 elif [ "$CONTEXT_INT" -lt 85 ]; then
     STATUS="🟠 HIGH"
     COLOR="\033[33m"  # Yellow/Orange
-    RECOMMENDATION="Context usage is high. Plan to compact soon to avoid context exhaustion."
+    RECOMMENDATION="Context usage is high. Prioritize finding a break point soon.
+
+Strategy:
+1. Complete current atomic task (fix, feature, test)
+2. Commit working code
+3. Prepare continuation instructions
+4. Compact with detailed resumption prompt
+
+If context approaching 90%:
+- Stop current work at safe point
+- Commit what's working
+- Compact NOW with clear next steps"
+
 else
     STATUS="🔴 CRITICAL"
     COLOR="\033[31m"  # Red
-    RECOMMENDATION="Context usage is critical! Compact now or risk running out of context mid-task."
+    RECOMMENDATION="Context CRITICAL! Find immediate break point or compact NOW.
+
+IMMEDIATE ACTION:
+1. If tests passing: Commit + compact with continuation plan
+2. If mid-work: Save state, commit WIP, compact with recovery instructions
+3. If debugging: Note current hypothesis, compact with debug context
+
+DO NOT:
+- Start new complex tasks
+- Continue without compaction plan
+- Risk context exhaustion mid-critical-work"
+
 fi
 
 RESET="\033[0m"
@@ -102,19 +149,48 @@ echo ""
 echo "$RECOMMENDATION"
 echo ""
 
-# Provide context management options
+# Provide intelligent compaction guidance
+if [ "$CONTEXT_INT" -ge 60 ]; then
+    echo "═══════════════════════════════════════════════════════════════"
+    echo "Compaction Strategy:"
+    echo ""
+    echo "Effective compaction requires work continuation instructions."
+    echo "Instead of just running /compact, provide context about:"
+    echo ""
+    echo "  • What was just completed"
+    echo "  • What remains to be done"
+    echo "  • Critical decisions or findings"
+    echo "  • Next specific steps"
+    echo ""
+    echo "Example compaction prompts:"
+    echo ""
+    echo "  /compact Completed user auth feature (tests passing, committed)."
+    echo "           Next: Implement password reset flow. Start with email"
+    echo "           template design, then backend endpoint."
+    echo ""
+    echo "  /compact Fixed bug in data parser (root cause: null handling)."
+    echo "           Next: Add comprehensive null safety tests across parser"
+    echo "           module. Check edge cases in spec doc."
+    echo ""
+    echo "  /compact Implemented 3/5 API endpoints. Remaining: DELETE user,"
+    echo "           PATCH profile. All endpoints follow RESTful pattern in"
+    echo "           routes.js. Auth middleware tested and working."
+    echo ""
+fi
+
+# Provide advanced options
 if [ "$CONTEXT_INT" -ge 70 ]; then
     echo "═══════════════════════════════════════════════════════════════"
-    echo "Context Management Options:"
+    echo "Compaction Tools:"
     echo ""
-    echo "1. Compact now (recommended if at critical level):"
-    echo "   Use: /claude-restart-compact skill"
+    echo "1. With continuation prompt (RECOMMENDED):"
+    echo "   /compact <brief summary of state + next steps>"
     echo ""
-    echo "2. Finish current task then compact:"
-    echo "   Complete your work, then use /claude-restart-compact"
+    echo "2. Via skill (for programmatic compaction):"
+    echo "   /claude-restart-compact"
     echo ""
-    echo "3. Manual compaction:"
-    echo "   Type: /compact"
+    echo "3. Pipe command (from scripts):"
+    echo "   echo 'compact \$CLAUDE_SESSION_ID <prompt>' > \$WRAPPER_PIPE"
     echo ""
 fi
 
