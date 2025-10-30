@@ -520,6 +520,99 @@ bitbot config
 
 ---
 
+## Complete Path Reference
+
+Comprehensive table of all significant paths in BitBot:
+
+### Repository Structure (Development)
+
+| Path | Type | Purpose | Mount In Container |
+|------|------|---------|-------------------|
+| `/core/` | Directory | Host-side BitBot CLI | ❌ Not mounted |
+| `/core/bitbot` | Script | Main CLI entry point | ❌ Not mounted |
+| `/core/*/` | Directories | CLI commands & utilities | ❌ Not mounted |
+| `/container/bitbot/` | Directory | Container-side BitBot runtime | Copied to workspace during init |
+| `/container/bitbot/wrapper/` | Directory | Wrapper infrastructure scripts | TBD (mount point being designed) |
+| `/container/bitbot/wrapper/claude-wrapper.sh` | Script | Main wrapper (pipe control) | TBD |
+| `/container/bitbot/wrapper/send-wrapper-command.sh` | Script | Send commands to wrapper | TBD |
+| `/container/bitbot/wrapper/watchdog.sh` | Script | Session health monitor | TBD |
+| `/container/bitbot/wrapper/ccstatusline-wrapper/` | Directory | Token usage tracking | TBD |
+| `/container/home/` | Directory | Global dotfiles | Mounted readonly |
+| `/container/home/.tmux.conf` | File | Tmux configuration | → `/root/.tmux.conf` (RO) |
+| `/container/templates/` | Directory | DevContainer templates | ❌ Not mounted |
+| `/dev/` | Directory | Development artifacts | ❌ Not mounted |
+| `/sparc/` | Directory | SPARC methodology docs | ❌ Not mounted |
+| `/.claude/` | Directory | Claude Code config (dev) | ❌ Not mounted |
+| `/.devcontainer/` | Directory | BitBot dev container | ❌ Not mounted |
+
+### Workspace Structure (User Projects)
+
+| Path | Type | Purpose | Mount In Container | Perm |
+|------|------|---------|-------------------|------|
+| `/.bitbot/` | Directory | BitBot workspace data | Via workspace mount | RW |
+| `/.bitbot/internal/` | Directory | Infrastructure overlay | → `/workspace/.bitbot/internal/` | RO |
+| `/.bitbot/internal/container/` | Directory | Container infrastructure | Copied from `/container/` | RO |
+| `/.bitbot/internal/global/` | Directory | Reserved (gitignored) | Via global mounts | RW |
+| `/.bitbot/tmp/` | Directory | Ephemeral files | Via workspace mount | RW |
+| `/.bitbot/tmp/pipes/` | Directory | Wrapper IPC pipes | Via workspace mount | RW |
+| `/.bitbot/session-env/` | Directory | Per-session env files | Via workspace mount | RW |
+| `/.bitbot/scripts/` | Directory | Workspace scripts using wrapper | Via workspace mount | RW |
+| `/.devcontainer/` | Directory | Container config | → `/workspace/.devcontainer/` | RO |
+| `/.devcontainer/bitbot/` | Directory | Container BitBot copy | Copied during init | RO |
+| `/.devcontainer/home/` | Directory | Per-workspace AI configs | → `/root/.config/`, `/root/.claude/` etc | RW |
+| `/.devcontainer/home/.claude/` | Directory | Claude Code workspace config | → `/root/.claude/` | RW |
+| `/.devcontainer/home/.claude/hooks/` | Directory | Session hooks | Via .claude/ mount | RW |
+| `/.devcontainer/home/.claude/skills/` | Directory | Custom skills | Via .claude/ mount | RW |
+| `/.devcontainer/home/.claude/sessions/` | Directory | Session transcripts | Via .claude/ mount | RW |
+
+### Container Structure (Inside Containers)
+
+| Path | Type | Source | Purpose | Perm |
+|------|------|--------|---------|------|
+| `/workspace/` | Directory | Workspace root | Project files | RW |
+| `/workspace/.bitbot/internal/` | Directory | Overlay mount | Infrastructure | RO |
+| `/workspace/.devcontainer/` | Directory | Overlay mount | Container config | RO |
+| `/usr/local/bitbot/` | Directory | Copy from workspace | Container BitBot commands | RO |
+| `/root/` | Directory | Container user home | Root home directory | RW |
+| `/root/.tmux.conf` | File | Global mount | Tmux config | RO |
+| `/root/.claude/` | Directory | Workspace mount | Claude Code config | RW |
+| `/root/.claude-flow/` | Directory | Workspace mount | Claude Flow config | RW |
+| `/root/.opencode/` | Directory | Workspace mount | OpenCode config | RW |
+| `/root/.config/` | Directory | Workspace mount | AI tool configs | RW |
+| `TBD` | Directory | Wrapper infrastructure | Session management | RO |
+
+### Global Paths (Shared Across Workspaces)
+
+| Path | Type | Source | Purpose |
+|------|------|--------|---------|
+| `$BITBOT_HOME` | Env Var | Host | BitBot installation directory |
+| `$BITBOT_HOME/.bitbot/wrapper/` | Directory | Global | Wrapper scripts (for work mode) |
+| `$BITBOT_HOME/global/.claude/` | Directory | Global | Global Claude config |
+| `$BITBOT_HOME/global/.claude/CLAUDE.md` | File | Global | Global instructions |
+| `$BITBOT_HOME/global/.claude/settings.json` | File | Global | Global settings |
+
+### Ephemeral Paths (Runtime Only)
+
+| Path | Type | Purpose | Cleanup |
+|------|------|---------|---------|
+| `/.bitbot/tmp/pipes/claude-<PID>.pipe` | Named Pipe | Wrapper IPC | On exit |
+| `/.bitbot/session-env/<session-id>.env` | File | Context % tracking | SessionStart/End hooks |
+| `/tmp/` | Directory | System temp files | System managed |
+
+### Special Environment Variables
+
+| Variable | Set By | Available To | Purpose |
+|----------|--------|--------------|---------|
+| `WRAPPER_PIPE` | Wrapper | Claude & children | Pipe path for commands |
+| `WRAPPER_PID` | Wrapper | Claude & children | Wrapper process ID |
+| `CLAUDE_PID` | SessionStart hook | Bash commands | Claude process ID |
+| `CLAUDE_SESSION_ID` | SessionStart hook | Bash commands | Current session ID |
+| `CLAUDE_PROJECT_DIR` | SessionStart hook | Bash commands | Project root directory |
+| `CLAUDE_ENV_FILE` | Claude Code | SessionStart hook only | Env file path for session setup |
+| `CLAUDE_CONTEXT_PCT` | ccstatusline wrapper | Skills (after sourcing) | Current context percentage |
+
+---
+
 ## Related Documentation
 
 - `sparc/1-specification/12_MOUNT_STRUCTURE.md` - Original mount design

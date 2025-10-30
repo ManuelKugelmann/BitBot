@@ -38,12 +38,12 @@ BitBot/
 │       └── shared/        # Shared scripts and configs
 ├── dev/                # Development artifacts (scripts, src, tests)
 ├── sparc/              # SPARC methodology documentation
-├── .bitbot/            # BitBot infrastructure
-│   ├── scripts/       # BitBot scripts (ccstatusline-wrapper, etc.)
+├── .bitbot/            # BitBot workspace data
+│   ├── scripts/       # Workspace scripts using BitBot infrastructure
 │   └── session-env/   # Per-session environment files (auto-generated)
 ├── .claude/            # Claude Code configuration
 │   ├── hooks/         # Session hooks (session-start, etc.)
-│   ├── scripts/       # Claude-specific scripts
+│   ├── scripts/       # Claude-specific scripts (Claude Code only)
 │   └── skills/        # Custom skills
 ├── .devcontainer/      # BitBot development container
 └── .github/            # GitHub workflows
@@ -55,6 +55,7 @@ BitBot/
 | ------------------------------ | ------------------------------------ | ------------------- |
 | `/core/`                       | Host-side BitBot (shell)             | kebab-case.sh       |
 | `/container/bitbot/`           | Container-side BitBot runtime        | kebab-case.sh       |
+| `/container/bitbot/wrapper/`   | Wrapper infrastructure (readonly)    | kebab-case.sh       |
 | `/container/templates/`        | DevContainer templates               | lowercase/          |
 | `/container/templates/shared/` | Shared scripts and configs           | kebab-case          |
 | `/dev/`                        | Development artifacts                | kebab-case          |
@@ -81,20 +82,41 @@ Development-related files organized under `/dev/`:
 | `/dev/src/`     | Source code (e.g., Windows launcher) | `launcher_windows/launcher.c`             |
 | `/dev/tests/`   | Test suites                          | `test-container-bitbot.sh`                |
 
-### BitBot Scripts (/.bitbot/scripts/)
+### Container Wrapper Infrastructure
 
-BitBot infrastructure scripts (part of the wrapper/session management system):
+**Location**: `/container/bitbot/wrapper/` (BitBot repository)
 
-| Script                    | Purpose                              | Location                                    |
-| ------------------------- | ------------------------------------ | ------------------------------------------- |
-| `ccstatusline-wrapper/`   | Token usage tracking                 | `.bitbot/scripts/ccstatusline-wrapper/`     |
+Core wrapper scripts that provide BitBot's session management:
 
-**Why .bitbot/**:
-- Works with `.bitbot/session-env/` directory structure
-- Part of BitBot wrapper infrastructure (requires wrapper to be useful)
-- Complements `claude-wrapper.sh` in `/container/bitbot/wrapper/`
+| Script                      | Purpose                              | Repository Path                                       |
+| --------------------------- | ------------------------------------ | ----------------------------------------------------- |
+| `claude-wrapper.sh`         | Main wrapper (pipe control, restart) | `/container/bitbot/wrapper/claude-wrapper.sh`         |
+| `send-wrapper-command.sh`   | Send commands to wrapper via pipe    | `/container/bitbot/wrapper/send-wrapper-command.sh`   |
+| `watchdog.sh`               | Monitor session health               | `/container/bitbot/wrapper/watchdog.sh`               |
+| `ccstatusline-wrapper/`     | Token usage tracking                 | `/container/bitbot/wrapper/ccstatusline-wrapper/`     |
 
-**Claude-specific scripts** (not dependent on BitBot) should go in `.claude/scripts/`.
+**Why container infrastructure**:
+- Part of container runtime (not workspace-specific)
+- Shared across all workspaces (copied/mounted during `bitbot init`)
+- Core BitBot functionality
+- Updated when BitBot is updated
+
+**Note**: Mount point in containers TBD (currently being designed)
+
+### Workspace BitBot Scripts (/.bitbot/scripts/)
+
+**Location**: `.bitbot/scripts/` (workspace-specific, user-editable)
+
+Scripts that **use** BitBot wrapper infrastructure:
+
+- Session management tools
+- Workspace automation using wrapper features
+- Custom extensions to BitBot functionality
+
+**Distinction**:
+- **Container wrapper** (`/container/bitbot/wrapper/`) = Core infrastructure (readonly)
+- **Workspace scripts** (`.bitbot/scripts/`) = Tools that use the infrastructure (editable)
+- **Claude-only scripts** (`.claude/scripts/`) = Pure Claude Code extensions (no BitBot dependency)
 
 ### Naming Conventions
 
