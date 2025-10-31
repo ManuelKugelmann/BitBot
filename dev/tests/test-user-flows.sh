@@ -81,9 +81,36 @@ run_test_suite \
     "$SCRIPT_DIR/test-user-flow-moved.sh" \
     || true  # Continue even if this suite fails
 
-# Add more test suites here as they are created:
-# run_test_suite "Workspace Init Flow" "$SCRIPT_DIR/test-user-flow-workspace.sh" || true
-# run_test_suite "Container Launch Flow" "$SCRIPT_DIR/test-user-flow-container.sh" || true
+# Test 3: Workspace Initialization
+run_test_suite \
+    "Workspace Initialization" \
+    "$SCRIPT_DIR/test-user-flow-workspace-init.sh" \
+    || true  # Continue even if this suite fails
+
+# Test 4: Context Switching
+run_test_suite \
+    "Context Switching (Global ↔ Workspace)" \
+    "$SCRIPT_DIR/test-user-flow-context-switch.sh" \
+    || true  # Continue even if this suite fails
+
+# Test 5: Container Commands (script-based)
+run_test_suite \
+    "In-Container Commands" \
+    "$SCRIPT_DIR/test-user-flow-container-commands.sh" \
+    || true  # Continue even if this suite fails
+
+# Test 6: Container Interactive (expect-based)
+# Only run if expect is available
+if command -v expect &> /dev/null; then
+    run_test_suite \
+        "In-Container Interactive (Expect)" \
+        "$SCRIPT_DIR/test-user-flow-container-interactive.sh" \
+        || true  # Continue even if this suite fails
+else
+    echo ""
+    echo -e "${YELLOW}⚠ SKIP${NC}: In-Container Interactive test (expect not installed)"
+    echo ""
+fi
 
 # ============================================================================
 # Summary

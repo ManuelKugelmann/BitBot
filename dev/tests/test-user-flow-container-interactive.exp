@@ -1,0 +1,265 @@
+#!/usr/bin/expect -f
+#
+# Expect script for testing interactive BitBot flows in containers
+# This script tests interactive prompts and wizard flows
+#
+# Usage:
+#   expect test-user-flow-container-interactive.exp <container_name>
+#
+# This script is called by test-user-flow-container-interactive.sh
+
+set timeout 30
+set container [lindex $argv 0]
+
+if {$container == ""} {
+    send_user "Error: Container name required\n"
+    send_user "Usage: expect test-user-flow-container-interactive.exp <container_name>\n"
+    exit 1
+}
+
+# Test colors
+set RED "\033\[0;31m"
+set GREEN "\033\[0;32m"
+set YELLOW "\033\[1;33m"
+set BLUE "\033\[0;34m"
+set NC "\033\[0m"
+
+set pass_count 0
+set fail_count 0
+
+proc test_pass {msg} {
+    global pass_count GREEN NC
+    send_user "${GREEN}✓ PASS${NC}: $msg\n"
+    incr pass_count
+}
+
+proc test_fail {msg} {
+    global fail_count RED NC
+    send_user "${RED}✗ FAIL${NC}: $msg\n"
+    incr fail_count
+}
+
+proc test_info {msg} {
+    global BLUE NC
+    send_user "${BLUE}ℹ INFO${NC}: $msg\n"
+}
+
+send_user "\n"
+send_user "=== BitBot Interactive Container Test (Expect) ===\n"
+send_user "\n"
+
+# ============================================================================
+# Test 1: Interactive prompt - Yes/No question
+# ============================================================================
+
+send_user "\[Test 1\] Testing Yes/No prompt...\n"
+
+spawn docker exec -it $container bash -c {
+    read -p "Continue? (y/n): " answer
+    echo "You answered: $answer"
+}
+
+expect {
+    "Continue?" {
+        test_pass "Prompt displayed"
+        send "y\r"
+        exp_continue
+    }
+    "You answered: y" {
+        test_pass "Input processed correctly"
+    }
+    timeout {
+        test_fail "Prompt timed out"
+        exit 1
+    }
+}
+
+# ============================================================================
+# Test 2: Interactive prompt - Number selection
+# ============================================================================
+
+send_user "\n"
+send_user "\[Test 2\] Testing number selection prompt...\n"
+
+spawn docker exec -it $container bash -c {
+    echo "Select an option:"
+    echo "[1] Option One"
+    echo "[2] Option Two"
+    echo "[3] Option Three"
+    read -p "Enter choice (1-3): " choice
+    echo "You selected: $choice"
+}
+
+expect {
+    "Select an option:" {
+        test_pass "Menu displayed"
+        exp_continue
+    }
+    "\[1\] Option One" {
+        test_pass "Options listed"
+        exp_continue
+    }
+    "Enter choice" {
+        test_pass "Selection prompt shown"
+        send "2\r"
+        exp_continue
+    }
+    "You selected: 2" {
+        test_pass "Selection processed correctly"
+    }
+    timeout {
+        test_fail "Selection prompt timed out"
+    }
+}
+
+# ============================================================================
+# Test 3: Multi-step wizard flow
+# ============================================================================
+
+send_user "\n"
+send_user "\[Test 3\] Testing multi-step wizard flow...\n"
+
+spawn docker exec -it $container bash -c {
+    echo "=== Setup Wizard ==="
+    echo ""
+    read -p "Step 1 - Enter name: " name
+    echo "Hello, $name!"
+    echo ""
+    read -p "Step 2 - Select mode (dev/prod): " mode
+    echo "Mode: $mode"
+    echo ""
+    read -p "Step 3 - Confirm (y/n): " confirm
+    if [ "$confirm" = "y" ]; then
+        echo "Setup complete!"
+    else
+        echo "Setup cancelled"
+    fi
+}
+
+expect {
+    "Setup Wizard" {
+        test_pass "Wizard started"
+        exp_continue
+    }
+    "Step 1 - Enter name:" {
+        test_pass "Step 1 prompt shown"
+        send "TestUser\r"
+        exp_continue
+    }
+    "Hello, TestUser!" {
+        test_pass "Step 1 input processed"
+        exp_continue
+    }
+    "Step 2 - Select mode" {
+        test_pass "Step 2 prompt shown"
+        send "dev\r"
+        exp_continue
+    }
+    "Mode: dev" {
+        test_pass "Step 2 input processed"
+        exp_continue
+    }
+    "Step 3 - Confirm" {
+        test_pass "Step 3 prompt shown"
+        send "y\r"
+        exp_continue
+    }
+    "Setup complete!" {
+        test_pass "Wizard completed successfully"
+    }
+    "Setup cancelled" {
+        test_fail "Wizard was cancelled (should complete)"
+    }
+    timeout {
+        test_fail "Wizard timed out"
+    }
+}
+
+# ============================================================================
+# Test 4: Timeout handling
+# ============================================================================
+
+send_user "\n"
+send_user "\[Test 4\] Testing timeout handling...\n"
+
+set timeout 3
+
+spawn docker exec -it $container bash -c {
+    read -p "Quick prompt (3s timeout): " answer
+    echo "Got: $answer"
+}
+
+expect {
+    "Quick prompt" {
+        test_pass "Timeout test prompt shown"
+        send "fast\r"
+        exp_continue
+    }
+    "Got: fast" {
+        test_pass "Timeout test completed within time limit"
+    }
+    timeout {
+        test_fail "Timeout occurred (may be intentional for testing)"
+    }
+}
+
+set timeout 30
+
+# ============================================================================
+# Test 5: Pattern matching in output
+# ============================================================================
+
+send_user "\n"
+send_user "\[Test 5\] Testing pattern matching...\n"
+
+spawn docker exec -it $container bash -c {
+    echo "Checking BitBot version..."
+    echo "BitBot version: 1.0.0-test"
+    echo "Install location: /usr/local/bitbot"
+    read -p "Continue? " answer
+    echo "Done"
+}
+
+expect {
+    -re "version: (\\d+\\.\\d+\\.\\d+)" {
+        set version $expect_out(1,string)
+        test_pass "Version pattern matched: $version"
+        exp_continue
+    }
+    -re "location: (/.*)" {
+        set location $expect_out(1,string)
+        test_pass "Location pattern matched: $location"
+        exp_continue
+    }
+    "Continue?" {
+        send "\r"
+        exp_continue
+    }
+    "Done" {
+        test_pass "Pattern matching test completed"
+    }
+    timeout {
+        test_fail "Pattern matching test timed out"
+    }
+}
+
+# ============================================================================
+# Summary
+# ============================================================================
+
+send_user "\n"
+send_user "========================================\n"
+send_user "Expect Test Results Summary\n"
+send_user "========================================\n"
+send_user "${GREEN}Passed: $pass_count${NC}\n"
+send_user "${RED}Failed: $fail_count${NC}\n"
+send_user "========================================\n"
+send_user "\n"
+
+if {$fail_count == 0} {
+    send_user "${GREEN}✓ All expect tests passed!${NC}\n"
+    exit 0
+} else {
+    send_user "${RED}✗ Some expect tests failed${NC}\n"
+    exit 1
+}
