@@ -17,6 +17,7 @@ Usage:
 Commands:
   init              Initialize BitBot workspace in current directory
   work [vscode]     Launch work mode devcontainer
+  direct            Run AI assistant directly (no containers)
   config [vscode]   Launch config mode devcontainer
   vscode            Launch VS Code in work container
   help              Show this help message
@@ -26,11 +27,13 @@ Examples:
   bitbot init       # Initialize workspace
   bitbot work       # Start work mode (terminal)
   bitbot work vscode # Start work mode (VS Code)
+  bitbot direct     # Run AI assistant directly (no Docker)
   bitbot vscode     # Open workspace in VS Code
   bitbot config     # Edit .devcontainer in config mode
 
 Modes:
   work              Development mode (read-only .devcontainer)
+  direct            Direct mode (no containers, host environment)
   config            Configuration mode (editable .devcontainer)
 
 For more information: https://github.com/anthropics/bitbot

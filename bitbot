@@ -21,6 +21,7 @@ source "${SCRIPT_DIR}/core/global/bitbot-init.sh"
 source "${SCRIPT_DIR}/core/workspace/bitbot-init.sh"
 source "${SCRIPT_DIR}/core/workspace/bitbot-work.sh"
 source "${SCRIPT_DIR}/core/workspace/bitbot-config.sh"
+source "${SCRIPT_DIR}/core/workspace/bitbot-direct.sh"
 source "${SCRIPT_DIR}/core/workspace/bitbot-help.sh"
 source "${SCRIPT_DIR}/core/bitbot-version.sh"
 
@@ -182,6 +183,10 @@ route_command() {
             ;;
         config)
             bitbot_config "$workspace_path" "$use_vscode"
+            ;;
+        direct)
+            # Direct mode - run without containers
+            bitbot_direct "$workspace_path" "$@"
             ;;
         vscode)
             # vscode command = work mode in VS Code
