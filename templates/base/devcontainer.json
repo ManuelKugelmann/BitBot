@@ -11,10 +11,10 @@
   "remoteUser": "root",
 
   "runArgs": [
-    "--cpus=2",
-    "--memory=4g",
-    "--memory-swap=4g",
-    "--pids-limit=1024"
+    "--cpus=4",
+    "--memory=8g",
+    "--memory-swap=8g",
+    "--pids-limit=2048"
   ],
 
   "customizations": {

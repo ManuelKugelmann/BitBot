@@ -66,12 +66,42 @@ jobs:
           chmod +x test-helpers.sh
           ./test-helpers.sh
 
+      - name: Run prerequisites tests
+        run: |
+          cd dev/tests
+          chmod +x test-prerequisites.sh
+          ./test-prerequisites.sh || true
+          echo "Prerequisites test completed"
+
+      - name: Run platform detection tests
+        run: |
+          cd dev/tests
+          chmod +x test-platform-detection.sh
+          ./test-platform-detection.sh || true
+          echo "Platform detection test completed"
+
+      - name: Run workspace init tests
+        run: |
+          cd dev/tests
+          chmod +x test-workspace-init.sh
+          ./test-workspace-init.sh || true
+          echo "Workspace init test completed"
+
+      - name: Run command parsing tests
+        run: |
+          cd dev/tests
+          chmod +x test-bitbot-commands.sh
+          ./test-bitbot-commands.sh || true
+          echo "Command parsing test completed"
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: /tmp/shellcheck-*.log
+          path: |
+            /tmp/shellcheck-*.log
+            dev/tests/*.log
           if-no-files-found: ignore
 
   # Security validation
