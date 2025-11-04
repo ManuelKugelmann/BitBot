@@ -373,14 +373,14 @@ check_vscode_extension() {
 
     if [[ "$platform" == "wsl" ]]; then
         # On WSL, check from Windows host
-        output=$(powershell.exe -Command "code --list-extensions" 2>/dev/null)
+        if ! output=$(powershell.exe -Command "code --list-extensions" 2>/dev/null); then
+            return 1
+        fi
     else
         # Native Linux/macOS
-        output=$(code --list-extensions 2>/dev/null)
-    fi
-
-    if [[ $? -ne 0 ]]; then
-        return 1
+        if ! output=$(code --list-extensions 2>/dev/null); then
+            return 1
+        fi
     fi
 
     # Check if extension is in list

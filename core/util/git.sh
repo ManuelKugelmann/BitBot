@@ -26,7 +26,8 @@ recommend_git_push_before_init() {
     local workspace_path="$1"
 
     # Check if recommendation is disabled in config
-    local skip_push=$(get_config_value "$workspace_path" "skip_push_recommendation" 2>/dev/null || echo "false")
+    local skip_push
+    skip_push=$(get_config_value "$workspace_path" "skip_push_recommendation" 2>/dev/null || echo "false")
     if [[ "$skip_push" == "true" ]]; then
         # User has disabled git push recommendations - skip silently
         return 0
@@ -197,7 +198,8 @@ check_git_safety() {
     local workspace_path="$1"
 
     # Check if safety checks are disabled in config
-    local skip_safety=$(get_config_value "$workspace_path" "skip_safety_checks" 2>/dev/null || echo "false")
+    local skip_safety
+    skip_safety=$(get_config_value "$workspace_path" "skip_safety_checks" 2>/dev/null || echo "false")
     if [[ "$skip_safety" == "true" ]]; then
         # User has disabled git safety checks - skip silently
         return 0

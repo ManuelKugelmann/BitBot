@@ -148,7 +148,8 @@ launch_config_devcontainer() {
     local use_vscode="${2:-false}"
 
     local bitbot_install
-    bitbot_install=$(get_bitbot_install_dir)
+    # Note: bitbot_install might be used in future for additional validation
+    # bitbot_install=$(get_bitbot_install_dir)
     local workspace_config_devcontainer="${workspace_path}/.bitbot/internal/devcontainer.json"
 
     # Verify workspace config devcontainer exists (created during init)
