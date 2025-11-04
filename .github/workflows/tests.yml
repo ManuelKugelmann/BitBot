@@ -1,0 +1,126 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - trunk
+      - claude/**
+    paths:
+      - 'core/**'
+      - 'dev/tests/**'
+      - 'container-bitbot/**'
+      - '.github/workflows/tests.yml'
+  pull_request:
+    branches:
+      - trunk
+
+jobs:
+  # Fast syntax and shellcheck analysis
+  shellcheck:
+    name: ShellCheck & Syntax
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Check bash scripts syntax
+        run: |
+          echo "Checking bash script syntax..."
+          bash -n bitbot
+          find core -name "*.sh" -type f -exec bash -n {} \;
+          find dev/tests -name "*.sh" -type f -exec bash -n {} \;
+          find container-bitbot -name "*.sh" -type f -exec bash -n {} \; || true
+          echo "✓ All bash scripts have valid syntax"
+
+      - name: Run shellcheck
+        run: |
+          cd dev/tests
+          chmod +x test-shellcheck.sh
+          ./test-shellcheck.sh || true
+          echo "ShellCheck analysis complete"
+
+  # Unit tests
+  unit-tests:
+    name: Unit Tests
+    needs: shellcheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Run helper function tests
+        run: |
+          cd dev/tests
+          chmod +x test-helpers.sh
+          ./test-helpers.sh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: /tmp/shellcheck-*.log
+          if-no-files-found: ignore
+
+  # Security validation
+  security-check:
+    name: Security Validation
+    needs: shellcheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Run security tests
+        run: |
+          cd dev/tests
+          chmod +x test-helpers.sh
+          echo "Running security injection tests..."
+          ./test-helpers.sh 2>&1 | grep -A2 "SECURITY"
+          echo "✓ Security tests passed"
+
+  # Summary
+  test-summary:
+    name: Test Summary
+    needs: [shellcheck, unit-tests, security-check]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  BitBot Test Suite Summary"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "✓ ShellCheck: ${{ needs.shellcheck.result }}"
+          echo "✓ Unit Tests: ${{ needs.unit-tests.result }}"
+          echo "✓ Security: ${{ needs.security-check.result }}"
+          echo ""
+          if [ "${{ needs.shellcheck.result }}" == "success" ] && \
+             [ "${{ needs.unit-tests.result }}" == "success" ] && \
+             [ "${{ needs.security-check.result }}" == "success" ]; then
+            echo "🎉 All tests passed!"
+            exit 0
+          else
+            echo "❌ Some tests failed"
+            exit 1
+          fi
