@@ -195,8 +195,6 @@ check_prerequisites_for_init() {
     # Check prerequisites for global init
     # Shows status but doesn't block (Docker optional for init)
 
-    local all_ok=true
-
     # Docker
     echo "Checking Docker..."
     if command_exists docker; then

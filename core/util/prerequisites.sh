@@ -111,6 +111,7 @@ check_project_location() {
         echo "  2. mv \"$current_dir\" ~/projects/"
         echo "  3. Update paths in your tools/IDE"
         echo ""
+        # shellcheck disable=SC2028  # Backslashes intentional (Windows UNC path)
         echo "Note: Windows tools can still access WSL files via \\\\wsl\$\\..."
         echo ""
 
@@ -479,14 +480,14 @@ check_vscode_extension() {
 
     if [[ "$platform" == "wsl" ]]; then
         # On WSL, check from Windows host
-        output=$(powershell.exe -Command "code --list-extensions" 2>/dev/null)
+        if ! output=$(powershell.exe -Command "code --list-extensions" 2>/dev/null); then
+            return 1
+        fi
     else
         # Native Linux/macOS
-        output=$(code --list-extensions 2>/dev/null)
-    fi
-
-    if [[ $? -ne 0 ]]; then
-        return 1
+        if ! output=$(code --list-extensions 2>/dev/null); then
+            return 1
+        fi
     fi
 
     # Check if extension is in list

@@ -12,9 +12,12 @@ source "${SCRIPT_DIR}/../util/tmux-utils.sh"
 # Main start function
 main() {
     local wrapper_script="/usr/local/bitbot/wrapper/claude-wrapper.sh"
-    local session_name="bitbot-$(date +%Y%m%d-%H%M%S)"
-    local mode="$(get_bitbot_mode)"
-    local workspace="$(get_workspace)"
+    local session_name
+    session_name="bitbot-$(date +%Y%m%d-%H%M%S)"
+    local mode
+    mode="$(get_bitbot_mode)"
+    local workspace
+    workspace="$(get_workspace)"
 
     echo -e "${BLUE}BitBot - Start New Session${RESET}"
     echo ""

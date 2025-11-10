@@ -9,7 +9,8 @@ set -euo pipefail
 
 # Determine script directory and BitBot home
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export BITBOT_HOME="$(dirname "$SCRIPT_DIR")"
+BITBOT_HOME="$(dirname "$SCRIPT_DIR")"
+export BITBOT_HOME
 
 # Source utilities
 source "${SCRIPT_DIR}/util/helpers.sh"

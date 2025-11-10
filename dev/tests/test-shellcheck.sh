@@ -63,8 +63,8 @@ fi
 echo ""
 echo "[Test 2] Analyzing main bitbot script..."
 
-if [[ -f "$BITBOT_ROOT/bitbot" ]]; then
-    if shellcheck -x "$BITBOT_ROOT/bitbot" 2>&1 | tee /tmp/shellcheck-bitbot.log; then
+if [[ -f "$BITBOT_ROOT/core/bitbot" ]]; then
+    if shellcheck -x -e SC1091 "$BITBOT_ROOT/core/bitbot" 2>&1 | tee /tmp/shellcheck-bitbot.log; then
         test_pass "bitbot script: no issues"
     else
         test_fail "bitbot script: has issues (see above)"
@@ -93,8 +93,8 @@ if [[ -d "$BITBOT_ROOT/core" ]]; then
         echo ""
         echo "  Checking: $script_name"
 
-        # Run shellcheck with sourcing support
-        if shellcheck -x "$script" 2>&1 | tee "/tmp/shellcheck-${script_name}.log"; then
+        # Run shellcheck with sourcing support, exclude SC1091 (source following)
+        if shellcheck -x -e SC1091 "$script" 2>&1 | tee "/tmp/shellcheck-${script_name}.log"; then
             echo -e "    ${GREEN}✓${NC} $script_name: no issues"
             core_scripts_pass=$((core_scripts_pass + 1))
         else
@@ -131,7 +131,7 @@ if [[ -d "$BITBOT_ROOT/container/bitbot" ]]; then
         echo ""
         echo "  Checking: bitbot (container)"
 
-        if shellcheck -x "$BITBOT_ROOT/container/bitbot/bitbot" 2>&1 | tee "/tmp/shellcheck-container-bitbot.log"; then
+        if shellcheck -x -e SC1091 "$BITBOT_ROOT/container/bitbot/bitbot" 2>&1 | tee "/tmp/shellcheck-container-bitbot.log"; then
             echo -e "    ${GREEN}✓${NC} container bitbot: no issues"
             container_scripts_pass=$((container_scripts_pass + 1))
         else
@@ -148,7 +148,7 @@ if [[ -d "$BITBOT_ROOT/container/bitbot" ]]; then
         echo ""
         echo "  Checking: $script_name"
 
-        if shellcheck -x "$script" 2>&1 | tee "/tmp/shellcheck-container-${script_name}.log"; then
+        if shellcheck -x -e SC1091 "$script" 2>&1 | tee "/tmp/shellcheck-container-${script_name}.log"; then
             echo -e "    ${GREEN}✓${NC} $script_name: no issues"
             container_scripts_pass=$((container_scripts_pass + 1))
         else

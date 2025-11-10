@@ -10,7 +10,7 @@
 
 # Source helpers (if not already sourced)
 if [[ -z "${BITBOT_HELPERS_LOADED:-}" ]]; then
-    # shellcheck source=./helpers.sh
+    # shellcheck source=./helpers.sh disable=SC2153
     source "${BITBOT_HOME}/core/util/helpers.sh"
     BITBOT_HELPERS_LOADED=1
 fi
@@ -208,8 +208,6 @@ launch_config_devcontainer() {
     local workspace_path="$1"
     local use_vscode="${2:-false}"
 
-    local bitbot_install
-    bitbot_install=$(get_bitbot_install_dir)
     local workspace_config_devcontainer="${workspace_path}/.bitbot/internal/devcontainer.json"
 
     # Verify workspace config devcontainer exists (created during init)

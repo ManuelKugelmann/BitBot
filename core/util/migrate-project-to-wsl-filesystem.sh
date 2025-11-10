@@ -18,14 +18,6 @@ export BITBOT_HOME
 # shellcheck source=./helpers.sh
 source "${BITBOT_HOME}/core/util/helpers.sh"
 
-# Colors (in case helpers.sh doesn't define them)
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
-
 # ============================================================================
 # Configuration
 # ============================================================================
@@ -176,6 +168,7 @@ migrate_project() {
     echo -e "${BLUE}Optional: Windows Junction${NC}"
     echo ""
     echo "Note: Windows tools can access WSL files directly via:"
+    # shellcheck disable=SC2028  # Backslashes intentional (Windows UNC path)
     echo "  \\\\wsl\$\\Ubuntu\\home\\...  (in File Explorer, VS Code, etc.)"
     echo ""
     echo "However, you can create a junction at the original Windows"
