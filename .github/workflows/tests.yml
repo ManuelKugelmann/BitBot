@@ -43,8 +43,7 @@ jobs:
         run: |
           cd dev/tests
           chmod +x test-shellcheck.sh
-          ./test-shellcheck.sh || true
-          echo "ShellCheck analysis complete"
+          ./test-shellcheck.sh
 
   # Main test suite
   test-ubuntu:
@@ -125,8 +124,8 @@ jobs:
           cd dev/tests
           chmod +x test-helpers.sh
           echo "Running security injection tests..."
-          ./test-helpers.sh 2>&1 | grep -A2 "SECURITY"
-          echo "✓ Security tests passed"
+          ./test-helpers.sh
+          echo "✓ All security tests passed"
 
   # Optional: Windows basic tests (script validation only)
   test-windows:
