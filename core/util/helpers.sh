@@ -67,8 +67,9 @@ get_bitbot_install_dir() {
     else
         # Fallback: determine from script location
         # Assumes this file is in {INSTALL}/core/util/helpers.sh
-        local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        echo "$(cd "$script_dir/../.." && pwd)"
+        local script_dir
+        script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        cd "$script_dir/../.." && pwd
     fi
 }
 
@@ -106,13 +107,17 @@ read_json_value() {
 
     # Try jq if available
     if command_exists jq; then
-        jq -r ".${key} // empty" "$file" 2>/dev/null || echo ""
+        # Use --arg to safely pass the key to avoid injection
+        jq -r --arg k "$key" '.[$k] // empty' "$file" 2>/dev/null || echo ""
         return 0
     fi
 
     # Fallback: basic grep/sed parsing
     # Handles simple JSON like: {"key": "value", "key2": true}
-    grep -o "\"${key}\"[[:space:]]*:[[:space:]]*[^,}]*" "$file" 2>/dev/null | \
+    # Escape special regex characters in key
+    local escaped_key
+    escaped_key=$(printf '%s\n' "$key" | sed 's/[[\.*^$/]/\\&/g')
+    grep -o "\"${escaped_key}\"[[:space:]]*:[[:space:]]*[^,}]*" "$file" 2>/dev/null | \
         sed -E 's/.*:[[:space:]]*"?([^",}]*)"?.*/\1/' | \
         head -n 1
 }
@@ -174,12 +179,17 @@ update_json_value() {
     # Try jq if available
     if command_exists jq; then
         local temp_file="${file}.tmp"
-        jq ".${key} = \"${value}\"" "$file" > "$temp_file" && mv "$temp_file" "$file"
+        # Use --arg to safely pass key and value to avoid injection
+        jq --arg k "$key" --arg v "$value" '.[$k] = $v' "$file" > "$temp_file" && mv "$temp_file" "$file"
         return 0
     fi
 
     # Fallback: sed replacement (basic)
-    sed -i.bak "s/\"${key}\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"${key}\": \"${value}\"/" "$file"
+    # Escape special characters in key and value for sed
+    local escaped_key escaped_value
+    escaped_key=$(printf '%s\n' "$key" | sed 's/[\/&]/\\&/g')
+    escaped_value=$(printf '%s\n' "$value" | sed 's/[\/&]/\\&/g')
+    sed -i.bak "s/\"${escaped_key}\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"${escaped_key}\": \"${escaped_value}\"/" "$file"
     rm -f "${file}.bak"
 }
 
@@ -218,7 +228,8 @@ get_merged_workspace_config() {
     # Usage: get_merged_workspace_config <workspace_path>
     local workspace_path="$1"
 
-    local bitbot_install=$(get_bitbot_install_dir)
+    local bitbot_install
+    bitbot_install=$(get_bitbot_install_dir)
     local global_config="${bitbot_install}/config.json"
     local workspace_config="${workspace_path}/.bitbot/config.json"
 
@@ -231,12 +242,17 @@ get_config_value() {
     local workspace_path="$1"
     local key="$2"
 
-    local merged_config=$(get_merged_workspace_config "$workspace_path")
+    local merged_config
+    merged_config=$(get_merged_workspace_config "$workspace_path")
 
     if command_exists jq; then
-        echo "$merged_config" | jq -r ".${key} // empty"
+        # Use --arg to safely pass the key to avoid injection
+        echo "$merged_config" | jq -r --arg k "$key" '.[$k] // empty'
     else
-        echo "$merged_config" | grep -o "\"${key}\"[[:space:]]*:[[:space:]]*[^,}]*" | \
+        # Escape special regex characters in key
+        local escaped_key
+        escaped_key=$(printf '%s\n' "$key" | sed 's/[[\.*^$/]/\\&/g')
+        echo "$merged_config" | grep -o "\"${escaped_key}\"[[:space:]]*:[[:space:]]*[^,}]*" | \
             sed -E 's/.*:[[:space:]]*"?([^",}]*)"?.*/\1/' | \
             head -n 1
     fi
@@ -256,11 +272,11 @@ prompt_yes_no() {
 
     # Display question with default indicator
     if [[ "$default" == "yes" ]]; then
-        read -p "$question (Y/n): " response
+        read -r -p "$question (Y/n): " response
     elif [[ "$default" == "no" ]]; then
-        read -p "$question (y/N): " response
+        read -r -p "$question (y/N): " response
     else
-        read -p "$question (y/n): " response
+        read -r -p "$question (y/n): " response
     fi
 
     # Handle empty response (use default)
@@ -313,7 +329,7 @@ prompt_choice() {
     done
 
     echo ""
-    read -p "Choice [$((default_index + 1))]: " response
+    read -r -p "Choice [$((default_index + 1))]: " response
 
     # Handle empty response (use default)
     if [[ -z "$response" ]]; then
@@ -350,10 +366,10 @@ prompt_user_input() {
     local response
 
     if [[ -n "$default" ]]; then
-        read -p "$prompt_text [$default]: " response
+        read -r -p "$prompt_text [$default]: " response
         echo "${response:-$default}"
     else
-        read -p "$prompt_text: " response
+        read -r -p "$prompt_text: " response
         echo "$response"
     fi
 }

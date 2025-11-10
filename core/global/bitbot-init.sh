@@ -424,16 +424,28 @@ update_windows_environment() {
     if command_exists wslpath; then
         windows_path=$(wslpath -w "$bitbot_install")
     else
-        # Fallback conversion
-        windows_path=$(echo "$bitbot_install" | sed 's|^/mnt/\([a-z]\)/|\U\1:/|')
+        # Fallback: Use bash parameter expansion instead of sed (SC2001)
+        if [[ "$bitbot_install" =~ ^/mnt/([a-z])/(.*)$ ]]; then
+            local drive="${BASH_REMATCH[1]}"
+            local path="${BASH_REMATCH[2]}"
+            windows_path="${drive^^}:/${path}"
+        else
+            # Fallback to sed if regex doesn't match
+            windows_path=$(printf '%s' "$bitbot_install" | sed 's|^/mnt/\([a-z]\)/|\U\1:/|')
+        fi
     fi
 
     # Try to update via PowerShell
-    if powershell.exe -Command "[Environment]::SetEnvironmentVariable('BITBOT_HOME', '${windows_path}', 'User')" 2>/dev/null; then
+    # Use proper parameter passing to avoid injection
+    # Escape single quotes in the path for PowerShell
+    local escaped_windows_path
+    escaped_windows_path=$(printf '%s' "$windows_path" | sed "s/'/''/g")
+
+    if powershell.exe -Command "[Environment]::SetEnvironmentVariable('BITBOT_HOME', '$escaped_windows_path', 'User')" 2>/dev/null; then
         print_success "Set BITBOT_HOME in Windows: $windows_path"
 
-        # Update PATH
-        if powershell.exe -Command "\$path = [Environment]::GetEnvironmentVariable('Path', 'User'); if (\$path -notlike '*${windows_path}*') { [Environment]::SetEnvironmentVariable('Path', '${windows_path};' + \$path, 'User') }" 2>/dev/null; then
+        # Update PATH with proper escaping
+        if powershell.exe -Command "\$path = [Environment]::GetEnvironmentVariable('Path', 'User'); \$bitbot = '$escaped_windows_path'; if (\$path -notlike ('*' + \$bitbot + '*')) { [Environment]::SetEnvironmentVariable('Path', \$bitbot + ';' + \$path, 'User') }" 2>/dev/null; then
             print_success "Updated Windows PATH"
         fi
     else
@@ -441,9 +453,9 @@ update_windows_environment() {
         print_warning "Cannot access PowerShell from WSL"
         echo ""
         echo "Manual Windows setup required (run in PowerShell as Admin):"
-        echo "  [Environment]::SetEnvironmentVariable('BITBOT_HOME', '${windows_path}', 'User')"
+        echo "  [Environment]::SetEnvironmentVariable('BITBOT_HOME', '$escaped_windows_path', 'User')"
         echo "  \$path = [Environment]::GetEnvironmentVariable('Path', 'User')"
-        echo "  [Environment]::SetEnvironmentVariable('Path', '${windows_path};' + \$path, 'User')"
+        echo "  [Environment]::SetEnvironmentVariable('Path', '$escaped_windows_path;' + \$path, 'User')"
     fi
 }
 

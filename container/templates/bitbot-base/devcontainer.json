@@ -21,5 +21,11 @@
     "source=${localEnv:BITBOT_HOME:${localWorkspaceFolder}/.bitbot/internal}/global/.claude/CLAUDE.md,target=/root/.claude/CLAUDE.md,type=bind,consistency=cached",
     "source=${localEnv:BITBOT_HOME:${localWorkspaceFolder}/.bitbot/internal}/global/.claude/settings.json,target=/root/.claude/settings.json,type=bind,readonly",
     "source=${localEnv:BITBOT_HOME:${localWorkspaceFolder}/.bitbot/internal}/global/.claude/.credentials.json,target=/root/.claude/.credentials.json,type=bind,consistency=cached"
+  ],
+  "runArgs": [
+    "--cpus=4",
+    "--memory=8g",
+    "--memory-swap=8g",
+    "--pids-limit=2048"
   ]
 }

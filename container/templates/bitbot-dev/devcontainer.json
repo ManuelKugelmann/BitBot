@@ -38,5 +38,11 @@
       }
     }
   },
-  "postCreateCommand": "echo '✓ MinGW cross-compiler installed:' && x86_64-w64-mingw32-gcc --version"
+  "postCreateCommand": "echo '✓ MinGW cross-compiler installed:' && x86_64-w64-mingw32-gcc --version",
+  "runArgs": [
+    "--cpus=4",
+    "--memory=8g",
+    "--memory-swap=8g",
+    "--pids-limit=2048"
+  ]
 }

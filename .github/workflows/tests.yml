@@ -14,14 +14,19 @@ on:
       - trunk
 
 jobs:
-  # Fast syntax check
-  syntax-check:
-    name: Bash Syntax Check
+  # Fast syntax and shellcheck analysis
+  shellcheck:
+    name: ShellCheck & Syntax
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
 
       - name: Check bash scripts syntax
         run: |
@@ -34,15 +39,27 @@ jobs:
           bash -n core/bitbot
           echo "✓ All bash scripts have valid syntax"
 
+      - name: Run shellcheck
+        run: |
+          cd dev/tests
+          chmod +x test-shellcheck.sh
+          ./test-shellcheck.sh || true
+          echo "ShellCheck analysis complete"
+
   # Main test suite
   test-ubuntu:
     name: Tests (Ubuntu)
-    needs: syntax-check
+    needs: shellcheck
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
 
       - name: Install DevContainer CLI
         run: npm install -g @devcontainers/cli
@@ -54,6 +71,12 @@ jobs:
           chmod +x container/bitbot/bitbot
           chmod +x container/bitbot/core/commands/*.sh
           chmod +x container/bitbot/core/util/*.sh
+
+      - name: Run helper function tests
+        run: |
+          cd dev/tests
+          ./test-helpers.sh
+          echo "Helper tests completed"
 
       - name: Run prerequisite tests
         run: |
@@ -77,8 +100,33 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: dev/tests/*.log
+          path: |
+            /tmp/shellcheck-*.log
+            dev/tests/*.log
           if-no-files-found: ignore
+
+  # Security validation
+  security-check:
+    name: Security Validation
+    needs: shellcheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Run security tests
+        run: |
+          cd dev/tests
+          chmod +x test-helpers.sh
+          echo "Running security injection tests..."
+          ./test-helpers.sh 2>&1 | grep -A2 "SECURITY"
+          echo "✓ Security tests passed"
 
   # Optional: Windows basic tests (script validation only)
   test-windows:

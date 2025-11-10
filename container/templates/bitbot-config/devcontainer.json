@@ -41,5 +41,11 @@
       }
     }
   },
-  "$comment_config_mounts": "Config mode: Override .devcontainer mount to RW"
+  "$comment_config_mounts": "Config mode: Override .devcontainer mount to RW",
+  "runArgs": [
+    "--cpus=4",
+    "--memory=8g",
+    "--memory-swap=8g",
+    "--pids-limit=2048"
+  ]
 }

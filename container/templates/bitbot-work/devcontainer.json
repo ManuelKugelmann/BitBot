@@ -24,5 +24,11 @@
   ],
   "$comment": "Workspace template details - merged with templates/shared/base.devcontainer.json",
   "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
-  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/workspace"
+  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/workspace",
+  "runArgs": [
+    "--cpus=4",
+    "--memory=8g",
+    "--memory-swap=8g",
+    "--pids-limit=2048"
+  ]
 }
