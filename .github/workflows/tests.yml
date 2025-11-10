@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - trunk
+      - claude/**
     paths:
       - 'core/**'
       - 'dev/tests/**'
