@@ -41,7 +41,7 @@ print_section "DevContainer Merge Test Suite"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-MERGE_SCRIPT="$PROJECT_ROOT/container/templates/shared/scripts/merge-devcontainer.sh"
+MERGE_SCRIPT="$PROJECT_ROOT/container/templates/scripts/merge-devcontainer.sh"
 TEST_DIR="$SCRIPT_DIR/tmp-merge-test"
 
 # Check prerequisites

@@ -75,7 +75,18 @@ jobs:
         run: |
           cd dev/tests
           ./test-helpers.sh
-          echo "Helper tests completed"
+
+      - name: Run BitBot command tests
+        run: |
+          cd dev/tests
+          chmod +x test-bitbot-commands.sh
+          ./test-bitbot-commands.sh
+
+      - name: Run platform detection tests
+        run: |
+          cd dev/tests
+          chmod +x test-platform-detection.sh
+          ./test-platform-detection.sh
 
       - name: Run prerequisite tests
         run: |
@@ -87,9 +98,14 @@ jobs:
         run: |
           cd dev/tests
           ./test-workspace-init.sh
-          echo "Workspace init tests completed"
 
-      - name: Run all tests
+      - name: Run container BitBot tests
+        run: |
+          cd dev/tests
+          chmod +x test-container-bitbot.sh
+          ./test-container-bitbot.sh
+
+      - name: Run integration tests
         run: |
           cd dev/tests
           ./run-tests.sh --quick
