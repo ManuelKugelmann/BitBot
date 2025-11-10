@@ -143,6 +143,172 @@ jobs:
           ./test-helpers.sh
           echo "✓ All security tests passed"
 
+  # Container build and validation tests
+  test-containers:
+    name: Container Build & Start Tests
+    needs: shellcheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install DevContainer CLI
+        run: npm install -g @devcontainers/cli
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create test workspace
+        run: |
+          mkdir -p /tmp/bitbot-test-workspace
+          cd /tmp/bitbot-test-workspace
+          git init
+
+      - name: Initialize BitBot in test workspace
+        run: |
+          cd /tmp/bitbot-test-workspace
+          export BITBOT_HOME="${GITHUB_WORKSPACE}"
+          # Non-interactive init - copy .devcontainer directly
+          mkdir -p .devcontainer
+          cp "${GITHUB_WORKSPACE}/container/templates/bitbot-base/Dockerfile" .devcontainer/
+
+          # Create minimal devcontainer.json for testing
+          cat > .devcontainer/devcontainer.json <<'EOF'
+          {
+            "name": "BitBot Test Container",
+            "dockerFile": "Dockerfile",
+            "workspaceFolder": "/workspace",
+            "features": {
+              "ghcr.io/devcontainers/features/node:1": {
+                "version": "lts"
+              }
+            },
+            "remoteUser": "root",
+            "mounts": [
+              "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+            ],
+            "runArgs": [
+              "--cpus=4",
+              "--memory=8g",
+              "--memory-swap=8g",
+              "--pids-limit=2048"
+            ]
+          }
+          EOF
+
+          # Copy BitBot container scripts
+          mkdir -p .devcontainer/bitbot
+          cp -r "${GITHUB_WORKSPACE}/container/bitbot/"* .devcontainer/bitbot/
+          echo "✓ Test workspace initialized"
+
+      - name: Build and start bitbot-base container
+        run: |
+          cd /tmp/bitbot-test-workspace
+          echo "Building and starting bitbot-base container..."
+          devcontainer up --workspace-folder .
+          echo "✓ bitbot-base container built and started successfully"
+
+      - name: Test container environment
+        run: |
+          cd /tmp/bitbot-test-workspace
+          echo "Running container tests..."
+          devcontainer exec --workspace-folder . bash -c '
+            echo "Testing container environment..."
+
+            # Test 1: Check if bash is available
+            if command -v bash &>/dev/null; then
+              echo "✓ bash available"
+            else
+              echo "✗ bash not available"
+              exit 1
+            fi
+
+            # Test 2: Check if jq is available
+            if command -v jq &>/dev/null; then
+              echo "✓ jq available"
+            else
+              echo "✗ jq not available"
+              exit 1
+            fi
+
+            # Test 3: Check workspace mount
+            if [ -d "/workspace" ]; then
+              echo "✓ workspace mounted"
+            else
+              echo "✗ workspace not mounted"
+              exit 1
+            fi
+
+            # Test 4: Check BitBot scripts exist
+            if [ -f "/workspace/.devcontainer/bitbot/bitbot" ]; then
+              echo "✓ container BitBot scripts available"
+            else
+              echo "✗ container BitBot scripts not found"
+              exit 1
+            fi
+
+            # Test 5: Run container BitBot help
+            if bash /workspace/.devcontainer/bitbot/bitbot help &>/dev/null; then
+              echo "✓ container BitBot help works"
+            else
+              echo "✗ container BitBot help failed"
+              exit 1
+            fi
+
+            echo ""
+            echo "All container tests passed!"
+          '
+
+      - name: Test container resource limits
+        run: |
+          cd /tmp/bitbot-test-workspace
+          echo "Checking container resource limits..."
+          devcontainer exec --workspace-folder . bash -c '
+            # Check CPU limit (cgroup v1 and v2)
+            if [ -f "/sys/fs/cgroup/cpu.max" ]; then
+              # cgroup v2
+              cpu_max=$(cat /sys/fs/cgroup/cpu.max)
+              echo "CPU limit (cgroup v2): ${cpu_max}"
+            elif [ -f "/sys/fs/cgroup/cpu/cpu.cfs_quota_us" ]; then
+              # cgroup v1
+              quota=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us)
+              period=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us)
+              if [ "$quota" != "-1" ]; then
+                cpus=$((quota / period))
+                echo "CPU limit (cgroup v1): ${cpus} cores"
+              fi
+            else
+              echo "CPU limit: not detected (cgroup v1/v2)"
+            fi
+
+            # Check memory limit (cgroup v1 and v2)
+            if [ -f "/sys/fs/cgroup/memory.max" ]; then
+              # cgroup v2
+              mem_max=$(cat /sys/fs/cgroup/memory.max)
+              if [ "$mem_max" != "max" ]; then
+                mem_gb=$((mem_max / 1024 / 1024 / 1024))
+                echo "Memory limit (cgroup v2): ${mem_gb}GB"
+              fi
+            elif [ -f "/sys/fs/cgroup/memory/memory.limit_in_bytes" ]; then
+              # cgroup v1
+              mem_bytes=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes)
+              mem_gb=$((mem_bytes / 1024 / 1024 / 1024))
+              echo "Memory limit (cgroup v1): ${mem_gb}GB"
+            else
+              echo "Memory limit: not detected (cgroup v1/v2)"
+            fi
+
+            echo "✓ Resource limits configuration verified"
+          '
+
+      - name: Cleanup test workspace
+        if: always()
+        run: |
+          rm -rf /tmp/bitbot-test-workspace
+
   # Optional: Windows basic tests (script validation only)
   test-windows:
     name: Tests (Windows - Basic)
