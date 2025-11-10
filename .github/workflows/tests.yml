@@ -105,6 +105,12 @@ jobs:
           chmod +x test-container-bitbot.sh
           ./test-container-bitbot.sh
 
+      - name: Run bitbot integration tests
+        run: |
+          cd dev/tests
+          chmod +x test-bitbot-integration.sh
+          ./test-bitbot-integration.sh
+
       - name: Run integration tests
         run: |
           cd dev/tests
@@ -148,8 +154,11 @@ jobs:
     name: Container Build & Start Tests
     needs: shellcheck
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     if: github.event_name == 'pull_request'
+    strategy:
+      matrix:
+        template: [bitbot-work, bitbot-config]
 
     steps:
       - name: Checkout code
@@ -163,57 +172,34 @@ jobs:
 
       - name: Create test workspace
         run: |
-          mkdir -p /tmp/bitbot-test-workspace
-          cd /tmp/bitbot-test-workspace
+          mkdir -p /tmp/bitbot-test-${{ matrix.template }}
+          cd /tmp/bitbot-test-${{ matrix.template }}
           git init
 
-      - name: Initialize BitBot in test workspace
+      - name: Initialize BitBot ${{ matrix.template }} in test workspace
         run: |
-          cd /tmp/bitbot-test-workspace
+          cd /tmp/bitbot-test-${{ matrix.template }}
           export BITBOT_HOME="${GITHUB_WORKSPACE}"
-          # Non-interactive init - copy .devcontainer directly
+          # Copy template files
           mkdir -p .devcontainer
-          cp "${GITHUB_WORKSPACE}/container/templates/bitbot-base/Dockerfile" .devcontainer/
-
-          # Create minimal devcontainer.json for testing
-          cat > .devcontainer/devcontainer.json <<'EOF'
-          {
-            "name": "BitBot Test Container",
-            "dockerFile": "Dockerfile",
-            "workspaceFolder": "/workspace",
-            "features": {
-              "ghcr.io/devcontainers/features/node:1": {
-                "version": "lts"
-              }
-            },
-            "remoteUser": "root",
-            "mounts": [
-              "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
-            ],
-            "runArgs": [
-              "--cpus=4",
-              "--memory=8g",
-              "--memory-swap=8g",
-              "--pids-limit=2048"
-            ]
-          }
-          EOF
+          cp "${GITHUB_WORKSPACE}/container/templates/${{ matrix.template }}/Dockerfile" .devcontainer/
+          cp "${GITHUB_WORKSPACE}/container/templates/${{ matrix.template }}/devcontainer.json" .devcontainer/
 
           # Copy BitBot container scripts
           mkdir -p .devcontainer/bitbot
           cp -r "${GITHUB_WORKSPACE}/container/bitbot/"* .devcontainer/bitbot/
-          echo "✓ Test workspace initialized"
+          echo "✓ Test workspace initialized with ${{ matrix.template }}"
 
-      - name: Build and start bitbot-base container
+      - name: Build and start ${{ matrix.template }} container
         run: |
-          cd /tmp/bitbot-test-workspace
-          echo "Building and starting bitbot-base container..."
+          cd /tmp/bitbot-test-${{ matrix.template }}
+          echo "Building and starting ${{ matrix.template }} container..."
           devcontainer up --workspace-folder .
-          echo "✓ bitbot-base container built and started successfully"
+          echo "✓ ${{ matrix.template }} container built and started successfully"
 
-      - name: Test container environment
+      - name: Test ${{ matrix.template }} container environment
         run: |
-          cd /tmp/bitbot-test-workspace
+          cd /tmp/bitbot-test-${{ matrix.template }}
           echo "Running container tests..."
           devcontainer exec --workspace-folder . bash -c '
             echo "Testing container environment..."
@@ -262,9 +248,9 @@ jobs:
             echo "All container tests passed!"
           '
 
-      - name: Test container resource limits
+      - name: Test ${{ matrix.template }} container resource limits
         run: |
-          cd /tmp/bitbot-test-workspace
+          cd /tmp/bitbot-test-${{ matrix.template }}
           echo "Checking container resource limits..."
           devcontainer exec --workspace-folder . bash -c '
             # Check CPU limit (cgroup v1 and v2)
@@ -307,7 +293,7 @@ jobs:
       - name: Cleanup test workspace
         if: always()
         run: |
-          rm -rf /tmp/bitbot-test-workspace
+          rm -rf /tmp/bitbot-test-${{ matrix.template }}
 
   # Optional: Windows basic tests (script validation only)
   test-windows:
