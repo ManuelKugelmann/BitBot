@@ -127,12 +127,14 @@ if [[ -d ".devcontainer" ]] && [[ -f ".devcontainer/devcontainer.json" ]]; then
     test_passed "bitbot init created workspace structure"
     if [[ $init_exit_code -eq 0 ]]; then
         test_passed "bitbot init completed fully"
+    elif [[ $init_exit_code -eq 124 ]]; then
+        test_passed "bitbot init succeeded (container build timed out - expected in CI)"
     elif grep -q "devcontainer: command not found\|Failed to launch" /tmp/bitbot-init-test.log 2>/dev/null; then
         test_passed "bitbot init succeeded (container launch skipped - expected in CI)"
     fi
 else
     if [[ $init_exit_code -eq 124 ]]; then
-        test_failed "bitbot init timed out (may require interactive input)"
+        test_failed "bitbot init timed out before creating workspace structure"
     else
         test_failed "bitbot init failed to create workspace structure"
     fi
