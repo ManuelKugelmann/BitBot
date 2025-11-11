@@ -73,6 +73,24 @@ bitbot_init() {
     echo ""
     print_success "Workspace initialized successfully!"
     echo ""
+
+    # Prompt to launch config mode (skip if non-interactive or CI)
+    if [[ -t 0 ]] && [[ "${CI:-false}" != "true" ]] && [[ -z "${GITHUB_ACTIONS:-}" ]]; then
+        echo "Would you like to launch config mode now?"
+        echo "Config mode provides AI assistance to help you configure your .devcontainer."
+        echo ""
+        read -r -p "Launch config mode? [y/N]: " launch_config
+
+        if [[ "$launch_config" =~ ^[Yy]$ ]]; then
+            echo ""
+            print_step "Launching config mode..."
+            echo ""
+            launch_config_devcontainer "$workspace_path"
+            return
+        fi
+    fi
+
+    # Show next steps if config mode not launched
     echo "Next steps:"
     echo ""
     echo "  1. Review and customize .devcontainer/ (optional)"
