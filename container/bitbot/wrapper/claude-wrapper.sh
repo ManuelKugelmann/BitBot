@@ -53,6 +53,7 @@ WRAPPER_PID=$$
 mkdir -p "$PIPE_DIR"
 
 # Cleanup function
+# shellcheck disable=SC2317  # Trap handlers appear unreachable to shellcheck
 cleanup() {
     local exit_code=$?
 
@@ -70,7 +71,7 @@ cleanup() {
     # Cleanup empty pipe directory
     rmdir "$PIPE_DIR" 2>/dev/null || true
 
-    exit $exit_code
+    exit "$exit_code"
 }
 
 trap cleanup EXIT INT TERM
@@ -269,8 +270,9 @@ run_compaction() {
     local compact_prompt="${2:-}"
 
     # Create temp file for compaction output
-    local temp_output=$(mktemp)
-    trap "rm -f $temp_output" RETURN
+    local temp_output
+    temp_output=$(mktemp)
+    trap 'rm -f "$temp_output"' RETURN
 
     echo ""
 
@@ -329,9 +331,6 @@ run_compaction() {
     # Brief delay
     sleep 0.5
 }
-
-# Store original arguments for potential restart
-ORIGINAL_ARGS=("$@")
 
 # Determine claude command (allow override for testing)
 CLAUDE_CMD="${CLAUDE_WRAPPER_CMD:-claude}"

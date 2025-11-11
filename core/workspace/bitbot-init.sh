@@ -24,7 +24,10 @@ source "${BITBOT_HOME}/core/util/devcontainer.sh"
 
 bitbot_init() {
     # Initialize BitBot workspace in current directory
+    # Args:
+    #   $1 - config_mode: "auto" (default), "yes" (--config), "no" (--no-config)
 
+    local config_mode="${1:-auto}"
     local workspace_path
     workspace_path=$(get_current_directory)
 
@@ -69,17 +72,64 @@ bitbot_init() {
     # Sync infrastructure (copy container bitbot scripts)
     sync_infrastructure "$workspace_path"
 
-    # Launch config mode
+    # Success message
     echo ""
-    echo "Launching config mode..."
-    echo ""
-    echo "Config mode runs BitBot AI agent in a devcontainer optimized for devcontainer setup."
-    echo "The AI provides guidance and help to configure your .devcontainer."
-    echo "Close VS Code or terminal when finished."
+    print_success "Workspace initialized successfully!"
     echo ""
 
-    # Launch config mode
-    launch_config_devcontainer "$workspace_path"
+    # Handle config mode based on parameter
+    local launch_config_mode=false
+
+    case "$config_mode" in
+        yes)
+            # --config flag: always launch
+            launch_config_mode=true
+            ;;
+        no)
+            # --no-config flag: never launch
+            launch_config_mode=false
+            ;;
+        auto)
+            # Prompt in interactive mode only
+            if [[ -t 0 ]]; then
+                echo "Would you like to launch config mode now?"
+                echo "Config mode provides AI assistance to help you configure your .devcontainer."
+                echo ""
+                read -r -p "Launch config mode? [y/N]: " user_response
+
+                if [[ "$user_response" =~ ^[Yy]$ ]]; then
+                    launch_config_mode=true
+                fi
+            fi
+            ;;
+        *)
+            print_error "Invalid config_mode parameter: $config_mode"
+            return 1
+            ;;
+    esac
+
+    # Launch config mode if requested
+    if [[ "$launch_config_mode" == "true" ]]; then
+        echo ""
+        print_step "Launching config mode..."
+        echo ""
+        launch_config_devcontainer "$workspace_path"
+        return
+    fi
+
+    # Show next steps if config mode not launched
+    echo "Next steps:"
+    echo ""
+    echo "  1. Review and customize .devcontainer/ (optional)"
+    echo "     - Edit Dockerfile to add packages"
+    echo "     - Edit devcontainer.json for VS Code settings"
+    echo ""
+    echo "  2. Launch your workspace:"
+    echo "     \$ bitbot work         # Start AI-powered development"
+    echo ""
+    echo "  Need help configuring?"
+    echo "     \$ bitbot config       # Launch AI assistant for devcontainer setup"
+    echo ""
 }
 
 # ============================================================================
@@ -123,6 +173,12 @@ create_workspace_structure() {
 
     # Create config mode devcontainer.json
     create_config_mode_devcontainer "$workspace_path"
+
+    # Verify config devcontainer was created
+    if [[ ! -f "${workspace_path}/.bitbot/internal/.devcontainer/devcontainer.json" ]]; then
+        print_error "Failed to create config devcontainer.json"
+        return 1
+    fi
 
     # Update .gitignore
     update_gitignore "$workspace_path"
@@ -170,15 +226,22 @@ create_config_mode_devcontainer() {
 
     local bitbot_install
     bitbot_install=$(get_bitbot_install_dir)
-    local config_devcontainer="${workspace_path}/.bitbot/internal/devcontainer.json"
+    local config_dir="${workspace_path}/.bitbot/internal/.devcontainer"
+    local config_devcontainer="${config_dir}/devcontainer.json"
+
+    # Create .devcontainer directory
+    create_directory "$config_dir"
 
     # Create minimal config devcontainer.json
     # References global Dockerfile, mounts this workspace
+    local workspace_name
+    workspace_name=$(get_basename "$workspace_path")
+
     cat > "$config_devcontainer" <<EOF
 {
-  "name": "$(get_basename "$workspace_path")-config",
+  "name": "${workspace_name}-config",
   "build": {
-    "dockerfile": "\${env:BITBOT_HOME}/config-devcontainer/Dockerfile"
+    "dockerfile": "\${env:BITBOT_HOME}/container/templates/bitbot-config/Dockerfile"
   },
   "workspaceMount": "source=\${localWorkspaceFolder},target=/workspace,type=bind",
   "workspaceFolder": "/workspace",
@@ -193,6 +256,12 @@ create_config_mode_devcontainer() {
   }
 }
 EOF
+
+    # Verify file was created
+    if [[ ! -f "$config_devcontainer" ]]; then
+        print_error "Failed to write config devcontainer.json"
+        return 1
+    fi
 
     print_success "Created config mode devcontainer"
 }
@@ -241,13 +310,14 @@ copy_template_home_files() {
     local bitbot_install
     bitbot_install=$(get_bitbot_install_dir)
 
-    # Use bitbot-work template (or get from template arg if implemented)
-    local template_home="${bitbot_install}/container/templates/bitbot-work/home"
+    # Use bitbot-base template (foundation for all templates)
+    local template_home="${bitbot_install}/container/templates/bitbot-base/home"
     local target_dir="${workspace_path}/.bitbot/internal/container/home"
 
     if [[ ! -d "$template_home" ]]; then
-        print_warning "Template home directory not found: $template_home"
-        return 0
+        print_error "Template home directory not found: $template_home"
+        echo "This is required for container mounts (.tmux.conf, etc.)"
+        return 1
     fi
 
     # Create target directory

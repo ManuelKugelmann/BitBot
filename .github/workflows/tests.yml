@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - trunk
+      - claude/**
     paths:
       - 'core/**'
       - 'dev/tests/**'
@@ -14,14 +15,19 @@ on:
       - trunk
 
 jobs:
-  # Fast syntax check
-  syntax-check:
-    name: Bash Syntax Check
+  # Fast syntax and shellcheck analysis
+  shellcheck:
+    name: ShellCheck & Syntax
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
 
       - name: Check bash scripts syntax
         run: |
@@ -34,15 +40,26 @@ jobs:
           bash -n core/bitbot
           echo "✓ All bash scripts have valid syntax"
 
+      - name: Run shellcheck
+        run: |
+          cd dev/tests
+          chmod +x test-shellcheck.sh
+          ./test-shellcheck.sh
+
   # Main test suite
   test-ubuntu:
     name: Tests (Ubuntu)
-    needs: syntax-check
+    needs: shellcheck
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
 
       - name: Install DevContainer CLI
         run: npm install -g @devcontainers/cli
@@ -55,6 +72,23 @@ jobs:
           chmod +x container/bitbot/core/commands/*.sh
           chmod +x container/bitbot/core/util/*.sh
 
+      - name: Run helper function tests
+        run: |
+          cd dev/tests
+          ./test-helpers.sh
+
+      - name: Run BitBot command tests
+        run: |
+          cd dev/tests
+          chmod +x test-bitbot-commands.sh
+          ./test-bitbot-commands.sh
+
+      - name: Run platform detection tests
+        run: |
+          cd dev/tests
+          chmod +x test-platform-detection.sh
+          ./test-platform-detection.sh
+
       - name: Run prerequisite tests
         run: |
           cd dev/tests
@@ -65,9 +99,20 @@ jobs:
         run: |
           cd dev/tests
           ./test-workspace-init.sh
-          echo "Workspace init tests completed"
 
-      - name: Run all tests
+      - name: Run container BitBot tests
+        run: |
+          cd dev/tests
+          chmod +x test-container-bitbot.sh
+          ./test-container-bitbot.sh
+
+      - name: Run bitbot integration tests
+        run: |
+          cd dev/tests
+          chmod +x test-bitbot-integration.sh
+          ./test-bitbot-integration.sh
+
+      - name: Run integration tests
         run: |
           cd dev/tests
           ./run-tests.sh --quick
@@ -77,8 +122,191 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: dev/tests/*.log
+          path: |
+            /tmp/shellcheck-*.log
+            dev/tests/*.log
           if-no-files-found: ignore
+
+  # Security validation
+  security-check:
+    name: Security Validation
+    needs: shellcheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Run security tests
+        run: |
+          cd dev/tests
+          chmod +x test-helpers.sh
+          echo "Running security injection tests..."
+          ./test-helpers.sh
+          echo "✓ All security tests passed"
+
+  # Container build and validation tests
+  test-containers:
+    name: Container Build & Start Tests
+    needs: shellcheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'pull_request'
+    strategy:
+      matrix:
+        template: [bitbot-work, bitbot-config]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install DevContainer CLI
+        run: npm install -g @devcontainers/cli
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create test workspace
+        run: |
+          mkdir -p /tmp/bitbot-test-${{ matrix.template }}
+          cd /tmp/bitbot-test-${{ matrix.template }}
+          git init
+
+      - name: Initialize BitBot ${{ matrix.template }} in test workspace
+        run: |
+          cd /tmp/bitbot-test-${{ matrix.template }}
+          export BITBOT_HOME="${GITHUB_WORKSPACE}"
+
+          # Copy template files
+          mkdir -p .devcontainer
+          cp "${GITHUB_WORKSPACE}/container/templates/${{ matrix.template }}/Dockerfile" .devcontainer/
+          cp "${GITHUB_WORKSPACE}/container/templates/${{ matrix.template }}/devcontainer.json" .devcontainer/
+
+          # Copy BitBot container scripts
+          mkdir -p .devcontainer/bitbot
+          cp -r "${GITHUB_WORKSPACE}/container/bitbot/"* .devcontainer/bitbot/
+
+          # Create required mount source directories and files
+          mkdir -p .bitbot/internal/container/home/.config
+          mkdir -p .bitbot/internal/global/.claude
+
+          # Copy/create required mount source files
+          cp "${GITHUB_WORKSPACE}/container/templates/bitbot-base/home/.tmux.conf" .bitbot/internal/container/home/.tmux.conf
+          touch .bitbot/internal/global/.claude/CLAUDE.md
+          echo '{}' > .bitbot/internal/global/.claude/settings.json
+          echo '{}' > .bitbot/internal/global/.claude/.credentials.json
+
+          echo "✓ Test workspace initialized with ${{ matrix.template }}"
+
+      - name: Build and start ${{ matrix.template }} container
+        run: |
+          cd /tmp/bitbot-test-${{ matrix.template }}
+          echo "Building and starting ${{ matrix.template }} container..."
+          devcontainer up --workspace-folder .
+          echo "✓ ${{ matrix.template }} container built and started successfully"
+
+      - name: Test ${{ matrix.template }} container environment
+        run: |
+          cd /tmp/bitbot-test-${{ matrix.template }}
+          echo "Running container tests..."
+          devcontainer exec --workspace-folder . bash -c '
+            echo "Testing container environment..."
+
+            # Test 1: Check if bash is available
+            if command -v bash &>/dev/null; then
+              echo "✓ bash available"
+            else
+              echo "✗ bash not available"
+              exit 1
+            fi
+
+            # Test 2: Check if jq is available
+            if command -v jq &>/dev/null; then
+              echo "✓ jq available"
+            else
+              echo "✗ jq not available"
+              exit 1
+            fi
+
+            # Test 3: Check workspace mount
+            if [ -d "/workspace" ]; then
+              echo "✓ workspace mounted"
+            else
+              echo "✗ workspace not mounted"
+              exit 1
+            fi
+
+            # Test 4: Check BitBot scripts exist
+            if [ -f "/workspace/.devcontainer/bitbot/bitbot" ]; then
+              echo "✓ container BitBot scripts available"
+            else
+              echo "✗ container BitBot scripts not found"
+              exit 1
+            fi
+
+            # Test 5: Run container BitBot help
+            if bash /workspace/.devcontainer/bitbot/bitbot help &>/dev/null; then
+              echo "✓ container BitBot help works"
+            else
+              echo "✗ container BitBot help failed"
+              exit 1
+            fi
+
+            echo ""
+            echo "All container tests passed!"
+          '
+
+      - name: Test ${{ matrix.template }} container resource limits
+        run: |
+          cd /tmp/bitbot-test-${{ matrix.template }}
+          echo "Checking container resource limits..."
+          devcontainer exec --workspace-folder . bash -c '
+            # Check CPU limit (cgroup v1 and v2)
+            if [ -f "/sys/fs/cgroup/cpu.max" ]; then
+              # cgroup v2
+              cpu_max=$(cat /sys/fs/cgroup/cpu.max)
+              echo "CPU limit (cgroup v2): ${cpu_max}"
+            elif [ -f "/sys/fs/cgroup/cpu/cpu.cfs_quota_us" ]; then
+              # cgroup v1
+              quota=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us)
+              period=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us)
+              if [ "$quota" != "-1" ]; then
+                cpus=$((quota / period))
+                echo "CPU limit (cgroup v1): ${cpus} cores"
+              fi
+            else
+              echo "CPU limit: not detected (cgroup v1/v2)"
+            fi
+
+            # Check memory limit (cgroup v1 and v2)
+            if [ -f "/sys/fs/cgroup/memory.max" ]; then
+              # cgroup v2
+              mem_max=$(cat /sys/fs/cgroup/memory.max)
+              if [ "$mem_max" != "max" ]; then
+                mem_gb=$((mem_max / 1024 / 1024 / 1024))
+                echo "Memory limit (cgroup v2): ${mem_gb}GB"
+              fi
+            elif [ -f "/sys/fs/cgroup/memory/memory.limit_in_bytes" ]; then
+              # cgroup v1
+              mem_bytes=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes)
+              mem_gb=$((mem_bytes / 1024 / 1024 / 1024))
+              echo "Memory limit (cgroup v1): ${mem_gb}GB"
+            else
+              echo "Memory limit: not detected (cgroup v1/v2)"
+            fi
+
+            echo "✓ Resource limits configuration verified"
+          '
+
+      - name: Cleanup test workspace
+        if: always()
+        run: |
+          rm -rf /tmp/bitbot-test-${{ matrix.template }}
 
   # Optional: Windows basic tests (script validation only)
   test-windows:

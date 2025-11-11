@@ -18,9 +18,15 @@
     "source=${localWorkspaceFolder}/.bitbot/internal/container/home/.tmux.conf,target=/root/.tmux.conf,type=bind,readonly",
     "source=${localWorkspaceFolder}/.bitbot/internal/container/home/.config,target=/root/.config,type=bind,consistency=cached",
     "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude,target=/root/.claude,type=bind,consistency=cached",
-    "source=${localEnv:BITBOT_HOME:${localWorkspaceFolder}/.bitbot/internal}/global/.claude/CLAUDE.md,target=/root/.claude/CLAUDE.md,type=bind,consistency=cached",
-    "source=${localEnv:BITBOT_HOME:${localWorkspaceFolder}/.bitbot/internal}/global/.claude/settings.json,target=/root/.claude/settings.json,type=bind,readonly",
-    "source=${localEnv:BITBOT_HOME:${localWorkspaceFolder}/.bitbot/internal}/global/.claude/.credentials.json,target=/root/.claude/.credentials.json,type=bind,consistency=cached"
+    "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude/CLAUDE.md,target=/root/.claude/CLAUDE.md,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude/settings.json,target=/root/.claude/settings.json,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude/.credentials.json,target=/root/.claude/.credentials.json,type=bind,consistency=cached"
+  ],
+  "runArgs": [
+    "--cpus=4",
+    "--memory=8g",
+    "--memory-swap=8g",
+    "--pids-limit=2048"
   ],
   "$comment": "BitBot Development template details - merged with templates/shared/base.devcontainer.json",
   "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",

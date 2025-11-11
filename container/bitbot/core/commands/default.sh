@@ -18,7 +18,7 @@ show_launch_mode_choice() {
     echo "  2) Interactive mode           (default)"
     echo "  3) Custom command"
     echo ""
-    read -p "Choice (1-3) [2]: " choice
+    read -r -p "Choice (1-3) [2]: " choice
 
     case "$choice" in
         1) echo "resume" ;;
@@ -34,7 +34,7 @@ prompt_resume_or_new() {
     echo "  1) Resume existing session"
     echo "  2) Create new session"
     echo ""
-    read -p "Choice (1-2) [1]: " choice
+    read -r -p "Choice (1-2) [1]: " choice
 
     case "$choice" in
         1|"") echo "resume" ;;
@@ -44,16 +44,20 @@ prompt_resume_or_new() {
 
 # Create new Claude session with launch mode choice
 create_new_claude_session() {
-    local session_name="$(generate_session_name)"
-    local mode="$(get_bitbot_mode)"
-    local workspace="$(get_workspace)"
+    local session_name
+    session_name="$(generate_session_name)"
+    local mode
+    mode="$(get_bitbot_mode)"
+    local workspace
+    workspace="$(get_workspace)"
 
     echo ""
     info "Creating new Claude Code session..."
     echo ""
 
     # Show launch mode choice
-    local launch_mode="$(show_launch_mode_choice)"
+    local launch_mode
+    launch_mode="$(show_launch_mode_choice)"
     local claude_cmd=""
 
     case "$launch_mode" in
@@ -67,7 +71,7 @@ create_new_claude_session() {
             ;;
         custom)
             echo ""
-            read -p "Enter Claude command: " claude_cmd
+            read -r -p "Enter Claude command: " claude_cmd
             ;;
         *)
             claude_cmd="claude"
@@ -105,12 +109,15 @@ main() {
     echo ""
 
     # Check for existing sessions
-    local sessions="$(list_tmux_sessions)"
-    local session_count="$(echo "$sessions" | grep -c '^' || echo 0)"
+    local sessions
+    sessions="$(list_tmux_sessions)"
+    local session_count
+    session_count="$(echo "$sessions" | grep -c '^' || echo 0)"
 
     # Single session - auto-resume
     if [[ $session_count -eq 1 ]]; then
-        local single_session="$(echo "$sessions" | head -1)"
+        local single_session
+        single_session="$(echo "$sessions" | head -1)"
         info "Found one session: $single_session"
         echo ""
         info "Auto-resuming..."
@@ -123,13 +130,15 @@ main() {
     if [[ $session_count -gt 1 ]]; then
         info "Found existing tmux sessions:"
         while IFS= read -r session; do
-            local session_info="$(get_session_info "$session")"
+            local session_info
+            session_info="$(get_session_info "$session")"
             echo "  • $session_info"
         done <<< "$sessions"
         echo ""
 
         # Offer to resume
-        local choice="$(prompt_resume_or_new)"
+        local choice
+        choice="$(prompt_resume_or_new)"
 
         if [[ "$choice" == "resume" ]]; then
             exec "${SCRIPT_DIR}/resume.sh" "$@"

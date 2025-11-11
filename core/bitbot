@@ -9,7 +9,8 @@ set -euo pipefail
 
 # Determine script directory and BitBot home
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export BITBOT_HOME="$(dirname "$SCRIPT_DIR")"
+BITBOT_HOME="$(dirname "$SCRIPT_DIR")"
+export BITBOT_HOME
 
 # Source utilities
 source "${SCRIPT_DIR}/util/helpers.sh"
@@ -101,7 +102,7 @@ handle_workspace_context() {
     # Check if workspace is initialized
     if ! is_workspace_initialized "$workspace_path"; then
         # Workspace not initialized
-        handle_uninitialized_workspace "$command" "$workspace_path"
+        handle_uninitialized_workspace "$command" "$workspace_path" "$@"
         return $?
     fi
 
@@ -125,11 +126,31 @@ handle_workspace_context() {
 handle_uninitialized_workspace() {
     local command="$1"
     local workspace_path="$2"
+    shift 2 || true
 
     case "$command" in
         init)
-            # Explicit init command
-            bitbot_init
+            # Explicit init command - parse flags
+            local config_mode="auto"
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    --config)
+                        config_mode="yes"
+                        shift
+                        ;;
+                    --no-config)
+                        config_mode="no"
+                        shift
+                        ;;
+                    *)
+                        print_error "Unknown flag for init: $1"
+                        echo ""
+                        echo "Usage: bitbot init [--config|--no-config]"
+                        return 1
+                        ;;
+                esac
+            done
+            bitbot_init "$config_mode"
             return $?
             ;;
         ""|work)
@@ -141,7 +162,7 @@ handle_uninitialized_workspace() {
             should_init=$(prompt_yes_no "Initialize workspace now?" "yes")
 
             if [[ "$should_init" == "yes" ]]; then
-                bitbot_init
+                bitbot_init "auto"
                 echo ""
                 echo "Workspace initialized! Run 'bitbot work' to start."
                 return 0
@@ -188,7 +209,27 @@ route_command() {
             bitbot_work "$workspace_path" true
             ;;
         init)
-            bitbot_init
+            # Parse init flags
+            local config_mode="auto"
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    --config)
+                        config_mode="yes"
+                        shift
+                        ;;
+                    --no-config)
+                        config_mode="no"
+                        shift
+                        ;;
+                    *)
+                        print_error "Unknown flag for init: $1"
+                        echo ""
+                        echo "Usage: bitbot init [--config|--no-config]"
+                        return 1
+                        ;;
+                esac
+            done
+            bitbot_init "$config_mode"
             ;;
         help)
             bitbot_help

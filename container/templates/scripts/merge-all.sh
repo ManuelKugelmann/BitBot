@@ -5,15 +5,15 @@ set -e
 # Runs merge-devcontainer.sh for each template directory
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-TEMPLATES_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+TEMPLATES_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo "=== Merging All BitBot DevContainer Templates ==="
 echo ""
 
 TEMPLATES=(
-    "base"
-    "config"
-    "workspace"
+    "bitbot-config"
+    "bitbot-dev"
+    "bitbot-work"
 )
 
 FAILED=()
@@ -33,7 +33,7 @@ for template in "${TEMPLATES[@]}"; do
     fi
 
     echo "--- Merging: $template ---"
-    if "$SCRIPT_DIR/merge-devcontainer.sh" "$TEMPLATE_DIR"; then
+    if bash "$SCRIPT_DIR/merge-devcontainer.sh" "$TEMPLATE_DIR"; then
         SUCCEEDED+=("$template")
     else
         FAILED+=("$template")

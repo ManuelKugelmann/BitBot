@@ -14,7 +14,8 @@ check_claude_running() {
     local session_name="$1"
 
     # Get PIDs in tmux session
-    local pids="$(tmux list-panes -t "$session_name" -F '#{pane_pid}' 2>/dev/null || echo "")"
+    local pids
+    pids="$(tmux list-panes -t "$session_name" -F '#{pane_pid}' 2>/dev/null || echo "")"
 
     if [[ -z "$pids" ]]; then
         return 1
@@ -56,9 +57,12 @@ resume_tmux_session() {
 # Create new tmux with Claude --resume (via wrapper)
 create_tmux_with_resume() {
     local wrapper_script="/usr/local/bitbot/wrapper/claude-wrapper.sh"
-    local session_name="$(generate_session_name)"
-    local mode="$(get_bitbot_mode)"
-    local workspace="$(get_workspace)"
+    local session_name
+    session_name="$(generate_session_name)"
+    local mode
+    mode="$(get_bitbot_mode)"
+    local workspace
+    workspace="$(get_workspace)"
 
     echo ""
     info "No unattached tmux sessions found"
@@ -98,14 +102,15 @@ show_session_menu() {
 
     local index=1
     for session in "${sessions[@]}"; do
-        local session_info="$(get_session_info "$session")"
+        local session_info
+        session_info="$(get_session_info "$session")"
         echo "  $index) $session_info"
         ((index++))
     done
 
     echo "  0) Cancel"
     echo ""
-    read -p "Choice: " choice
+    read -r -p "Choice: " choice
 
     if [[ "$choice" == "0" ]] || [[ -z "$choice" ]]; then
         return 1
@@ -136,8 +141,10 @@ main() {
     echo ""
 
     # Get list of sessions
-    local sessions="$(list_tmux_sessions)"
-    local session_count="$(echo "$sessions" | grep -c '^' || echo 0)"
+    local sessions
+    sessions="$(list_tmux_sessions)"
+    local session_count
+    session_count="$(echo "$sessions" | grep -c '^' || echo 0)"
 
     # No tmux sessions - create new tmux with claude --resume
     if [[ $session_count -eq 0 ]]; then
