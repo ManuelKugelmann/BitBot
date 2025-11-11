@@ -191,7 +191,7 @@ create_config_mode_devcontainer() {
 {
   "name": "${workspace_name}-config",
   "build": {
-    "dockerfile": "\${env:BITBOT_HOME}/config-devcontainer/Dockerfile"
+    "dockerfile": "\${env:BITBOT_HOME}/container/templates/bitbot-config/Dockerfile"
   },
   "workspaceMount": "source=\${localWorkspaceFolder},target=/workspace,type=bind",
   "workspaceFolder": "/workspace",
