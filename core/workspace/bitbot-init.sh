@@ -69,17 +69,22 @@ bitbot_init() {
     # Sync infrastructure (copy container bitbot scripts)
     sync_infrastructure "$workspace_path"
 
-    # Launch config mode
+    # Success message
     echo ""
-    echo "Launching config mode..."
+    print_success "Workspace initialized successfully!"
     echo ""
-    echo "Config mode runs BitBot AI agent in a devcontainer optimized for devcontainer setup."
-    echo "The AI provides guidance and help to configure your .devcontainer."
-    echo "Close VS Code or terminal when finished."
+    echo "Next steps:"
     echo ""
-
-    # Launch config mode
-    launch_config_devcontainer "$workspace_path"
+    echo "  1. Review and customize .devcontainer/ (optional)"
+    echo "     - Edit Dockerfile to add packages"
+    echo "     - Edit devcontainer.json for VS Code settings"
+    echo ""
+    echo "  2. Launch your workspace:"
+    echo "     \$ bitbot work         # Start AI-powered development"
+    echo ""
+    echo "  Need help configuring?"
+    echo "     \$ bitbot config       # Launch AI assistant for devcontainer setup"
+    echo ""
 }
 
 # ============================================================================
