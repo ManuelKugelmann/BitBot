@@ -178,11 +178,20 @@ create_config_mode_devcontainer() {
     bitbot_install=$(get_bitbot_install_dir)
     local config_devcontainer="${workspace_path}/.bitbot/internal/devcontainer.json"
 
+    # Verify directory exists
+    if [[ ! -d "$(dirname "$config_devcontainer")" ]]; then
+        print_error "Directory not found: $(dirname "$config_devcontainer")"
+        return 1
+    fi
+
     # Create minimal config devcontainer.json
     # References global Dockerfile, mounts this workspace
+    local workspace_name
+    workspace_name=$(get_basename "$workspace_path")
+
     cat > "$config_devcontainer" <<EOF
 {
-  "name": "$(get_basename "$workspace_path")-config",
+  "name": "${workspace_name}-config",
   "build": {
     "dockerfile": "\${env:BITBOT_HOME}/config-devcontainer/Dockerfile"
   },
@@ -199,6 +208,12 @@ create_config_mode_devcontainer() {
   }
 }
 EOF
+
+    # Verify file was created
+    if [[ ! -f "$config_devcontainer" ]]; then
+        print_error "Failed to write config devcontainer.json"
+        return 1
+    fi
 
     print_success "Created config mode devcontainer"
 }
