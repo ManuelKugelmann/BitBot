@@ -70,11 +70,11 @@ else
     test_fail "container/bitbot/ not found"
 fi
 
-echo "[Test 1.3] Check container/home/ exists..."
-if [ -d "$BITBOT_ROOT/container/home" ]; then
-    test_pass "container/home/ exists"
+echo "[Test 1.3] Check container/templates/bitbot-base/home/ exists..."
+if [ -d "$BITBOT_ROOT/container/templates/bitbot-base/home" ]; then
+    test_pass "container/templates/bitbot-base/home/ exists"
 else
-    test_fail "container/home/ not found"
+    test_fail "container/templates/bitbot-base/home/ not found"
 fi
 
 echo "[Test 1.4] Check container/templates/ exists..."
@@ -110,11 +110,11 @@ else
     test_fail "bitbot/ directory not synced"
 fi
 
-echo "[Test 3.2] Check home/ directory synced..."
-if [ -d "$BITBOT_ROOT/.bitbot/internal/container/home" ]; then
-    test_pass "home/ directory synced"
+echo "[Test 3.2] Check templates/bitbot-base/home/ directory synced..."
+if [ -d "$BITBOT_ROOT/.bitbot/internal/container/templates/bitbot-base/home" ]; then
+    test_pass "templates/bitbot-base/home/ directory synced"
 else
-    test_fail "home/ directory not synced"
+    test_fail "templates/bitbot-base/home/ directory not synced"
 fi
 
 echo "[Test 3.3] Check templates/ directory synced..."
@@ -138,10 +138,10 @@ else
 fi
 
 echo "[Test 4.2] Check tmux config..."
-if [ -f "$BITBOT_ROOT/.bitbot/internal/container/home/.tmux.conf" ]; then
-    test_pass "home/.tmux.conf synced"
+if [ -f "$BITBOT_ROOT/.bitbot/internal/container/templates/bitbot-base/home/.tmux.conf" ]; then
+    test_pass "templates/bitbot-base/home/.tmux.conf synced"
 else
-    test_fail "home/.tmux.conf not synced"
+    test_fail "templates/bitbot-base/home/.tmux.conf not synced"
 fi
 
 echo "[Test 4.3] Check wrapper scripts..."
@@ -199,7 +199,7 @@ else
 fi
 
 echo "[Test 6.2] Compare .tmux.conf content..."
-if diff -q "$BITBOT_ROOT/container/home/.tmux.conf" "$BITBOT_ROOT/.bitbot/internal/container/home/.tmux.conf" > /dev/null 2>&1; then
+if diff -q "$BITBOT_ROOT/container/templates/bitbot-base/home/.tmux.conf" "$BITBOT_ROOT/.bitbot/internal/container/templates/bitbot-base/home/.tmux.conf" > /dev/null 2>&1; then
     test_pass ".tmux.conf content matches source"
 else
     test_fail ".tmux.conf content differs from source"
