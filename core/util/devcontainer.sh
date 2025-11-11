@@ -286,7 +286,7 @@ launch_config_via_devcontainer_cli() {
         echo "  Config file: $config_file"
         echo "  File exists: $(test -f "$config_file" && echo "yes" || echo "no")"
         echo "  File size: $file_size bytes"
-        echo "  File permissions: $(ls -l "$config_file" 2>/dev/null | awk '{print $1}')"
+        echo "  File permissions: $(stat -c '%A' "$config_file" 2>/dev/null || stat -f '%Sp' "$config_file" 2>/dev/null)"
         echo ""
         echo "Directory listing:"
         ls -la "$config_dir"
