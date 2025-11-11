@@ -231,18 +231,35 @@ launch_config_via_devcontainer_cli() {
     # Launch config devcontainer using workspace-specific config
     # Automatically uses Methods 3 & 4 on WSL for correct path labels
     local workspace_path="$1"
+    local config_dir="${workspace_path}/.bitbot/internal"
+    local config_file="${config_dir}/devcontainer.json"
 
     print_step "Building and starting config devcontainer..."
 
-    # Note: --config path needs special handling for Methods 3 & 4
-    # For now, this may need adjustment based on testing
-    # The config path is relative to workspace, should work correctly
+    # Debug: Show what config we're using
+    print_info "Config directory: $config_dir"
+
+    # Verify config file exists
+    if [[ ! -f "$config_file" ]]; then
+        print_error "Config devcontainer.json not found: $config_file"
+        echo "Directory contents:"
+        ls -la "$config_dir" 2>&1 || echo "  (directory doesn't exist)"
+        return 1
+    fi
+
+    print_info "Using config file: $config_file"
 
     # Launch using workspace-specific devcontainer.json in .bitbot/internal/
     if ! run_devcontainer_cmd "$workspace_path" up \
-        --config "${workspace_path}/.bitbot/internal" \
+        --config "$config_dir" \
         --remove-existing-container; then
         print_error "Failed to launch config devcontainer"
+        echo ""
+        echo "Debug information:"
+        echo "  Workspace: $workspace_path"
+        echo "  Config dir: $config_dir"
+        echo "  Config file: $config_file"
+        echo "  File exists: $(test -f "$config_file" && echo "yes" || echo "no")"
         return 1
     fi
 
@@ -251,7 +268,7 @@ launch_config_via_devcontainer_cli() {
     # Attach to container with tmux
     print_step "Entering devcontainer with tmux session 'config'..."
     run_devcontainer_cmd "$workspace_path" exec \
-        --config "${workspace_path}/.bitbot/internal" \
+        --config "$config_dir" \
         tmux new-session -A -s config
 }
 
