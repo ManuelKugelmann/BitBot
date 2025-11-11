@@ -208,11 +208,11 @@ launch_config_devcontainer() {
     local workspace_path="$1"
     local use_vscode="${2:-false}"
 
-    local workspace_config_devcontainer="${workspace_path}/.bitbot/internal/devcontainer.json"
+    local workspace_config_devcontainer="${workspace_path}/.bitbot/internal/.devcontainer/devcontainer.json"
 
     # Verify workspace config devcontainer exists (created during init)
     if [[ ! -f "$workspace_config_devcontainer" ]]; then
-        print_error "Config devcontainer.json not found in .bitbot/internal/"
+        print_error "Config devcontainer.json not found in .bitbot/internal/.devcontainer/"
         echo "This should have been created during 'bitbot init'"
         echo "Try re-initializing: bitbot init"
         return 1
@@ -231,9 +231,9 @@ launch_config_via_devcontainer_cli() {
     # Launch config devcontainer using workspace-specific config
     # Automatically uses Methods 3 & 4 on WSL for correct path labels
     local workspace_path="$1"
-    local config_dir="${workspace_path}/.bitbot/internal"
+    local config_dir="${workspace_path}/.bitbot/internal/.devcontainer"
     local config_file="${config_dir}/devcontainer.json"
-    local config_dir_relative=".bitbot/internal"  # Relative to workspace
+    local config_dir_relative=".bitbot/internal/.devcontainer"  # Relative to workspace
 
     print_step "Building and starting config devcontainer..."
 
