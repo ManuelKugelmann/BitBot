@@ -196,7 +196,7 @@ jobs:
           mkdir -p .bitbot/internal/global/.claude
 
           # Copy/create required mount source files
-          cp "${GITHUB_WORKSPACE}/container/home/.tmux.conf" .bitbot/internal/container/home/.tmux.conf
+          cp "${GITHUB_WORKSPACE}/container/templates/bitbot-base/home/.tmux.conf" .bitbot/internal/container/home/.tmux.conf
           touch .bitbot/internal/global/.claude/CLAUDE.md
           echo '{}' > .bitbot/internal/global/.claude/settings.json
           echo '{}' > .bitbot/internal/global/.claude/.credentials.json
