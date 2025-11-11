@@ -203,20 +203,20 @@ fi
 
 # Test 7: Check global tmux config exists
 run_test "Global tmux config exists"
-if [[ -f container/home/.tmux.conf ]]; then
+if [[ -f container/templates/bitbot-base/home/.tmux.conf ]]; then
     test_passed
 else
-    test_failed "tmux.conf not found in container/home/"
+    test_failed "tmux.conf not found in container/templates/bitbot-base/home/"
 fi
 
 run_test "Global tmux config has required settings"
-if grep -q "set -g mouse on" container/home/.tmux.conf && \
-   grep -q "set -g status on" container/home/.tmux.conf && \
-   grep -q "set -g history-limit 10000" container/home/.tmux.conf && \
-   grep -q "BITBOT_PROJECT_PATH" container/home/.tmux.conf; then
+if grep -q "set -g mouse on" container/templates/bitbot-base/home/.tmux.conf && \
+   grep -q "set -g status on" container/templates/bitbot-base/home/.tmux.conf && \
+   grep -q "set -g history-limit 10000" container/templates/bitbot-base/home/.tmux.conf && \
+   grep -q "BITBOT_PROJECT_PATH" container/templates/bitbot-base/home/.tmux.conf; then
     test_passed
 else
-    test_failed "container/home/.tmux.conf missing required settings"
+    test_failed "container/templates/bitbot-base/home/.tmux.conf missing required settings"
 fi
 
 # Test 8: Check Dockerfiles DON'T bake tmux config (uses global mount instead)
