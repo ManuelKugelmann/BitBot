@@ -124,6 +124,12 @@ create_workspace_structure() {
     # Create config mode devcontainer.json
     create_config_mode_devcontainer "$workspace_path"
 
+    # Verify config devcontainer was created
+    if [[ ! -f "${workspace_path}/.bitbot/internal/devcontainer.json" ]]; then
+        print_error "Failed to create config devcontainer.json"
+        return 1
+    fi
+
     # Update .gitignore
     update_gitignore "$workspace_path"
 
