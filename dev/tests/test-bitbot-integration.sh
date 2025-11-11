@@ -113,13 +113,10 @@ echo -e "${BLUE}[Test 3]${NC} bitbot init command"
 # Create minimal test environment for init
 echo "test" > README.md
 
-# Run bitbot init non-interactively
-# Note: In CI, we need to handle interactive prompts
+# Run bitbot init with --config-no flag (non-interactive)
 # The init may fail when trying to launch devcontainer (expected in CI)
 # but should succeed in creating the workspace structure
-timeout 10 bash "$BITBOT_CMD" init <<EOF 2>&1 | tee /tmp/bitbot-init-test.log
-bitbot-base
-EOF
+timeout 10 bash "$BITBOT_CMD" init --config-no 2>&1 | tee /tmp/bitbot-init-test.log
 init_exit_code=$?
 
 # Check if workspace was created successfully (even if container launch failed)

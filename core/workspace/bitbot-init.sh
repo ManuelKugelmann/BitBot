@@ -24,7 +24,10 @@ source "${BITBOT_HOME}/core/util/devcontainer.sh"
 
 bitbot_init() {
     # Initialize BitBot workspace in current directory
+    # Args:
+    #   $1 - config_mode: "auto" (default), "yes" (--config-yes), "no" (--config-no)
 
+    local config_mode="${1:-auto}"
     local workspace_path
     workspace_path=$(get_current_directory)
 
@@ -74,20 +77,44 @@ bitbot_init() {
     print_success "Workspace initialized successfully!"
     echo ""
 
-    # Prompt to launch config mode (skip if non-interactive or CI)
-    if [[ -t 0 ]] && [[ "${CI:-false}" != "true" ]] && [[ -z "${GITHUB_ACTIONS:-}" ]]; then
-        echo "Would you like to launch config mode now?"
-        echo "Config mode provides AI assistance to help you configure your .devcontainer."
-        echo ""
-        read -r -p "Launch config mode? [y/N]: " launch_config
+    # Handle config mode based on parameter
+    local launch_config_mode=false
 
-        if [[ "$launch_config" =~ ^[Yy]$ ]]; then
-            echo ""
-            print_step "Launching config mode..."
-            echo ""
-            launch_config_devcontainer "$workspace_path"
-            return
-        fi
+    case "$config_mode" in
+        yes)
+            # --config-yes flag: always launch
+            launch_config_mode=true
+            ;;
+        no)
+            # --config-no flag: never launch
+            launch_config_mode=false
+            ;;
+        auto)
+            # Prompt in interactive mode only
+            if [[ -t 0 ]]; then
+                echo "Would you like to launch config mode now?"
+                echo "Config mode provides AI assistance to help you configure your .devcontainer."
+                echo ""
+                read -r -p "Launch config mode? [y/N]: " user_response
+
+                if [[ "$user_response" =~ ^[Yy]$ ]]; then
+                    launch_config_mode=true
+                fi
+            fi
+            ;;
+        *)
+            print_error "Invalid config_mode parameter: $config_mode"
+            return 1
+            ;;
+    esac
+
+    # Launch config mode if requested
+    if [[ "$launch_config_mode" == "true" ]]; then
+        echo ""
+        print_step "Launching config mode..."
+        echo ""
+        launch_config_devcontainer "$workspace_path"
+        return
     fi
 
     # Show next steps if config mode not launched
