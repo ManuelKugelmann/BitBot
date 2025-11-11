@@ -85,13 +85,16 @@ run_devcontainer_cmd() {
         if [[ "$workspace_path" == /mnt/* ]]; then
             # Method 3: cmd.exe wrapper for Windows mounts
             # Use cd trick to avoid UNC path limitations
+            echo "[DEBUG] Executing (WSL Method 3): cd /d \"$win_path\" && devcontainer.cmd --workspace-folder . $args" >&2
             cmd.exe /c "cd /d \"$win_path\" && devcontainer.cmd --workspace-folder . $args"
         else
             # Method 4: PowerShell wrapper for WSL native paths
+            echo "[DEBUG] Executing (WSL Method 4): devcontainer.cmd --workspace-folder '$win_path' $args" >&2
             powershell.exe -NoProfile -Command "devcontainer.cmd --workspace-folder '$win_path' $args"
         fi
     else
         # Native devcontainer CLI (direct execution)
+        echo "[DEBUG] Executing (native): $devcontainer_bin --workspace-folder $workspace_path $*" >&2
         "$devcontainer_bin" --workspace-folder "$workspace_path" "$@"
     fi
 }
