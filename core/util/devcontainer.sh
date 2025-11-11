@@ -233,11 +233,13 @@ launch_config_via_devcontainer_cli() {
     local workspace_path="$1"
     local config_dir="${workspace_path}/.bitbot/internal"
     local config_file="${config_dir}/devcontainer.json"
+    local config_dir_relative=".bitbot/internal"  # Relative to workspace
 
     print_step "Building and starting config devcontainer..."
 
     # Debug: Show what config we're using
     print_info "Config directory: $config_dir"
+    print_info "Config directory (relative): $config_dir_relative"
 
     # Verify config file exists
     if [[ ! -f "$config_file" ]]; then
@@ -271,14 +273,16 @@ launch_config_via_devcontainer_cli() {
     print_info "Config file validated (size: $file_size bytes)"
 
     # Launch using workspace-specific devcontainer.json in .bitbot/internal/
+    # Use relative path from workspace folder
     if ! run_devcontainer_cmd "$workspace_path" up \
-        --config "$config_dir" \
+        --config "$config_dir_relative" \
         --remove-existing-container; then
         print_error "Failed to launch config devcontainer"
         echo ""
         echo "Debug information:"
         echo "  Workspace: $workspace_path"
-        echo "  Config dir: $config_dir"
+        echo "  Config dir (absolute): $config_dir"
+        echo "  Config dir (relative): $config_dir_relative"
         echo "  Config file: $config_file"
         echo "  File exists: $(test -f "$config_file" && echo "yes" || echo "no")"
         echo "  File size: $file_size bytes"
@@ -297,7 +301,7 @@ launch_config_via_devcontainer_cli() {
     # Attach to container with tmux
     print_step "Entering devcontainer with tmux session 'config'..."
     run_devcontainer_cmd "$workspace_path" exec \
-        --config "$config_dir" \
+        --config "$config_dir_relative" \
         tmux new-session -A -s config
 }
 
