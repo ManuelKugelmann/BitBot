@@ -236,13 +236,13 @@ launch_config_via_devcontainer_cli() {
     local workspace_path="$1"
     local config_dir="${workspace_path}/.bitbot/internal/.devcontainer"
     local config_file="${config_dir}/devcontainer.json"
-    local config_dir_relative=".bitbot/internal/.devcontainer"  # Relative to workspace
+    local config_file_relative=".bitbot/internal/.devcontainer/devcontainer.json"  # Relative to workspace
 
     print_step "Building and starting config devcontainer..."
 
     # Debug: Show what config we're using
     print_info "Config directory: $config_dir"
-    print_info "Config directory (relative): $config_dir_relative"
+    print_info "Config file (relative): $config_file_relative"
 
     # Verify config file exists
     if [[ ! -f "$config_file" ]]; then
@@ -276,17 +276,17 @@ launch_config_via_devcontainer_cli() {
     print_info "Config file validated (size: $file_size bytes)"
 
     # Launch using workspace-specific devcontainer.json in .bitbot/internal/
-    # Use relative path from workspace folder
+    # Use relative path from workspace folder (must include filename!)
     if ! run_devcontainer_cmd "$workspace_path" up \
-        --config "$config_dir_relative" \
+        --config "$config_file_relative" \
         --remove-existing-container; then
         print_error "Failed to launch config devcontainer"
         echo ""
         echo "Debug information:"
         echo "  Workspace: $workspace_path"
         echo "  Config dir (absolute): $config_dir"
-        echo "  Config dir (relative): $config_dir_relative"
-        echo "  Config file: $config_file"
+        echo "  Config file (relative): $config_file_relative"
+        echo "  Config file (absolute): $config_file"
         echo "  File exists: $(test -f "$config_file" && echo "yes" || echo "no")"
         echo "  File size: $file_size bytes"
         echo "  File permissions: $(stat -c '%A' "$config_file" 2>/dev/null || stat -f '%Sp' "$config_file" 2>/dev/null)"
@@ -304,7 +304,7 @@ launch_config_via_devcontainer_cli() {
     # Attach to container with tmux
     print_step "Entering devcontainer with tmux session 'config'..."
     run_devcontainer_cmd "$workspace_path" exec \
-        --config "$config_dir_relative" \
+        --config "$config_file_relative" \
         tmux new-session -A -s config
 }
 
