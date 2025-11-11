@@ -25,7 +25,7 @@ source "${BITBOT_HOME}/core/util/devcontainer.sh"
 bitbot_init() {
     # Initialize BitBot workspace in current directory
     # Args:
-    #   $1 - config_mode: "auto" (default), "yes" (--config-yes), "no" (--config-no)
+    #   $1 - config_mode: "auto" (default), "yes" (--config), "no" (--no-config)
 
     local config_mode="${1:-auto}"
     local workspace_path
@@ -82,11 +82,11 @@ bitbot_init() {
 
     case "$config_mode" in
         yes)
-            # --config-yes flag: always launch
+            # --config flag: always launch
             launch_config_mode=true
             ;;
         no)
-            # --config-no flag: never launch
+            # --no-config flag: never launch
             launch_config_mode=false
             ;;
         auto)

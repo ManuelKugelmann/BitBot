@@ -134,18 +134,18 @@ handle_uninitialized_workspace() {
             local config_mode="auto"
             while [[ $# -gt 0 ]]; do
                 case "$1" in
-                    --config-yes)
+                    --config)
                         config_mode="yes"
                         shift
                         ;;
-                    --config-no)
+                    --no-config)
                         config_mode="no"
                         shift
                         ;;
                     *)
                         print_error "Unknown flag for init: $1"
                         echo ""
-                        echo "Usage: bitbot init [--config-yes|--config-no]"
+                        echo "Usage: bitbot init [--config|--no-config]"
                         return 1
                         ;;
                 esac
@@ -213,18 +213,18 @@ route_command() {
             local config_mode="auto"
             while [[ $# -gt 0 ]]; do
                 case "$1" in
-                    --config-yes)
+                    --config)
                         config_mode="yes"
                         shift
                         ;;
-                    --config-no)
+                    --no-config)
                         config_mode="no"
                         shift
                         ;;
                     *)
                         print_error "Unknown flag for init: $1"
                         echo ""
-                        echo "Usage: bitbot init [--config-yes|--config-no]"
+                        echo "Usage: bitbot init [--config|--no-config]"
                         return 1
                         ;;
                 esac
