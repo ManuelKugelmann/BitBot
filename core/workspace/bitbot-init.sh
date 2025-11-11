@@ -262,13 +262,14 @@ copy_template_home_files() {
     local bitbot_install
     bitbot_install=$(get_bitbot_install_dir)
 
-    # Use bitbot-work template (or get from template arg if implemented)
-    local template_home="${bitbot_install}/container/templates/bitbot-work/home"
+    # Use bitbot-base template (foundation for all templates)
+    local template_home="${bitbot_install}/container/templates/bitbot-base/home"
     local target_dir="${workspace_path}/.bitbot/internal/container/home"
 
     if [[ ! -d "$template_home" ]]; then
-        print_warning "Template home directory not found: $template_home"
-        return 0
+        print_error "Template home directory not found: $template_home"
+        echo "This is required for container mounts (.tmux.conf, etc.)"
+        return 1
     fi
 
     # Create target directory
