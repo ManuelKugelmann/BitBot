@@ -249,6 +249,27 @@ launch_config_via_devcontainer_cli() {
 
     print_info "Using config file: $config_file"
 
+    # Validate config file
+    local file_size
+    file_size=$(stat -c%s "$config_file" 2>/dev/null || stat -f%z "$config_file" 2>/dev/null || echo "0")
+
+    if [[ "$file_size" -eq 0 ]]; then
+        print_error "Config file is empty!"
+        return 1
+    fi
+
+    # Check JSON validity
+    if command -v jq &>/dev/null; then
+        if ! jq empty "$config_file" 2>/dev/null; then
+            print_error "Config file has invalid JSON syntax"
+            echo "File contents:"
+            head -20 "$config_file"
+            return 1
+        fi
+    fi
+
+    print_info "Config file validated (size: $file_size bytes)"
+
     # Launch using workspace-specific devcontainer.json in .bitbot/internal/
     if ! run_devcontainer_cmd "$workspace_path" up \
         --config "$config_dir" \
@@ -260,6 +281,14 @@ launch_config_via_devcontainer_cli() {
         echo "  Config dir: $config_dir"
         echo "  Config file: $config_file"
         echo "  File exists: $(test -f "$config_file" && echo "yes" || echo "no")"
+        echo "  File size: $file_size bytes"
+        echo "  File permissions: $(ls -l "$config_file" 2>/dev/null | awk '{print $1}')"
+        echo ""
+        echo "Directory listing:"
+        ls -la "$config_dir"
+        echo ""
+        echo "File contents (first 30 lines):"
+        head -30 "$config_file"
         return 1
     fi
 
