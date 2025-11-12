@@ -161,8 +161,7 @@ jobs:
       - name: Run prerequisite tests
         run: |
           cd dev/tests
-          ./test-prerequisites.sh || true
-          echo "Prerequisite tests completed"
+          ./test-prerequisites.sh
 
       - name: Run workspace init tests
         run: |
