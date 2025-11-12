@@ -2,6 +2,8 @@
 #
 # Test: Helper Functions
 # Tests core utility functions in helpers.sh
+#
+# MIGRATED TO USE: test-framework.sh
 
 set -euo pipefail
 
@@ -9,36 +11,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BITBOT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 export BITBOT_HOME="$BITBOT_ROOT"
 
-# Source the helpers
+# Source test framework
+source "${SCRIPT_DIR}/helpers/test-framework.sh"
+
+# Source the helpers to test
 source "${BITBOT_ROOT}/core/util/helpers.sh"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# ============================================================================
+# Test Suite
+# ============================================================================
 
-pass_count=0
-fail_count=0
-
-test_pass() {
-    echo -e "${GREEN}✓ PASS${NC}: $1"
-    pass_count=$((pass_count + 1))
-}
-
-test_fail() {
-    echo -e "${RED}✗ FAIL${NC}: $1"
-    fail_count=$((fail_count + 1))
-}
-
-test_info() {
-    echo -e "${BLUE}ℹ INFO${NC}: $1"
-}
-
-echo ""
-echo "=== BitBot Helper Function Tests ==="
-echo ""
+test_suite_begin "BitBot Helper Function Tests"
 
 # Create temp directory for tests
 TEST_DIR=$(mktemp -d)
@@ -48,7 +31,7 @@ trap 'rm -rf "$TEST_DIR"' EXIT
 # Test 1: File system helpers
 # ============================================================================
 
-echo "[Test 1] File system helpers..."
+test_section "Test 1: File system helpers"
 
 # Test directory_exists
 mkdir -p "$TEST_DIR/testdir"
@@ -84,8 +67,7 @@ fi
 # Test 2: JSON helpers - SECURITY CRITICAL
 # ============================================================================
 
-echo ""
-echo "[Test 2] JSON helpers (security-critical)..."
+test_section "Test 2: JSON helpers (security-critical)"
 
 # Create test JSON file
 cat > "$TEST_DIR/test.json" << 'EOF'
@@ -165,8 +147,7 @@ fi
 # Test 3: Path helpers
 # ============================================================================
 
-echo ""
-echo "[Test 3] Path helpers..."
+test_section "Test 3: Path helpers"
 
 # Test get_absolute_path
 abs_path=$(get_absolute_path "$TEST_DIR")
@@ -196,8 +177,7 @@ fi
 # Test 4: Command helpers
 # ============================================================================
 
-echo ""
-echo "[Test 4] Command helpers..."
+test_section "Test 4: Command helpers"
 
 if command_exists bash; then
     test_pass "command_exists: correctly identifies existing command"
@@ -215,8 +195,7 @@ fi
 # Test 5: Config merging
 # ============================================================================
 
-echo ""
-echo "[Test 5] Config merging..."
+test_section "Test 5: Config merging"
 
 if command_exists jq; then
     # Create global and workspace configs
@@ -263,19 +242,7 @@ EOF
 fi
 
 # ============================================================================
-# Summary
+# Test Suite Complete
 # ============================================================================
 
-echo ""
-echo "=== Test Summary ==="
-echo -e "  Passed: ${GREEN}${pass_count}${NC}"
-echo -e "  Failed: ${RED}${fail_count}${NC}"
-echo ""
-
-if [[ $fail_count -eq 0 ]]; then
-    echo -e "${GREEN}✓ All helper function tests passed!${NC}"
-    exit 0
-else
-    echo -e "${RED}✗ Some helper function tests failed${NC}"
-    exit 1
-fi
+test_suite_end
