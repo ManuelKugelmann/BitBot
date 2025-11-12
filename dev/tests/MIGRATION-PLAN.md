@@ -4,11 +4,11 @@
 
 Migration of BitBot test suite to use shared helpers (`test-framework.sh` and `workspace-helper.sh`) to eliminate ~500 lines of duplicate code and standardize test infrastructure.
 
-**Status**: 7 of 26 tests migrated (26.9%) - **Phase 1 & 2 Partial** ✅
+**Status**: 8 of 26 tests migrated (30.8%) - **Phase 1-3 In Progress** ✅
 
 ## Migration Status
 
-### ✓ Completed (7 tests)
+### ✓ Completed (8 tests)
 
 | Test | Lines | Status | Notes |
 |------|-------|--------|-------|
@@ -18,6 +18,7 @@ Migration of BitBot test suite to use shared helpers (`test-framework.sh` and `w
 | `test-platform-detection.sh` | 109 | ✅ Phase 1 | Platform detection logic |
 | `test-shellcheck.sh` | 186 | ✅ Phase 1 | ShellCheck static analysis |
 | `test-workspace-init.sh` | 142 | ✅ Phase 2 | Workspace initialization + helper |
+| `test-helpers.sh` | 252 | ✅ Phase 3 | Helper function tests (17 tests) |
 | `test-bitbot-commands-migrated.sh` | 166 | ✅ (POC) | Can be removed after Phase 1 |
 
 ### High Priority - Simple CI Tests (5 tests)
@@ -274,7 +275,7 @@ Complete remaining tests:
 - [x] 3/26 tests migrated (11.5%) - Initial helpers created
 - [x] 6/26 tests migrated (23.1%) - **Phase 1 Complete** ✅
 - [x] 7/26 tests migrated (26.9%) - **Phase 2 Partial** (workspace-init done)
-- [ ] 8/26 tests migrated (30.8%) - After Phase 2 complete (interactive test)
+- [x] 8/26 tests migrated (30.8%) - **Phase 3 Started** (test-helpers done)
 - [ ] 12/26 tests migrated (46.2%) - After Phase 3
 - [ ] 15/26 tests migrated (57.7%) - After Phase 4
 - [ ] 26/26 tests migrated (100%) - Complete
