@@ -42,8 +42,11 @@ cd "$workspace"
 git init -q
 git config user.email "test@bitbot.local"
 git config user.name "BitBot Test"
-# Add a dummy git remote to avoid the git remote prompt
-git remote add origin https://github.com/test/test.git
+# Use environment variables to skip git prompts in non-interactive mode
+export BITBOT_CHOICE_GIT_NO_REPO=1  # Skip this time
+export BITBOT_CHOICE_GIT_NO_REMOTE=1  # Skip this time
+export BITBOT_CHOICE_GIT_UNPUSHED=1  # Skip this time
+export BITBOT_CHOICE_GIT_SAFETY=1  # Skip this time
 
 # Run bitbot init with --no-config
 if timeout 30 bash "$BITBOT_CMD" init --no-config &>/dev/null; then
@@ -83,8 +86,10 @@ cd "$workspace"
 git init -q
 git config user.email "test@bitbot.local"
 git config user.name "BitBot Test"
-# Add a dummy git remote to avoid the git remote prompt
-git remote add origin https://github.com/test/test.git
+# Use environment variables to skip git prompts in non-interactive mode
+export BITBOT_CHOICE_GIT_NO_REMOTE=1  # Skip this time
+export BITBOT_CHOICE_GIT_UNPUSHED=1  # Skip this time
+export BITBOT_CHOICE_GIT_SAFETY=1  # Skip this time
 
 # Run bitbot init with --config
 # Note: This will attempt to launch container, so we allow timeout
@@ -121,8 +126,10 @@ cd "$workspace"
 git init -q
 git config user.email "test@bitbot.local"
 git config user.name "BitBot Test"
-# Add a dummy git remote to avoid the git remote prompt
-git remote add origin https://github.com/test/test.git
+# Use environment variables to skip git prompts in non-interactive mode
+export BITBOT_CHOICE_GIT_NO_REMOTE=1  # Skip this time
+export BITBOT_CHOICE_GIT_UNPUSHED=1  # Skip this time
+export BITBOT_CHOICE_GIT_SAFETY=1  # Skip this time
 
 # Run with CI environment variable set
 export CI=true
@@ -160,8 +167,10 @@ cd "$workspace"
 git init -q
 git config user.email "test@bitbot.local"
 git config user.name "BitBot Test"
-# Add a dummy git remote to avoid the git remote prompt
-git remote add origin https://github.com/test/test.git
+# Use environment variables to skip git prompts in non-interactive mode
+export BITBOT_CHOICE_GIT_NO_REMOTE=1  # Skip this time
+export BITBOT_CHOICE_GIT_UNPUSHED=1  # Skip this time
+export BITBOT_CHOICE_GIT_SAFETY=1  # Skip this time
 
 # Run with stdin closed (simulates non-TTY environment)
 if timeout 30 bash "$BITBOT_CMD" init </dev/null &>/dev/null; then
@@ -193,8 +202,10 @@ cd "$workspace"
 git init -q
 git config user.email "test@bitbot.local"
 git config user.name "BitBot Test"
-# Add a dummy git remote to avoid the git remote prompt
-git remote add origin https://github.com/test/test.git
+# Use environment variables to skip git prompts in non-interactive mode
+export BITBOT_CHOICE_GIT_NO_REMOTE=1  # Skip this time
+export BITBOT_CHOICE_GIT_UNPUSHED=1  # Skip this time
+export BITBOT_CHOICE_GIT_SAFETY=1  # Skip this time
 
 # Run init
 timeout 30 bash "$BITBOT_CMD" init --no-config &>/dev/null || true
@@ -253,8 +264,10 @@ cd "$workspace"
 git init -q
 git config user.email "test@bitbot.local"
 git config user.name "BitBot Test"
-# Add a dummy git remote to avoid the git remote prompt
-git remote add origin https://github.com/test/test.git
+# Use environment variables to skip git prompts in non-interactive mode
+export BITBOT_CHOICE_GIT_NO_REMOTE=1  # Skip this time
+export BITBOT_CHOICE_GIT_UNPUSHED=1  # Skip this time
+export BITBOT_CHOICE_GIT_SAFETY=1  # Skip this time
 
 # First init
 timeout 30 bash "$BITBOT_CMD" init --no-config &>/dev/null || true

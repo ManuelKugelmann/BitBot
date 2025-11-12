@@ -148,7 +148,7 @@ validate_global_environment() {
 
     echo ""
     local should_fix
-    should_fix=$(prompt_yes_no "Update shell configuration now?" "yes")
+    should_fix=$(prompt_yes_no "Update shell configuration now?" "yes" "BITBOT_CHOICE_UPDATE_SHELL")
 
     if [[ "$should_fix" == "yes" ]]; then
         add_to_path
@@ -325,7 +325,7 @@ create_global_config() {
         echo ""
 
         local choice
-        choice=$(prompt_choice "Select default launch mode:" 1 "Terminal" "VS Code")
+        choice=$(prompt_choice "Select default launch mode:" 1 "BITBOT_CHOICE_LAUNCH_MODE" "Terminal" "VS Code")
         echo ""
 
         if [[ $choice -eq 1 ]]; then
@@ -399,7 +399,7 @@ add_to_path() {
 
     echo ""
     local should_add
-    should_add=$(prompt_yes_no "Add BitBot to your PATH?" "yes")
+    should_add=$(prompt_yes_no "Add BitBot to your PATH?" "yes" "BITBOT_CHOICE_ADD_PATH")
 
     if [[ "$should_add" != "yes" ]]; then
         echo ""

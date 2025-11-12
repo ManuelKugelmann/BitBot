@@ -59,6 +59,7 @@ recommend_git_push_before_init() {
 
         local choice
         choice=$(prompt_choice "What would you like to do?" 0 \
+            "BITBOT_CHOICE_GIT_NO_REPO" \
             "Exit and set up git" \
             "Skip this time" \
             "Skip permanently (update config)")
@@ -108,6 +109,7 @@ recommend_git_push_before_init() {
 
         local choice
         choice=$(prompt_choice "What would you like to do?" 0 \
+            "BITBOT_CHOICE_GIT_NO_REMOTE" \
             "Exit and add remote" \
             "Skip this time" \
             "Skip permanently (update config)")
@@ -162,6 +164,7 @@ recommend_git_push_before_init() {
 
         local choice
         choice=$(prompt_choice "What would you like to do?" 0 \
+            "BITBOT_CHOICE_GIT_UNPUSHED" \
             "Exit and push changes" \
             "Skip this time" \
             "Skip permanently (update config)")
@@ -257,6 +260,7 @@ check_git_safety() {
 
         local choice
         choice=$(prompt_choice "What would you like to do?" 1 \
+            "BITBOT_CHOICE_GIT_SAFETY" \
             "Exit and review .gitignore" \
             "Skip this time" \
             "Skip permanently (update config)")
