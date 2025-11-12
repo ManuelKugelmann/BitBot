@@ -2,49 +2,32 @@
 #
 # Test: Platform Detection
 # Tests bitbot's platform detection logic
+#
+# MIGRATED TO USE: test-framework.sh helper
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BITBOT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# Source test framework
+source "${SCRIPT_DIR}/helpers/test-framework.sh"
+
 # Source the prerequisites file to get detect_platform function
 export BITBOT_HOME="$BITBOT_ROOT"
 source "${BITBOT_ROOT}/core/util/prerequisites.sh"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# ============================================================================
+# Test Suite
+# ============================================================================
 
-pass_count=0
-fail_count=0
-
-test_pass() {
-    echo -e "${GREEN}✓ PASS${NC}: $1"
-    pass_count=$((pass_count + 1))
-}
-
-test_fail() {
-    echo -e "${RED}✗ FAIL${NC}: $1"
-    fail_count=$((fail_count + 1))
-}
-
-test_info() {
-    echo -e "${BLUE}ℹ INFO${NC}: $1"
-}
-
-echo ""
-echo "=== BitBot Platform Detection Tests ==="
-echo ""
+test_suite_begin "BitBot Platform Detection Tests"
 
 # ============================================================================
 # Test 1: detect_platform returns valid platform
 # ============================================================================
 
-echo "[Test 1] Platform detection returns valid value..."
+test_section "Test 1: Platform detection returns valid value"
 platform=$(detect_platform)
 if [[ "$platform" == "wsl" ]] || [[ "$platform" == "macos" ]] || [[ "$platform" == "linux" ]]; then
     test_pass "Platform detected as: $platform"
@@ -56,7 +39,7 @@ fi
 # Test 2: Platform detection is consistent
 # ============================================================================
 
-echo "[Test 2] Platform detection is consistent..."
+test_section "Test 2: Platform detection is consistent"
 platform1=$(detect_platform)
 platform2=$(detect_platform)
 if [[ "$platform1" == "$platform2" ]]; then
@@ -69,7 +52,7 @@ fi
 # Test 3: Detected platform matches /proc/version for WSL
 # ============================================================================
 
-echo "[Test 3] WSL detection matches /proc/version..."
+test_section "Test 3: WSL detection matches /proc/version"
 if grep -qi microsoft /proc/version 2>/dev/null; then
     # We're on WSL
     if [[ "$platform" == "wsl" ]]; then
@@ -90,7 +73,7 @@ fi
 # Test 4: Detected platform matches OSTYPE for macOS
 # ============================================================================
 
-echo "[Test 4] macOS detection matches OSTYPE..."
+test_section "Test 4: macOS detection matches OSTYPE"
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # We're on macOS
     if [[ "$platform" == "macos" ]]; then
@@ -111,7 +94,7 @@ fi
 # Test 5: Platform appears in bitbot version output
 # ============================================================================
 
-echo "[Test 5] Platform appears in version output..."
+test_section "Test 5: Platform appears in version output"
 version_output=$(bash "$BITBOT_ROOT/core/bitbot" version 2>&1)
 if echo "$version_output" | grep -q "Platform: $platform"; then
     test_pass "Platform shown in version output"
@@ -120,19 +103,7 @@ else
 fi
 
 # ============================================================================
-# Summary
+# Test Suite Complete
 # ============================================================================
 
-echo ""
-echo "=== Test Summary ==="
-echo -e "Passed: ${GREEN}$pass_count${NC}"
-echo -e "Failed: ${RED}$fail_count${NC}"
-echo ""
-
-if [[ $fail_count -eq 0 ]]; then
-    echo -e "${GREEN}All tests passed!${NC}"
-    exit 0
-else
-    echo -e "${RED}Some tests failed${NC}"
-    exit 1
-fi
+test_suite_end

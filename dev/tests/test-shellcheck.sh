@@ -2,55 +2,32 @@
 #
 # Test: ShellCheck Static Analysis
 # Runs shellcheck on all bash scripts in the project
+#
+# MIGRATED TO USE: test-framework.sh helper
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BITBOT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Source test framework
+source "${SCRIPT_DIR}/helpers/test-framework.sh"
 
-pass_count=0
-fail_count=0
-warning_count=0
+# ============================================================================
+# Test Suite
+# ============================================================================
 
-test_pass() {
-    echo -e "${GREEN}✓ PASS${NC}: $1"
-    pass_count=$((pass_count + 1))
-}
-
-test_fail() {
-    echo -e "${RED}✗ FAIL${NC}: $1"
-    fail_count=$((fail_count + 1))
-}
-
-test_warning() {
-    echo -e "${YELLOW}⚠ WARN${NC}: $1"
-    warning_count=$((warning_count + 1))
-}
-
-test_info() {
-    echo -e "${BLUE}ℹ INFO${NC}: $1"
-}
-
-echo ""
-echo "=== BitBot ShellCheck Static Analysis ==="
-echo ""
+test_suite_begin "BitBot ShellCheck Static Analysis"
 
 # ============================================================================
 # Test 1: Check if shellcheck is available
 # ============================================================================
 
-echo "[Test 1] Check shellcheck availability..."
+test_section "Test 1: Check shellcheck availability"
 if command -v shellcheck &>/dev/null; then
     test_pass "shellcheck is available"
     shellcheck_version=$(shellcheck --version | grep '^version:' | awk '{print $2}')
-    test_info "ShellCheck version: $shellcheck_version"
+    echo "  ℹ ShellCheck version: $shellcheck_version"
 else
     test_fail "shellcheck not found - install with: apt-get install shellcheck"
     exit 1
@@ -60,15 +37,14 @@ fi
 # Test 2: Analyze main bitbot script
 # ============================================================================
 
-echo ""
-echo "[Test 2] Analyzing main bitbot script..."
+test_section "Test 2: Analyzing main bitbot script"
 
 if [[ -f "$BITBOT_ROOT/core/bitbot" ]]; then
     if shellcheck -x -e SC1091 "$BITBOT_ROOT/core/bitbot" 2>&1 | tee /tmp/shellcheck-bitbot.log; then
         test_pass "bitbot script: no issues"
     else
         test_fail "bitbot script: has issues (see above)"
-        test_info "Detailed output saved to /tmp/shellcheck-bitbot.log"
+        echo "  ℹ Detailed output saved to /tmp/shellcheck-bitbot.log"
     fi
 else
     test_fail "bitbot script not found"
@@ -78,8 +54,7 @@ fi
 # Test 3: Analyze core/ scripts
 # ============================================================================
 
-echo ""
-echo "[Test 3] Analyzing core/ scripts..."
+test_section "Test 3: Analyzing core/ scripts"
 
 core_scripts_count=0
 core_scripts_pass=0
@@ -95,10 +70,10 @@ if [[ -d "$BITBOT_ROOT/core" ]]; then
 
         # Run shellcheck with sourcing support, exclude SC1091 (source following)
         if shellcheck -x -e SC1091 "$script" 2>&1 | tee "/tmp/shellcheck-${script_name}.log"; then
-            echo -e "    ${GREEN}✓${NC} $script_name: no issues"
+            echo -e "    ✓ $script_name: no issues"
             core_scripts_pass=$((core_scripts_pass + 1))
         else
-            echo -e "    ${RED}✗${NC} $script_name: has issues"
+            echo -e "    ✗ $script_name: has issues"
             core_scripts_fail=$((core_scripts_fail + 1))
         fi
     done < <(find "$BITBOT_ROOT/core" -name "*.sh" -type f -print0)
@@ -117,8 +92,7 @@ fi
 # Test 4: Analyze container/bitbot/ scripts
 # ============================================================================
 
-echo ""
-echo "[Test 4] Analyzing container/bitbot/ scripts..."
+test_section "Test 4: Analyzing container/bitbot/ scripts"
 
 container_scripts_count=0
 container_scripts_pass=0
@@ -132,10 +106,10 @@ if [[ -d "$BITBOT_ROOT/container/bitbot" ]]; then
         echo "  Checking: bitbot (container)"
 
         if shellcheck -x -e SC1091 "$BITBOT_ROOT/container/bitbot/bitbot" 2>&1 | tee "/tmp/shellcheck-container-bitbot.log"; then
-            echo -e "    ${GREEN}✓${NC} container bitbot: no issues"
+            echo -e "    ✓ container bitbot: no issues"
             container_scripts_pass=$((container_scripts_pass + 1))
         else
-            echo -e "    ${RED}✗${NC} container bitbot: has issues"
+            echo -e "    ✗ container bitbot: has issues"
             container_scripts_fail=$((container_scripts_fail + 1))
         fi
     fi
@@ -149,10 +123,10 @@ if [[ -d "$BITBOT_ROOT/container/bitbot" ]]; then
         echo "  Checking: $script_name"
 
         if shellcheck -x -e SC1091 "$script" 2>&1 | tee "/tmp/shellcheck-container-${script_name}.log"; then
-            echo -e "    ${GREEN}✓${NC} $script_name: no issues"
+            echo -e "    ✓ $script_name: no issues"
             container_scripts_pass=$((container_scripts_pass + 1))
         else
-            echo -e "    ${RED}✗${NC} $script_name: has issues"
+            echo -e "    ✗ $script_name: has issues"
             container_scripts_fail=$((container_scripts_fail + 1))
         fi
     done < <(find "$BITBOT_ROOT/container/bitbot" -name "*.sh" -type f -print0 2>/dev/null || true)
@@ -164,15 +138,14 @@ if [[ -d "$BITBOT_ROOT/container/bitbot" ]]; then
         test_fail "$container_scripts_fail/$container_scripts_count container scripts have issues"
     fi
 else
-    test_warning "container/bitbot/ directory not found"
+    test_skip "container/bitbot/ analysis" "container/bitbot/ directory not found"
 fi
 
 # ============================================================================
 # Test 5: Check for syntax errors only (quick check)
 # ============================================================================
 
-echo ""
-echo "[Test 5] Quick syntax check (bash -n)..."
+test_section "Test 5: Quick syntax check (bash -n)"
 
 syntax_errors=0
 
@@ -197,32 +170,16 @@ else
 fi
 
 # ============================================================================
-# Summary
+# Test Suite Complete
 # ============================================================================
 
-echo ""
-echo "=== ShellCheck Summary ==="
 echo ""
 echo "Scripts analyzed:"
 echo "  Main script: 1"
 echo "  Core scripts: $core_scripts_count"
 echo "  Container scripts: $container_scripts_count"
 echo ""
-echo "Results:"
-echo -e "  Passed: ${GREEN}${pass_count}${NC}"
-echo -e "  Failed: ${RED}${fail_count}${NC}"
-echo -e "  Warnings: ${YELLOW}${warning_count}${NC}"
+echo "  ℹ Note: Some warnings may be acceptable. Review logs in /tmp/shellcheck-*.log"
 echo ""
 
-if [[ $fail_count -eq 0 ]]; then
-    echo -e "${GREEN}✓ All shellcheck tests passed!${NC}"
-    echo ""
-    test_info "Note: Some warnings may be acceptable. Review logs in /tmp/shellcheck-*.log"
-    exit 0
-else
-    echo -e "${RED}✗ Some shellcheck tests failed${NC}"
-    echo ""
-    echo "Review the issues above and fix them."
-    echo "Detailed logs saved to /tmp/shellcheck-*.log"
-    exit 1
-fi
+test_suite_end
