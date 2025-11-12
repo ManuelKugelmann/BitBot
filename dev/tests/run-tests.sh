@@ -145,15 +145,19 @@ run_test "Helper Functions" \
 run_test "BitBot Commands (Migrated)" \
     "${SCRIPT_DIR}/test-bitbot-commands-migrated.sh"
 
+# Test 5: Bare BitBot and Config Mode Commands
+run_test "Bare BitBot and Config Mode" \
+    "${SCRIPT_DIR}/test-bitbot-bare-and-config.sh"
+
 # ============================================================================
 # Workspace Tests (Fast - Always Run)
 # ============================================================================
 
-# Test 5: Workspace Init
+# Test 6: Workspace Init
 run_test "Workspace Initialization" \
     "${SCRIPT_DIR}/test-workspace-init.sh"
 
-# Test 6: BitBot Init (Non-Interactive)
+# Test 7: BitBot Init (Non-Interactive)
 run_test "BitBot Init (Non-Interactive)" \
     "${SCRIPT_DIR}/test-bitbot-init-non-interactive.sh"
 
@@ -161,11 +165,11 @@ run_test "BitBot Init (Non-Interactive)" \
 # Container Tests (Fast - Always Run)
 # ============================================================================
 
-# Test 7: Container BitBot
+# Test 8: Container BitBot
 run_test "Container BitBot" \
     "${SCRIPT_DIR}/test-container-bitbot.sh"
 
-# Test 8: Container BitBot Start/Resume
+# Test 9: Container BitBot Start/Resume
 run_test "Container BitBot Start/Resume" \
     "${SCRIPT_DIR}/test-container-bitbot-start.sh"
 
@@ -173,11 +177,11 @@ run_test "Container BitBot Start/Resume" \
 # Infrastructure Tests (Fast - Always Run)
 # ============================================================================
 
-# Test 9: Infrastructure Sync
+# Test 10: Infrastructure Sync
 run_test "Infrastructure Sync" \
     "${SCRIPT_DIR}/test-infrastructure-sync.sh"
 
-# Test 10: Merge DevContainer
+# Test 11: Merge DevContainer
 run_test "Merge DevContainer" \
     "${SCRIPT_DIR}/test-merge-devcontainer.sh"
 
