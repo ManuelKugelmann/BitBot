@@ -4,11 +4,11 @@
 
 Migration of BitBot test suite to use shared helpers (`test-framework.sh` and `workspace-helper.sh`) to eliminate ~500 lines of duplicate code and standardize test infrastructure.
 
-**Status**: 9 of 26 tests migrated (34.6%) - **Phase 3 In Progress** ✅
+**Status**: 10 of 26 tests migrated (38.5%) - **Phase 3 In Progress** ✅
 
 ## Migration Status
 
-### ✓ Completed (9 tests)
+### ✓ Completed (10 tests)
 
 | Test | Lines | Status | Notes |
 |------|-------|--------|-------|
@@ -20,6 +20,7 @@ Migration of BitBot test suite to use shared helpers (`test-framework.sh` and `w
 | `test-workspace-init.sh` | 142 | ✅ Phase 2 | Workspace initialization + helper |
 | `test-helpers.sh` | 252 | ✅ Phase 3 | Helper function tests (17 tests) |
 | `test-merge-devcontainer.sh` | 273 | ✅ Phase 3 | DevContainer JSON merging (22/23 tests) |
+| `test-bitbot-integration.sh` | 245 | ✅ Phase 3 | Integration test (19 tests, 100%) |
 | `test-bitbot-commands-migrated.sh` | 166 | ✅ (POC) | Can be removed after Phase 1 |
 
 ### High Priority - Simple CI Tests (5 tests)
@@ -278,6 +279,7 @@ Complete remaining tests:
 - [x] 7/26 tests migrated (26.9%) - **Phase 2 Partial** (workspace-init done)
 - [x] 8/26 tests migrated (30.8%) - **Phase 3 Started** (test-helpers done)
 - [x] 9/26 tests migrated (34.6%) - **Phase 3 Continuing** (merge-devcontainer done)
+- [x] 10/26 tests migrated (38.5%) - **Phase 3 Continuing** (bitbot-integration done)
 - [ ] 12/26 tests migrated (46.2%) - After Phase 3 complete
 - [ ] 15/26 tests migrated (57.7%) - After Phase 4
 - [ ] 26/26 tests migrated (100%) - Complete

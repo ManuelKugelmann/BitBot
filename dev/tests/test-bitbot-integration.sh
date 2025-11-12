@@ -235,46 +235,11 @@ else
 fi
 
 # ============================================================================
-# Cleanup
+# Test Suite Complete
 # ============================================================================
 
 echo ""
-echo -e "${BLUE}[Cleanup]${NC} Removing test workspace"
-cd /tmp
-rm -rf "$TEST_WORKSPACE"
-
-# ============================================================================
-# Summary
-# ============================================================================
-
-echo ""
-echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║          Test Suite Summary            ║${NC}"
-echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
-echo ""
-echo -e "  Total:   ${BLUE}${total_tests}${NC}"
-echo -e "  Passed:  ${GREEN}${passed_tests}${NC}"
-echo -e "  Failed:  ${RED}${failed_tests}${NC}"
+echo "  ℹ Test workspace will be auto-cleaned by trap"
 echo ""
 
-# Calculate success rate
-if [[ $total_tests -gt 0 ]]; then
-    success_rate=$((passed_tests * 100 / total_tests))
-    echo -e "  Success Rate: ${success_rate}%"
-    echo ""
-fi
-
-# Final result
-if [[ $failed_tests -eq 0 ]]; then
-    echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║     ALL TESTS PASSED! ✓                ║${NC}"
-    echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
-    echo ""
-    exit 0
-else
-    echo -e "${RED}╔════════════════════════════════════════╗${NC}"
-    echo -e "${RED}║     SOME TESTS FAILED ✗                ║${NC}"
-    echo -e "${RED}╚════════════════════════════════════════╝${NC}"
-    echo ""
-    exit 1
-fi
+test_suite_end
