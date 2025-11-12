@@ -263,7 +263,7 @@ test_section "Initialize BitBot workspace"
 # Note: bitbot init will try to launch config mode at the end,
 # which may fail in test environment. We capture the output and
 # check for successful workspace initialization instead.
-bitbot init --template bitbot-base &>/tmp/bitbot-init-$$.log || true
+bitbot init --no-config &>/tmp/bitbot-init-$$.log || true
 
 # Check if workspace was initialized (even if config launch failed)
 if [[ -d ".bitbot" ]] && [[ -d ".devcontainer" ]] && [[ -f ".bitbot/config.json" ]]; then

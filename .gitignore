@@ -61,6 +61,10 @@ credentials.json
 # Claude Code runtime files
 .claude/.pid-session-map/
 
+# BitBot workspace internals (gitignore tmp/, keep infrastructure)
+.bitbot/tmp/
+.bitbot/internal/global/
+
 # Test coverage
 coverage/
 *.cover
