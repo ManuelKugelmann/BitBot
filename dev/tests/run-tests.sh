@@ -181,27 +181,31 @@ run_test "Infrastructure Sync" \
 run_test "Merge DevContainer" \
     "${SCRIPT_DIR}/test-merge-devcontainer.sh"
 
+# Test 11: Project Migration
+run_test "Project Migration" \
+    "${SCRIPT_DIR}/test-project-migration.sh"
+
 # ============================================================================
 # Session/Wrapper Tests (Fast - Always Run)
 # ============================================================================
 
-# Test 11: Wrapper Layer 1
+# Test 12: Wrapper Layer 1
 run_test "Wrapper Layer 1" \
     "${SCRIPT_DIR}/test-wrapper-layer1.sh"
 
-# Test 12: Wrapper Full
+# Test 13: Wrapper Full
 run_test "Wrapper Full" \
     "${SCRIPT_DIR}/test-wrapper.sh"
 
-# Test 13: Session Management
+# Test 14: Session Management
 run_test "Session Management" \
     "${SCRIPT_DIR}/test-session-management.sh"
 
-# Test 14: Session Hook (No Wrapper)
+# Test 15: Session Hook (No Wrapper)
 run_test "Session Hook (No Wrapper)" \
     "${SCRIPT_DIR}/test-session-hook-no-wrapper.sh"
 
-# Test 15: Session Hook (With Wrapper)
+# Test 16: Session Hook (With Wrapper)
 run_test "Session Hook (With Wrapper)" \
     "${SCRIPT_DIR}/test-session-hook-with-wrapper.sh"
 
@@ -209,11 +213,11 @@ run_test "Session Hook (With Wrapper)" \
 # Pipe/IPC Tests (Fast - Always Run)
 # ============================================================================
 
-# Test 16: Pipe Session Communication
+# Test 17: Pipe Session Communication
 run_test "Pipe Session Communication" \
     "${SCRIPT_DIR}/test-pipe-session-communication.sh"
 
-# Test 17: Pipe Session IPC
+# Test 18: Pipe Session IPC
 run_test "Pipe Session IPC" \
     "${SCRIPT_DIR}/test-pipe-session-ipc.sh"
 
@@ -222,31 +226,31 @@ run_test "Pipe Session IPC" \
 # ============================================================================
 
 if [[ "$QUICK" == "false" ]]; then
-    # Test 18: User Flow - Init
+    # Test 19: User Flow - Init
     run_test "User Flow: Init" \
         "${SCRIPT_DIR}/test-user-flow-init.sh"
 
-    # Test 19: User Flow - Workspace Init
+    # Test 20: User Flow - Workspace Init
     run_test "User Flow: Workspace Init" \
         "${SCRIPT_DIR}/test-user-flow-workspace-init.sh"
 
-    # Test 20: User Flow - Context Switch
+    # Test 21: User Flow - Context Switch
     run_test "User Flow: Context Switch" \
         "${SCRIPT_DIR}/test-user-flow-context-switch.sh"
 
-    # Test 21: User Flow - Moved
+    # Test 22: User Flow - Moved
     run_test "User Flow: Moved" \
         "${SCRIPT_DIR}/test-user-flow-moved.sh"
 
-    # Test 22: User Flow - Container Commands
+    # Test 23: User Flow - Container Commands
     run_test "User Flow: Container Commands" \
         "${SCRIPT_DIR}/test-user-flow-container-commands.sh"
 
-    # Test 23: User Flow - Container Interactive
+    # Test 24: User Flow - Container Interactive
     run_test "User Flow: Container Interactive" \
         "${SCRIPT_DIR}/test-user-flow-container-interactive.sh"
 
-    # Test 24: User Flows (Combined)
+    # Test 25: User Flows (Combined)
     run_test "User Flows (Combined)" \
         "${SCRIPT_DIR}/test-user-flows.sh"
 else
@@ -261,7 +265,7 @@ fi
 # ============================================================================
 
 if [[ "$QUICK" == "false" ]]; then
-    # Test 25: BitBot Init (Interactive with tmux)
+    # Test 26: BitBot Init (Interactive with tmux)
     run_test "BitBot Init (Interactive)" \
         "${SCRIPT_DIR}/test-bitbot-init-interactive.sh"
 else
@@ -276,11 +280,11 @@ fi
 # ============================================================================
 
 if [[ "$QUICK" == "false" ]]; then
-    # Test 26: Filesystem Performance
+    # Test 27: Filesystem Performance
     run_test "Filesystem Performance (WSL vs /mnt/c/)" \
         "${SCRIPT_DIR}/test-filesystem-performance.sh"
 
-    # Test 27: DevContainer Filesystem Performance
+    # Test 28: DevContainer Filesystem Performance
     if [[ -f "${SCRIPT_DIR}/test-devcontainer-filesystem-performance.sh" ]]; then
         run_test "DevContainer Filesystem Performance" \
             "${SCRIPT_DIR}/test-devcontainer-filesystem-performance.sh"
@@ -297,7 +301,7 @@ fi
 # ============================================================================
 
 if [[ "$QUICK" == "false" ]]; then
-    # Test 28: DevContainer Locations
+    # Test 29: DevContainer Locations
     if [[ -f "${SCRIPT_DIR}/test-devcontainer-locations.sh" ]]; then
         run_test "DevContainer Functionality (WSL home and /mnt/c/)" \
             "${SCRIPT_DIR}/test-devcontainer-locations.sh"
@@ -314,13 +318,13 @@ fi
 # ============================================================================
 
 if [[ "$QUICK" == "false" ]]; then
-    # Test 29: BitBot Integration
+    # Test 30: BitBot Integration
     if [[ -f "${SCRIPT_DIR}/test-bitbot-integration.sh" ]]; then
         run_test "BitBot Integration" \
             "${SCRIPT_DIR}/test-bitbot-integration.sh"
     fi
 
-    # Test 30: Full Integration Test
+    # Test 31: Full Integration Test
     if [[ -f "${SCRIPT_DIR}/test-integration.sh" ]]; then
         run_test "Full Integration Test" \
             "${SCRIPT_DIR}/test-integration.sh"
@@ -336,7 +340,7 @@ fi
 # Quality Tests (Fast - Always Run)
 # ============================================================================
 
-# Test 31: Shellcheck (if available)
+# Test 32: Shellcheck (if available)
 if command -v shellcheck >/dev/null 2>&1; then
     run_test "Shellcheck" \
         "${SCRIPT_DIR}/test-shellcheck.sh"
@@ -352,7 +356,7 @@ fi
 # ============================================================================
 
 if [[ -n "${CODESPACES}" ]]; then
-    # Test 32: Codespaces
+    # Test 33: Codespaces
     run_test "GitHub Codespaces" \
         "${SCRIPT_DIR}/test-codespaces.sh"
 else
