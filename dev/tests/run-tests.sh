@@ -125,58 +125,241 @@ run_test() {
 echo -e "${CYAN}Starting test suite...${NC}"
 echo ""
 
+# ============================================================================
+# Core Unit Tests (Fast - Always Run)
+# ============================================================================
+
 # Test 1: Prerequisites
 run_test "Prerequisites Check" \
     "${SCRIPT_DIR}/test-prerequisites.sh"
 
-# Test 2: Workspace Init
-run_test "Workspace Initialization" \
-    "${SCRIPT_DIR}/test-workspace-init.sh"
-
-# Test 3: BitBot Commands
-run_test "BitBot Commands" \
-    "${SCRIPT_DIR}/test-bitbot-commands.sh"
-
-# Test 4: Platform Detection
+# Test 2: Platform Detection
 run_test "Platform Detection" \
     "${SCRIPT_DIR}/test-platform-detection.sh"
 
-# Test 5: Filesystem Performance (WSL only, skipped in quick mode)
-if [[ "$QUICK" == "true" ]]; then
-    run_test "Filesystem Performance (WSL vs /mnt/c/)" \
-        "${SCRIPT_DIR}/test-filesystem-performance.sh" \
-        true  # skip=true
+# Test 3: Helper Functions
+run_test "Helper Functions" \
+    "${SCRIPT_DIR}/test-helpers.sh"
+
+# Test 4: BitBot Commands (Migrated Framework)
+run_test "BitBot Commands (Migrated)" \
+    "${SCRIPT_DIR}/test-bitbot-commands-migrated.sh"
+
+# ============================================================================
+# Workspace Tests (Fast - Always Run)
+# ============================================================================
+
+# Test 5: Workspace Init
+run_test "Workspace Initialization" \
+    "${SCRIPT_DIR}/test-workspace-init.sh"
+
+# Test 6: BitBot Init (Non-Interactive)
+run_test "BitBot Init (Non-Interactive)" \
+    "${SCRIPT_DIR}/test-bitbot-init-non-interactive.sh"
+
+# ============================================================================
+# Container Tests (Fast - Always Run)
+# ============================================================================
+
+# Test 7: Container BitBot
+run_test "Container BitBot" \
+    "${SCRIPT_DIR}/test-container-bitbot.sh"
+
+# Test 8: Container BitBot Start/Resume
+run_test "Container BitBot Start/Resume" \
+    "${SCRIPT_DIR}/test-container-bitbot-start.sh"
+
+# ============================================================================
+# Infrastructure Tests (Fast - Always Run)
+# ============================================================================
+
+# Test 9: Infrastructure Sync
+run_test "Infrastructure Sync" \
+    "${SCRIPT_DIR}/test-infrastructure-sync.sh"
+
+# Test 10: Merge DevContainer
+run_test "Merge DevContainer" \
+    "${SCRIPT_DIR}/test-merge-devcontainer.sh"
+
+# ============================================================================
+# Session/Wrapper Tests (Fast - Always Run)
+# ============================================================================
+
+# Test 11: Wrapper Layer 1
+run_test "Wrapper Layer 1" \
+    "${SCRIPT_DIR}/test-wrapper-layer1.sh"
+
+# Test 12: Wrapper Full
+run_test "Wrapper Full" \
+    "${SCRIPT_DIR}/test-wrapper.sh"
+
+# Test 13: Session Management
+run_test "Session Management" \
+    "${SCRIPT_DIR}/test-session-management.sh"
+
+# Test 14: Session Hook (No Wrapper)
+run_test "Session Hook (No Wrapper)" \
+    "${SCRIPT_DIR}/test-session-hook-no-wrapper.sh"
+
+# Test 15: Session Hook (With Wrapper)
+run_test "Session Hook (With Wrapper)" \
+    "${SCRIPT_DIR}/test-session-hook-with-wrapper.sh"
+
+# ============================================================================
+# Pipe/IPC Tests (Fast - Always Run)
+# ============================================================================
+
+# Test 16: Pipe Session Communication
+run_test "Pipe Session Communication" \
+    "${SCRIPT_DIR}/test-pipe-session-communication.sh"
+
+# Test 17: Pipe Session IPC
+run_test "Pipe Session IPC" \
+    "${SCRIPT_DIR}/test-pipe-session-ipc.sh"
+
+# ============================================================================
+# User Flow Tests (Medium - Skip in Quick Mode)
+# ============================================================================
+
+if [[ "$QUICK" == "false" ]]; then
+    # Test 18: User Flow - Init
+    run_test "User Flow: Init" \
+        "${SCRIPT_DIR}/test-user-flow-init.sh"
+
+    # Test 19: User Flow - Workspace Init
+    run_test "User Flow: Workspace Init" \
+        "${SCRIPT_DIR}/test-user-flow-workspace-init.sh"
+
+    # Test 20: User Flow - Context Switch
+    run_test "User Flow: Context Switch" \
+        "${SCRIPT_DIR}/test-user-flow-context-switch.sh"
+
+    # Test 21: User Flow - Moved
+    run_test "User Flow: Moved" \
+        "${SCRIPT_DIR}/test-user-flow-moved.sh"
+
+    # Test 22: User Flow - Container Commands
+    run_test "User Flow: Container Commands" \
+        "${SCRIPT_DIR}/test-user-flow-container-commands.sh"
+
+    # Test 23: User Flow - Container Interactive
+    run_test "User Flow: Container Interactive" \
+        "${SCRIPT_DIR}/test-user-flow-container-interactive.sh"
+
+    # Test 24: User Flows (Combined)
+    run_test "User Flows (Combined)" \
+        "${SCRIPT_DIR}/test-user-flows.sh"
 else
-    run_test "Filesystem Performance (WSL vs /mnt/c/)" \
-        "${SCRIPT_DIR}/test-filesystem-performance.sh"
+    echo ""
+    echo -e "${YELLOW}⊘ SKIPPED${NC}: 7 User Flow Tests (--quick mode)"
+    skipped_tests=$((skipped_tests + 7))
+    total_tests=$((total_tests + 7))
 fi
 
-# Test 6: DevContainer Locations (WSL only, skipped in quick mode)
-if [[ "$QUICK" == "true" ]]; then
-    run_test "DevContainer Functionality (WSL home and /mnt/c/)" \
-        "${SCRIPT_DIR}/test-devcontainer-locations.sh" \
-        true  # skip=true in quick mode
+# ============================================================================
+# Interactive Tests (Slow - Skip in Quick Mode)
+# ============================================================================
+
+if [[ "$QUICK" == "false" ]]; then
+    # Test 25: BitBot Init (Interactive with tmux)
+    run_test "BitBot Init (Interactive)" \
+        "${SCRIPT_DIR}/test-bitbot-init-interactive.sh"
 else
+    echo ""
+    echo -e "${YELLOW}⊘ SKIPPED${NC}: BitBot Init (Interactive) (--quick mode)"
+    skipped_tests=$((skipped_tests + 1))
+    total_tests=$((total_tests + 1))
+fi
+
+# ============================================================================
+# Performance Tests (Slow - Skip in Quick Mode)
+# ============================================================================
+
+if [[ "$QUICK" == "false" ]]; then
+    # Test 26: Filesystem Performance
+    run_test "Filesystem Performance (WSL vs /mnt/c/)" \
+        "${SCRIPT_DIR}/test-filesystem-performance.sh"
+
+    # Test 27: DevContainer Filesystem Performance
+    if [[ -f "${SCRIPT_DIR}/test-devcontainer-filesystem-performance.sh" ]]; then
+        run_test "DevContainer Filesystem Performance" \
+            "${SCRIPT_DIR}/test-devcontainer-filesystem-performance.sh"
+    fi
+else
+    echo ""
+    echo -e "${YELLOW}⊘ SKIPPED${NC}: 2 Performance Tests (--quick mode)"
+    skipped_tests=$((skipped_tests + 2))
+    total_tests=$((total_tests + 2))
+fi
+
+# ============================================================================
+# DevContainer Tests (Very Slow - Skip in Quick Mode)
+# ============================================================================
+
+if [[ "$QUICK" == "false" ]]; then
+    # Test 28: DevContainer Locations
     if [[ -f "${SCRIPT_DIR}/test-devcontainer-locations.sh" ]]; then
         run_test "DevContainer Functionality (WSL home and /mnt/c/)" \
             "${SCRIPT_DIR}/test-devcontainer-locations.sh"
     fi
+else
+    echo ""
+    echo -e "${YELLOW}⊘ SKIPPED${NC}: DevContainer Locations Test (--quick mode)"
+    skipped_tests=$((skipped_tests + 1))
+    total_tests=$((total_tests + 1))
 fi
 
-# Test 7: Container BitBot (always run, fast)
-run_test "Container BitBot Test Suite" \
-    "${SCRIPT_DIR}/test-container-bitbot.sh"
+# ============================================================================
+# Integration Tests (Very Slow - Skip in Quick Mode)
+# ============================================================================
 
-# Test 8: Integration tests (skipped in quick mode)
-if [[ "$QUICK" == "true" ]]; then
-    run_test "Full Integration Test" \
-        "${SCRIPT_DIR}/test-integration.sh" \
-        true  # skip=true
-else
+if [[ "$QUICK" == "false" ]]; then
+    # Test 29: BitBot Integration
+    if [[ -f "${SCRIPT_DIR}/test-bitbot-integration.sh" ]]; then
+        run_test "BitBot Integration" \
+            "${SCRIPT_DIR}/test-bitbot-integration.sh"
+    fi
+
+    # Test 30: Full Integration Test
     if [[ -f "${SCRIPT_DIR}/test-integration.sh" ]]; then
         run_test "Full Integration Test" \
             "${SCRIPT_DIR}/test-integration.sh"
     fi
+else
+    echo ""
+    echo -e "${YELLOW}⊘ SKIPPED${NC}: 2 Integration Tests (--quick mode)"
+    skipped_tests=$((skipped_tests + 2))
+    total_tests=$((total_tests + 2))
+fi
+
+# ============================================================================
+# Quality Tests (Fast - Always Run)
+# ============================================================================
+
+# Test 31: Shellcheck (if available)
+if command -v shellcheck >/dev/null 2>&1; then
+    run_test "Shellcheck" \
+        "${SCRIPT_DIR}/test-shellcheck.sh"
+else
+    echo ""
+    echo -e "${YELLOW}⊘ SKIPPED${NC}: Shellcheck (shellcheck not installed)"
+    skipped_tests=$((skipped_tests + 1))
+    total_tests=$((total_tests + 1))
+fi
+
+# ============================================================================
+# Cloud Environment Tests (Skip if not in Codespaces)
+# ============================================================================
+
+if [[ -n "${CODESPACES}" ]]; then
+    # Test 32: Codespaces
+    run_test "GitHub Codespaces" \
+        "${SCRIPT_DIR}/test-codespaces.sh"
+else
+    echo ""
+    echo -e "${YELLOW}⊘ SKIPPED${NC}: Codespaces Test (not running in GitHub Codespaces)"
+    skipped_tests=$((skipped_tests + 1))
+    total_tests=$((total_tests + 1))
 fi
 
 # ============================================================================
