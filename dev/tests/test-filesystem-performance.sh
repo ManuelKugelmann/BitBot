@@ -4,18 +4,15 @@
 # Tests performance impact of project location on Windows/WSL
 #
 # Usage: ./test-filesystem-performance.sh [--quick]
+#
+# MIGRATED TO USE: test-framework.sh
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+# Source test framework
+source "${SCRIPT_DIR}/helpers/test-framework.sh"
 
 # Parse arguments
 QUICK=false
@@ -23,22 +20,12 @@ if [[ "${1:-}" == "--quick" ]]; then
     QUICK=true
 fi
 
-echo ""
-echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║   Filesystem Performance Test          ║${NC}"
-echo -e "${CYAN}║   WSL vs Windows Mount (/mnt/c/)       ║${NC}"
-echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
-echo ""
+test_suite_begin "Filesystem Performance Test - WSL vs Windows Mount"
 
 # Check if running on WSL
 if ! grep -qi microsoft /proc/version 2>/dev/null; then
-    echo -e "${YELLOW}⊘ SKIPPED${NC}: This test only runs on WSL"
-    echo ""
-    echo "This test compares filesystem performance between:"
-    echo "  - WSL native filesystem (ext4)"
-    echo "  - Windows mount (/mnt/c/ - 9P protocol)"
-    echo ""
-    exit 0
+    test_skip "All tests" "Only runs on WSL - compares ext4 vs 9P filesystem performance"
+    test_suite_end
 fi
 
 # Test locations
@@ -73,7 +60,7 @@ test_file_creation() {
         file_count=100
     fi
 
-    echo "${BLUE}Test 1: File Creation Speed ($location_name)${NC}" >&2
+    echo "Test 1: File Creation Speed ($location_name)" >&2
     echo "Creating $file_count files..." >&2
 
     local start_time=$(date +%s.%N)
@@ -92,15 +79,14 @@ test_file_creation() {
     echo "$duration"
 }
 
-echo -e "${CYAN}═══ Test 1: File Creation Speed ═══${NC}"
-echo ""
+test_section "Test 1: File Creation Speed"
 
 WSL_FILE_TIME=$(test_file_creation "$WSL_TEST_DIR" "WSL filesystem")
 WIN_FILE_TIME=$(test_file_creation "$WIN_TEST_DIR" "Windows mount")
 
 # Calculate ratio
 FILE_RATIO=$(echo "scale=1; $WIN_FILE_TIME / $WSL_FILE_TIME" | bc)
-echo -e "Result: Windows mount is ${YELLOW}${FILE_RATIO}x slower${NC} for file creation"
+echo "Result: Windows mount is ${FILE_RATIO}x slower for file creation"
 echo ""
 
 # ============================================================================
@@ -111,7 +97,7 @@ test_git_operations() {
     local test_dir="$1"
     local location_name="$2"
 
-    echo "${BLUE}Test 2: Git Operations ($location_name)${NC}" >&2
+    echo "Test 2: Git Operations ($location_name)" >&2
 
     cd "$test_dir"
 
@@ -166,14 +152,13 @@ test_git_operations() {
     echo "$total_time"
 }
 
-echo -e "${CYAN}═══ Test 2: Git Operations ═══${NC}"
-echo ""
+test_section "Test 2: Git Operations"
 
 WSL_GIT_TIME=$(test_git_operations "$WSL_TEST_DIR" "WSL filesystem")
 WIN_GIT_TIME=$(test_git_operations "$WIN_TEST_DIR" "Windows mount")
 
 GIT_RATIO=$(echo "scale=1; $WIN_GIT_TIME / $WSL_GIT_TIME" | bc)
-echo -e "Result: Windows mount is ${YELLOW}${GIT_RATIO}x slower${NC} for git operations"
+echo "Result: Windows mount is ${GIT_RATIO}x slower for git operations"
 echo ""
 
 # ============================================================================
@@ -189,7 +174,7 @@ test_sequential_io() {
         block_count=50
     fi
 
-    echo "${BLUE}Test 3: Sequential I/O ($location_name)${NC}" >&2
+    echo "Test 3: Sequential I/O ($location_name)" >&2
     echo "Writing ${block_count}MB with dd..." >&2
 
     local output=$(dd if=/dev/zero of="$test_dir/test.dat" bs=1M count=$block_count conv=fdatasync 2>&1)
@@ -207,28 +192,26 @@ test_sequential_io() {
     echo "$throughput"
 }
 
-echo -e "${CYAN}═══ Test 3: Sequential I/O (dd) ═══${NC}"
-echo ""
+test_section "Test 3: Sequential I/O (dd)"
 
 WSL_IO_SPEED=$(test_sequential_io "$WSL_TEST_DIR" "WSL filesystem")
 WIN_IO_SPEED=$(test_sequential_io "$WIN_TEST_DIR" "Windows mount")
 
-echo -e "WSL filesystem: ${GREEN}${WSL_IO_SPEED}${NC} MB/s"
-echo -e "Windows mount:  ${YELLOW}${WIN_IO_SPEED}${NC} MB/s"
+echo "WSL filesystem: ${WSL_IO_SPEED} MB/s"
+echo "Windows mount:  ${WIN_IO_SPEED} MB/s"
 echo ""
 
 # ============================================================================
 # Test 4: Filesystem Type Detection
 # ============================================================================
 
-echo -e "${CYAN}═══ Test 4: Filesystem Type ═══${NC}"
-echo ""
+test_section "Test 4: Filesystem Type"
 
-echo -e "${BLUE}WSL Test Directory:${NC}"
+echo "WSL Test Directory:"
 df -T "$WSL_TEST_DIR" | tail -1
 echo ""
 
-echo -e "${BLUE}Windows Mount Directory:${NC}"
+echo "Windows Mount Directory:"
 df -T "$WIN_TEST_DIR" | tail -1
 echo ""
 
@@ -236,24 +219,20 @@ echo ""
 # Summary
 # ============================================================================
 
-echo ""
-echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║         Performance Summary            ║${NC}"
-echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
-echo ""
+test_section "Performance Summary"
 
-echo -e "Test                  | WSL vs /mnt/c/ Ratio"
-echo -e "----------------------|---------------------"
-echo -e "File Creation         | ${YELLOW}${FILE_RATIO}x slower${NC}"
-echo -e "Git Operations        | ${YELLOW}${GIT_RATIO}x slower${NC}"
-echo -e "Sequential I/O        | WSL: ${GREEN}${WSL_IO_SPEED}${NC} MB/s, Win: ${YELLOW}${WIN_IO_SPEED}${NC} MB/s"
+echo "Test                  | WSL vs /mnt/c/ Ratio"
+echo "----------------------|---------------------"
+echo "File Creation         | ${FILE_RATIO}x slower"
+echo "Git Operations        | ${GIT_RATIO}x slower"
+echo "Sequential I/O        | WSL: ${WSL_IO_SPEED} MB/s, Win: ${WIN_IO_SPEED} MB/s"
 echo ""
 
 # Determine overall result
 OVERALL_SLOW=$(echo "$FILE_RATIO > 5 || $GIT_RATIO > 5" | bc)
 
 if [[ "$OVERALL_SLOW" == "1" ]]; then
-    echo -e "${YELLOW}⚠ WARNING${NC}: Windows mount (/mnt/c/) shows significant performance degradation"
+    echo "⚠ Windows mount (/mnt/c/) shows significant performance degradation"
     echo ""
     echo "Recommendation:"
     echo "  ✅ Store BitBot projects in WSL filesystem: ~/projects/"
@@ -265,7 +244,10 @@ if [[ "$OVERALL_SLOW" == "1" ]]; then
     echo ""
 fi
 
-echo -e "${GREEN}✓ PASSED${NC}: Filesystem performance test completed"
-echo ""
+test_pass "Filesystem performance test completed"
 
-exit 0
+# ============================================================================
+# Test Suite Complete
+# ============================================================================
+
+test_suite_end

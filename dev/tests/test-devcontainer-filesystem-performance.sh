@@ -4,6 +4,8 @@
 # Tests filesystem performance from inside a devcontainer
 #
 # Usage: ./test-devcontainer-filesystem-performance.sh [--quick]
+#
+# MIGRATED TO USE: test-framework.sh
 
 set -euo pipefail
 
@@ -11,19 +13,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BITBOT_HOME="$(cd "$SCRIPT_DIR/.." && pwd)"
 export BITBOT_HOME
 
+# Source test framework
+source "${SCRIPT_DIR}/helpers/test-framework.sh"
+
 # Source BitBot utilities for prerequisite checks
 # shellcheck source=../core/util/helpers.sh
 source "${BITBOT_HOME}/core/util/helpers.sh"
 # shellcheck source=../core/util/prerequisites.sh
 source "${BITBOT_HOME}/core/util/prerequisites.sh"
-
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
 
 # Parse arguments
 QUICK=false
@@ -31,22 +28,12 @@ if [[ "${1:-}" == "--quick" ]]; then
     QUICK=true
 fi
 
-echo ""
-echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║  DevContainer Filesystem Perf Test     ║${NC}"
-echo -e "${CYAN}║  WSL vs Windows Mount (/mnt/c/)        ║${NC}"
-echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
-echo ""
+test_suite_begin "DevContainer Filesystem Performance Test"
 
 # Check if running on WSL
 if ! grep -qi microsoft /proc/version 2>/dev/null; then
-    echo -e "${YELLOW}⊘ SKIPPED${NC}: This test only runs on WSL"
-    echo ""
-    echo "This test compares devcontainer filesystem performance:"
-    echo "  - Project in WSL native filesystem (ext4)"
-    echo "  - Project in Windows mount (/mnt/c/ - 9P protocol)"
-    echo ""
-    exit 0
+    test_skip "All tests" "Only runs on WSL - compares devcontainer filesystem performance between ext4 and 9P"
+    test_suite_end
 fi
 
 # Check Docker using BitBot prerequisites
@@ -177,7 +164,7 @@ run_container_benchmark() {
     local location_name="$2"
     local container_name="bitbot-perf-test-$(basename "$test_dir")"
 
-    echo -e "${BLUE}═══ Running benchmark: $location_name ═══${NC}"
+    echo -e "${BLUE}═══ Running benchmark: $location_name"
     echo "Location: $test_dir"
     echo ""
 
@@ -185,7 +172,7 @@ run_container_benchmark() {
     if ! docker image inspect mcr.microsoft.com/devcontainers/base:ubuntu >/dev/null 2>&1; then
         echo "Pulling base image..."
         docker pull mcr.microsoft.com/devcontainers/base:ubuntu >/dev/null 2>&1
-        echo -e "${GREEN}✓${NC} Image pulled"
+        echo -e "✓ Image pulled"
     fi
 
     # Run container with bind mount
@@ -195,10 +182,10 @@ run_container_benchmark() {
         -v "$test_dir:/workspace" \
         mcr.microsoft.com/devcontainers/base:ubuntu \
         sleep infinity >/dev/null 2>&1; then
-        echo -e "${RED}✗ Failed to start container${NC}"
+        echo -e "✗ Failed to start container"
         return 1
     fi
-    echo -e "${GREEN}✓${NC} Started"
+    echo -e "✓ Started"
 
     # Run benchmark inside container
     echo "Running filesystem benchmarks inside container..."
@@ -227,23 +214,23 @@ run_container_benchmark() {
 # Setup Test Workspaces
 # ============================================================================
 
-echo -e "${CYAN}═══ Setting up test workspaces ═══${NC}"
+test_section "Setting up test workspaces"
 echo ""
 
 echo "Creating WSL test workspace..."
 create_test_workspace "$WSL_TEST_DIR"
-echo -e "${GREEN}✓${NC} WSL workspace: $WSL_TEST_DIR"
+echo -e "✓ WSL workspace: $WSL_TEST_DIR"
 
 echo "Creating Windows mount test workspace..."
 create_test_workspace "$WIN_TEST_DIR"
-echo -e "${GREEN}✓${NC} Windows workspace: $WIN_TEST_DIR"
+echo -e "✓ Windows workspace: $WIN_TEST_DIR"
 echo ""
 
 # ============================================================================
 # Run Benchmarks
 # ============================================================================
 
-echo -e "${CYAN}═══ Running Benchmarks ═══${NC}"
+test_section "Running Benchmarks"
 echo ""
 
 WSL_RESULTS=$(run_container_benchmark "$WSL_TEST_DIR" "WSL Filesystem (~)")
@@ -251,7 +238,7 @@ WSL_RESULTS=$(run_container_benchmark "$WSL_TEST_DIR" "WSL Filesystem (~)")
 if [[ "$QUICK" != "true" ]]; then
     WIN_RESULTS=$(run_container_benchmark "$WIN_TEST_DIR" "Windows Mount (/mnt/c)")
 else
-    echo -e "${YELLOW}⊘ Skipping${NC} Windows mount test (quick mode)"
+    echo -e "⊘ Skipping Windows mount test (quick mode)"
     WIN_RESULTS=""
 fi
 
@@ -259,11 +246,7 @@ fi
 # Parse and Compare Results
 # ============================================================================
 
-echo ""
-echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║         Performance Summary            ║${NC}"
-echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
-echo ""
+test_section "Performance Summary"
 
 # Extract timing values
 WSL_FILE=$(echo "$WSL_RESULTS" | grep "FILE_CREATION=" | cut -d= -f2 || echo "")
@@ -278,14 +261,14 @@ if [[ "$QUICK" != "true" ]] && [[ -n "$WIN_RESULTS" ]]; then
     # Calculate ratios
     if [[ -n "$WSL_FILE" ]] && [[ -n "$WIN_FILE" ]] && [[ "$WSL_FILE" != "0" ]]; then
         FILE_RATIO=$(awk "BEGIN {printf \"%.1f\", $WIN_FILE / $WSL_FILE}")
-        echo -e "File Creation:  Windows mount is ${YELLOW}${FILE_RATIO}x slower${NC}"
+        echo "File Creation:  Windows mount is ${FILE_RATIO}x slower"
     else
         FILE_RATIO="0"
     fi
 
     if [[ -n "$WSL_GIT" ]] && [[ -n "$WIN_GIT" ]] && [[ "$WSL_GIT" != "0" ]]; then
         GIT_RATIO=$(awk "BEGIN {printf \"%.1f\", $WIN_GIT / $WSL_GIT}")
-        echo -e "Git Operations: Windows mount is ${YELLOW}${GIT_RATIO}x slower${NC}"
+        echo "Git Operations: Windows mount is ${GIT_RATIO}x slower"
     else
         GIT_RATIO="0"
     fi
@@ -301,7 +284,7 @@ if [[ "$QUICK" != "true" ]] && [[ -n "$WIN_RESULTS" ]]; then
     OVERALL_SLOW=$(awk "BEGIN {print ($FILE_RATIO > 3 || $GIT_RATIO > 3) ? 1 : 0}")
 
     if [[ "$OVERALL_SLOW" == "1" ]]; then
-        echo -e "${YELLOW}⚠ WARNING${NC}: Windows mount (/mnt/c/) shows significant performance impact"
+        echo "⚠ WARNING: Windows mount (/mnt/c/) shows significant performance impact"
         echo ""
         echo "Recommendation for DevContainers:"
         echo "  ✅ Clone repos to WSL filesystem: ~/projects/"
@@ -321,7 +304,10 @@ else
     echo ""
 fi
 
-echo -e "${GREEN}✓ PASSED${NC}: DevContainer filesystem performance test completed"
-echo ""
+test_pass "DevContainer filesystem performance test completed"
 
-exit 0
+# ============================================================================
+# Test Suite Complete
+# ============================================================================
+
+test_suite_end
