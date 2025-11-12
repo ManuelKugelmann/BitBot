@@ -9,21 +9,12 @@
 
 set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# Test counters
-TESTS_RUN=0
-TESTS_PASSED=0
-TESTS_FAILED=0
-
 # Get script directory and find project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Source test framework
+source "${SCRIPT_DIR}/helpers/test-framework.sh"
 WRAPPER_SCRIPT="$PROJECT_ROOT/.bitbot/wrapper/claude-wrapper.sh"
 SEND_CMD_SCRIPT="$PROJECT_ROOT/.bitbot/wrapper/send-wrapper-command.sh"
 
@@ -34,18 +25,7 @@ run_test() {
     echo -e "${BLUE}[TEST $TESTS_RUN]${NC} $test_name"
 }
 
-test_passed() {
-    TESTS_PASSED=$((TESTS_PASSED + 1))
-    echo -e "${GREEN}  ✓ PASS${NC}"
-    echo ""
-}
 
-test_failed() {
-    local reason="$1"
-    TESTS_FAILED=$((TESTS_FAILED + 1))
-    echo -e "${RED}  ✗ FAIL${NC}: $reason"
-    echo ""
-}
 
 section() {
     echo ""
@@ -70,16 +50,16 @@ section "Bash Syntax Check"
 
 run_test "Check wrapper script syntax"
 if bash -n "$WRAPPER_SCRIPT"; then
-    test_passed
+    test_pass
 else
-    test_failed "Syntax error in wrapper script"
+    test_fail "Syntax error in wrapper script"
 fi
 
 run_test "Check send-command script syntax"
 if bash -n "$SEND_CMD_SCRIPT"; then
-    test_passed
+    test_pass
 else
-    test_failed "Syntax error in send-command script"
+    test_fail "Syntax error in send-command script"
 fi
 
 section "Pipe Infrastructure Tests"
@@ -129,7 +109,7 @@ run_test "Wrapper creates pipe on startup"
         cd /tmp && rm -rf "$TEST_DIR"
         exit 1
     fi
-) && test_passed || test_failed "Pipe not created"
+) && test_pass || test_fail "Pipe not created"
 
 run_test "Wrapper cleans up pipe on exit"
 (
@@ -162,7 +142,7 @@ run_test "Wrapper cleans up pipe on exit"
         cd /tmp && rm -rf "$TEST_DIR"
         exit 1
     fi
-) && test_passed || test_failed "Pipe not cleaned up"
+) && test_pass || test_fail "Pipe not cleaned up"
 
 section "Command Parsing Tests"
 
@@ -222,7 +202,7 @@ run_test "Send exit command via pipe"
         cd /tmp && rm -rf "$TEST_DIR"
         exit 1
     fi
-) && test_passed || test_failed "Exit command not processed"
+) && test_pass || test_fail "Exit command not processed"
 
 run_test "Send-command script validates commands"
 (
@@ -237,7 +217,7 @@ run_test "Send-command script validates commands"
         rm -f "$WRAPPER_PIPE"
         exit 0
     fi
-) && test_passed || test_failed "Invalid command not rejected"
+) && test_pass || test_fail "Invalid command not rejected"
 
 run_test "Send-command script requires session ID for compact"
 (
@@ -252,7 +232,7 @@ run_test "Send-command script requires session ID for compact"
         rm -f "$WRAPPER_PIPE"
         exit 0
     fi
-) && test_passed || test_failed "Compact accepted without session ID"
+) && test_pass || test_fail "Compact accepted without session ID"
 
 section "Environment Variable Tests"
 
@@ -285,22 +265,22 @@ run_test "Wrapper exports WRAPPER_PIPE and wrapped process can discover own PID"
     rm -f "$ENV_OUTPUT"
     cd /tmp && rm -rf "$TEST_DIR"
     exit 1
-) && test_passed || test_failed "Environment variables not exported or PID not discoverable"
+) && test_pass || test_fail "Environment variables not exported or PID not discoverable"
 
 section "Executable Permissions"
 
 run_test "Wrapper script is executable"
 if [ -x "$WRAPPER_SCRIPT" ]; then
-    test_passed
+    test_pass
 else
-    test_failed "Wrapper script not executable"
+    test_fail "Wrapper script not executable"
 fi
 
 run_test "Send-command script is executable"
 if [ -x "$SEND_CMD_SCRIPT" ]; then
-    test_passed
+    test_pass
 else
-    test_failed "Send-command script not executable"
+    test_fail "Send-command script not executable"
 fi
 
 section "Test Summary"

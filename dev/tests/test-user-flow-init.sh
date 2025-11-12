@@ -54,25 +54,11 @@ fi
 # Global config location
 GLOBAL_CONFIG="$BITBOT_ROOT/global/.bitbot/config.json"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Source test framework
+source "${SCRIPT_DIR}/helpers/test-framework.sh"
 
-pass_count=0
-fail_count=0
 
-test_pass() {
-    echo -e "${GREEN}✓ PASS${NC}: $1"
-    pass_count=$((pass_count + 1))
-}
 
-test_fail() {
-    echo -e "${RED}✗ FAIL${NC}: $1"
-    fail_count=$((fail_count + 1))
-}
 
 test_info() {
     echo -e "${BLUE}ℹ INFO${NC}: $1"
@@ -661,7 +647,7 @@ if [[ "$MODE" == "dev" ]]; then
                     ;;
 
                 .claude/*)
-                    echo -e "  ${GREEN}✓${NC} $file"
+                    echo -e "  ✓ $file"
                     echo -e "     ${BLUE}→${NC} Claude Code configuration"
                     echo -e "     ${BLUE}→${NC} Check if should sync to templates/.claude/"
                     template_sync_needed=true
@@ -669,7 +655,7 @@ if [[ "$MODE" == "dev" ]]; then
                     ;;
 
                 .bitbot/*)
-                    echo -e "  ${GREEN}✓${NC} $file"
+                    echo -e "  ✓ $file"
                     echo -e "     ${BLUE}→${NC} BitBot workspace infrastructure"
                     echo -e "     ${BLUE}→${NC} Should be in template shared scripts"
                     template_sync_needed=true
@@ -677,7 +663,7 @@ if [[ "$MODE" == "dev" ]]; then
                     ;;
 
                 container/*)
-                    echo -e "  ${GREEN}✓${NC} $file"
+                    echo -e "  ✓ $file"
                     echo -e "     ${BLUE}→${NC} Container infrastructure change"
                     echo -e "     ${BLUE}→${NC} May need template sync"
                     template_sync_needed=true
@@ -685,7 +671,7 @@ if [[ "$MODE" == "dev" ]]; then
                     ;;
 
                 config.json)
-                    echo -e "  ${GREEN}✓${NC} $file"
+                    echo -e "  ✓ $file"
                     echo -e "     ${BLUE}→${NC} Test-generated config (expected)"
                     echo -e "     ${BLUE}→${NC} No action needed"
                     echo ""
