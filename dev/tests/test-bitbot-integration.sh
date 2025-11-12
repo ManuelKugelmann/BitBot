@@ -92,8 +92,9 @@ echo "test" > README.md
 # Run bitbot init with --no-config flag (non-interactive)
 # The init may fail when trying to launch devcontainer (expected in CI)
 # but should succeed in creating the workspace structure
-timeout 10 bash "$BITBOT_CMD" init --no-config 2>&1 | tee /tmp/bitbot-init-test.log
+init_output=$(timeout 10 bash "$BITBOT_CMD" init --no-config 2>&1)
 init_exit_code=$?
+echo "$init_output"
 
 # Check if workspace was created successfully (even if container launch failed)
 if [[ -d ".devcontainer" ]] && [[ -f ".devcontainer/devcontainer.json" ]]; then
@@ -102,7 +103,7 @@ if [[ -d ".devcontainer" ]] && [[ -f ".devcontainer/devcontainer.json" ]]; then
         test_pass "bitbot init completed fully"
     elif [[ $init_exit_code -eq 124 ]]; then
         test_pass "bitbot init succeeded (container build timed out - expected in CI)"
-    elif grep -q "devcontainer: command not found\|Failed to launch" /tmp/bitbot-init-test.log 2>/dev/null; then
+    elif echo "$init_output" | grep -q "devcontainer: command not found\|Failed to launch"; then
         test_pass "bitbot init succeeded (container launch skipped - expected in CI)"
     fi
 else

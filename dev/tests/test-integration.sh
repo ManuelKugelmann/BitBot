@@ -261,21 +261,17 @@ test_pass "Test workspace created"
 
 test_section "Initialize BitBot workspace"
 # Note: bitbot init will try to launch config mode at the end,
-# which may fail in test environment. We capture the output and
+# which may fail in test environment. We allow failure and
 # check for successful workspace initialization instead.
-bitbot init --no-config &>/tmp/bitbot-init-$$.log || true
+bitbot init --no-config || true
 
 # Check if workspace was initialized (even if config launch failed)
 if [[ -d ".bitbot" ]] && [[ -d ".devcontainer" ]] && [[ -f ".bitbot/config.json" ]]; then
     test_pass "bitbot init completed (workspace structure created)"
 else
     test_fail "bitbot init failed to create workspace structure"
-    echo "Init log:"
-    cat /tmp/bitbot-init-$$.log
-    rm -f /tmp/bitbot-init-$$.log
     exit 1
 fi
-rm -f /tmp/bitbot-init-$$.log
 
 test_section "Verify workspace structure"
 if [[ -d ".bitbot" ]] && [[ -d ".devcontainer" ]]; then
@@ -333,28 +329,21 @@ elif [[ "${BITBOT_TEST_BUILD_ONLY:-0}" == "1" ]]; then
     echo "Building container (this may take several minutes)..."
     if [[ "$TEST_WORKSPACE" == /mnt/* ]]; then
         # Method 3: cmd.exe with cd trick
-        if timeout 600 $cmd_wrapper "cd /d $win_path && devcontainer.cmd build --workspace-folder ." &>/tmp/integration-build-$$.log; then
+        if timeout 600 $cmd_wrapper "cd /d $win_path && devcontainer.cmd build --workspace-folder ."; then
             test_pass "DevContainer built successfully"
             CONTAINER_BUILT=true
         else
             test_fail "DevContainer build failed"
-            echo "Build log:"
-            tail -20 /tmp/integration-build-$$.log
-            rm -f /tmp/integration-build-$$.log
         fi
     else
         # Method 4: PowerShell with UNC path
-        if timeout 600 $cmd_wrapper "devcontainer.cmd build --workspace-folder '$win_path'" &>/tmp/integration-build-$$.log; then
+        if timeout 600 $cmd_wrapper "devcontainer.cmd build --workspace-folder '$win_path'"; then
             test_pass "DevContainer built successfully"
             CONTAINER_BUILT=true
         else
             test_fail "DevContainer build failed"
-            echo "Build log:"
-            tail -20 /tmp/integration-build-$$.log
-            rm -f /tmp/integration-build-$$.log
         fi
     fi
-    rm -f /tmp/integration-build-$$.log
 
     echo ""
 else

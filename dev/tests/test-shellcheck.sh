@@ -40,11 +40,10 @@ fi
 test_section "Test 2: Analyzing main bitbot script"
 
 if [[ -f "$BITBOT_ROOT/core/bitbot" ]]; then
-    if shellcheck -x -e SC1091 "$BITBOT_ROOT/core/bitbot" 2>&1 | tee /tmp/shellcheck-bitbot.log; then
+    if shellcheck -x -e SC1091 "$BITBOT_ROOT/core/bitbot"; then
         test_pass "bitbot script: no issues"
     else
         test_fail "bitbot script: has issues (see above)"
-        echo "  ℹ Detailed output saved to /tmp/shellcheck-bitbot.log"
     fi
 else
     test_fail "bitbot script not found"
@@ -69,7 +68,7 @@ if [[ -d "$BITBOT_ROOT/core" ]]; then
         echo "  Checking: $script_name"
 
         # Run shellcheck with sourcing support, exclude SC1091 (source following)
-        if shellcheck -x -e SC1091 "$script" 2>&1 | tee "/tmp/shellcheck-${script_name}.log"; then
+        if shellcheck -x -e SC1091 "$script"; then
             echo -e "    ✓ $script_name: no issues"
             core_scripts_pass=$((core_scripts_pass + 1))
         else
