@@ -4,11 +4,11 @@
 
 Migration of BitBot test suite to use shared helpers (`test-framework.sh` and `workspace-helper.sh`) to eliminate ~500 lines of duplicate code and standardize test infrastructure.
 
-**Status**: 10 of 26 tests migrated (38.5%) - **Phase 3 In Progress** ✅
+**Status**: 13 of 26 tests migrated (50%) - **Phase 3 Complete** ✅
 
 ## Migration Status
 
-### ✓ Completed (10 tests)
+### ✓ Completed (13 tests)
 
 | Test | Lines | Status | Notes |
 |------|-------|--------|-------|
@@ -21,6 +21,9 @@ Migration of BitBot test suite to use shared helpers (`test-framework.sh` and `w
 | `test-helpers.sh` | 252 | ✅ Phase 3 | Helper function tests (17 tests) |
 | `test-merge-devcontainer.sh` | 273 | ✅ Phase 3 | DevContainer JSON merging (22/23 tests) |
 | `test-bitbot-integration.sh` | 245 | ✅ Phase 3 | Integration test (19 tests, 100%) |
+| `test-infrastructure-sync.sh` | 273 | ✅ Phase 3 | Infrastructure sync (24 tests) |
+| `test-session-management.sh` | 231 | ✅ Phase 3 | Session management (23 tests, 100%) |
+| `test-container-bitbot.sh` | 237 | ✅ Phase 3 | Container scripts (31 tests, 100%) |
 | `test-bitbot-commands-migrated.sh` | 166 | ✅ (POC) | Can be removed after Phase 1 |
 
 ### High Priority - Simple CI Tests (5 tests)
@@ -280,17 +283,17 @@ Complete remaining tests:
 - [x] 8/26 tests migrated (30.8%) - **Phase 3 Started** (test-helpers done)
 - [x] 9/26 tests migrated (34.6%) - **Phase 3 Continuing** (merge-devcontainer done)
 - [x] 10/26 tests migrated (38.5%) - **Phase 3 Continuing** (bitbot-integration done)
-- [ ] 12/26 tests migrated (46.2%) - After Phase 3 complete
+- [x] 13/26 tests migrated (50%) - **Phase 3 Complete** ✅ (infrastructure-sync, session-management, container-bitbot done)
 - [ ] 15/26 tests migrated (57.7%) - After Phase 4
 - [ ] 26/26 tests migrated (100%) - Complete
 
 ## Next Steps
 
-1. **Complete Phase 1** - Migrate tests 1-3 (quick wins)
+1. **Start Phase 4** - Complex CI tests (wrapper-layer1, session-management variant tests)
 2. **Test in CI** - Ensure migrated tests pass
-3. **Complete Phase 2** - Add workspace-helper usage
-4. **Fix Interactive Test** - Handle git prompts in tmux automation
-5. **Continue phases** - Work through medium and complex tests
+3. **Complete Phase 4** - Finish complex CI tests
+4. **Phase 5** - Non-CI tests (performance, codespaces, etc.)
+5. **Final cleanup** - Remove POC test, update CI configuration
 
 ## Notes
 
