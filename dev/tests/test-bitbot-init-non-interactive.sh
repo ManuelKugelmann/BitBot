@@ -121,6 +121,8 @@ cd "$workspace"
 git init -q
 git config user.email "test@bitbot.local"
 git config user.name "BitBot Test"
+# Add a dummy git remote to avoid the git remote prompt
+git remote add origin https://github.com/test/test.git
 
 # Run with CI environment variable set
 export CI=true
@@ -158,6 +160,8 @@ cd "$workspace"
 git init -q
 git config user.email "test@bitbot.local"
 git config user.name "BitBot Test"
+# Add a dummy git remote to avoid the git remote prompt
+git remote add origin https://github.com/test/test.git
 
 # Run with stdin closed (simulates non-TTY environment)
 if timeout 30 bash "$BITBOT_CMD" init </dev/null &>/dev/null; then
@@ -189,6 +193,8 @@ cd "$workspace"
 git init -q
 git config user.email "test@bitbot.local"
 git config user.name "BitBot Test"
+# Add a dummy git remote to avoid the git remote prompt
+git remote add origin https://github.com/test/test.git
 
 # Run init
 timeout 30 bash "$BITBOT_CMD" init --no-config &>/dev/null || true
