@@ -139,6 +139,58 @@ cd /tmp
 rm -rf "$TEST_WORKSPACE"
 
 # ============================================================================
+# Test 3: Git remote prompt handling (no remote configured)
+# ============================================================================
+
+echo ""
+echo "[Test 3] Git remote prompt - user skips"
+
+TEST_WORKSPACE="/tmp/bitbot-interactive-git-remote-$$"
+mkdir -p "$TEST_WORKSPACE"
+cd "$TEST_WORKSPACE"
+# Initialize git repo WITHOUT adding a remote
+git init -q
+git config user.email "test@bitbot.local"
+git config user.name "BitBot Test"
+echo "test" > README.md
+
+SESSION_NAME="bitbot-test-git-remote-$$"
+
+# Start bitbot init in tmux
+tmux_test_start "$SESSION_NAME" "bash $BITBOT_CMD init --no-config"
+
+# Wait for git remote prompt
+if tmux_test_wait_for "$SESSION_NAME" "What would you like to do?" 5; then
+    test_pass "Git remote prompt appeared"
+
+    # Send '2' to skip this time
+    tmux_test_send_keys "$SESSION_NAME" "2"
+    tmux_test_send_enter "$SESSION_NAME"
+
+    # Wait for completion
+    if tmux_test_wait_finish "$SESSION_NAME" 10; then
+        test_pass "Command completed after skipping git remote setup"
+
+        # Check workspace was created
+        if [[ -f ".devcontainer/devcontainer.json" ]]; then
+            test_pass "Workspace structure created despite no git remote"
+        else
+            test_fail "Workspace structure not created"
+        fi
+    else
+        test_fail "Command did not complete"
+    fi
+else
+    test_fail "Git remote prompt did not appear"
+fi
+
+tmux_test_kill "$SESSION_NAME"
+
+# Clean up
+cd /tmp
+rm -rf "$TEST_WORKSPACE"
+
+# ============================================================================
 # Test Suite Complete
 # ============================================================================
 
