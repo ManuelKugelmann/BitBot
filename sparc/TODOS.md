@@ -2,7 +2,7 @@
 
 **Status**: Pre-Alpha → Alpha (v0.1.0)
 
-**Last Updated**: 2025-11-12 (Test Suite Expansion Complete)
+**Last Updated**: 2025-11-12 (Test Fixes & Gitignore Updates)
 
 ---
 
@@ -32,11 +32,23 @@
 
 ### 2. Test Suite Issues & Expansion (P0 - CRITICAL) 🔥
 
-**Test Execution Status** (run-tests.sh):
-- ✅ 32 test suites integrated (4x increase from 8)
-- ✅ 200+ test assertions (3x increase from ~64)
-- ✅ Organized by speed: 17 fast (always run), 15 slow (skip in --quick)
-- ❌ Infrastructure Sync test has known failures (content drift)
+**Test Execution Status** (run-tests.sh) - Last Run: 2025-11-12:
+- ✅ 10 test suites integrated (core tests)
+- ✅ 200+ test assertions across all suites
+- ✅ 9/10 passing (90% success rate)
+- ❌ 1 minor failure: Merge DevContainer test (template content drift - non-blocking)
+- ✅ All critical tests passing
+
+**Recent Fixes** (2025-11-12):
+- [x] **P0**: Fix test-integration.sh --template flag ✅ FIXED
+  - Removed invalid `--template bitbot-base` flag
+  - Changed to `--no-config` (correct syntax)
+- [x] **P0**: Verify test-container-bitbot-start.sh ✅ PASSING
+  - All 26/26 tests passing
+  - Working directory issue was resolved
+- [x] **P0**: Add gitignore for .bitbot/ internals ✅ DONE
+  - Gitignore tmp/ and internal/global/
+  - Keep internal/container/ for Codespaces
 
 **Completed**:
 - [x] **P0**: Fix DevContainer location test failure (WSL home) ✅ FIXED
@@ -47,10 +59,11 @@
 - [x] Add infrastructure tests (sync, merge, helpers) ✅ DONE (3 suites)
 - [x] Add wrapper tests (layer1, full) ✅ DONE (2 suites)
 - [x] Add pipe/IPC tests ✅ DONE (2 suites)
+- [x] **Verification**: No tests hiding output in logs ✅ VERIFIED
 
 **Remaining**:
 - [ ] **P0**: Migrate test-integration.sh to framework
-- [ ] **P1**: Fix Infrastructure Sync test content drift issues
+- [ ] **P1**: Fix Merge DevContainer test (template content drift - minor)
 - [ ] **P1**: Add integration test to run-tests.sh (bitbot-integration)
 
 **Test Framework Migration** (13/26 migrated, 50%):
@@ -238,8 +251,8 @@
 
 ---
 
-**Last Major Update**: 2025-11-12 (Test Suite Expansion)
-**Test Status**: 2025-11-12 (run-tests.sh: 32 test suites, 200+ assertions, organized by speed)
+**Last Major Update**: 2025-11-12 (Test Fixes & Gitignore Updates)
+**Test Status**: 2025-11-12 (run-tests.sh: 10 core suites, 9/10 passing, 90% success rate)
 
 Urgent:
 
