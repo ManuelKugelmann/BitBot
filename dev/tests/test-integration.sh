@@ -156,7 +156,7 @@ fi
 echo -e "${GREEN}✓${NC} bitbot command available"
 
 # Ensure global config exists (required for workspace init)
-run_test "Verify global config"
+test_section "Verify global config"
 if [[ ! -f "$BITBOT_HOME/config.json" ]]; then
     # Create minimal global config for testing
     cat > "$BITBOT_HOME/config.json" <<'EOF'
@@ -252,14 +252,14 @@ run_integration_tests_for_location() {
 echo "═══ Test 1: Workspace Initialization ═══"
 echo ""
 
-run_test "Create test workspace"
+test_section "Create test workspace"
 mkdir -p "$TEST_WORKSPACE"
 cd "$TEST_WORKSPACE"
 echo "# Integration Test" > README.md
 git init &>/dev/null
 test_pass "Test workspace created"
 
-run_test "Initialize BitBot workspace"
+test_section "Initialize BitBot workspace"
 # Note: bitbot init will try to launch config mode at the end,
 # which may fail in test environment. We capture the output and
 # check for successful workspace initialization instead.
@@ -277,7 +277,7 @@ else
 fi
 rm -f /tmp/bitbot-init-$$.log
 
-run_test "Verify workspace structure"
+test_section "Verify workspace structure"
 if [[ -d ".bitbot" ]] && [[ -d ".devcontainer" ]]; then
     test_pass "Workspace structure created (.bitbot, .devcontainer)"
 else
@@ -285,7 +285,7 @@ else
     exit 1
 fi
 
-run_test "Verify devcontainer.json"
+test_section "Verify devcontainer.json"
 if [[ -f ".devcontainer/devcontainer.json" ]]; then
     if jq . .devcontainer/devcontainer.json &>/dev/null; then
         test_pass "devcontainer.json is valid JSON"
@@ -296,7 +296,7 @@ else
     test_fail "devcontainer.json not found"
 fi
 
-run_test "Verify BitBot scripts copied"
+test_section "Verify BitBot scripts copied"
 if [[ -d ".devcontainer/bitbot" ]]; then
     if [[ -f ".devcontainer/bitbot/core/commands/start.sh" ]]; then
         test_pass "Container BitBot scripts present"
@@ -324,7 +324,7 @@ if [[ "$SKIP_BUILD" == "1" ]]; then
     echo -e "${YELLOW}ℹ${NC}  To test in-container execution, run: BITBOT_TEST_SKIP_BUILD=0 $0"
     echo ""
 elif [[ "${BITBOT_TEST_BUILD_ONLY:-0}" == "1" ]]; then
-    run_test "Build DevContainer (build-only mode)"
+    test_section "Build DevContainer (build-only mode)"
 
     # Convert path and get appropriate command wrapper
     win_path=$(convert_to_windows_path "$TEST_WORKSPACE")
@@ -358,7 +358,7 @@ elif [[ "${BITBOT_TEST_BUILD_ONLY:-0}" == "1" ]]; then
 
     echo ""
 else
-    run_test "Build DevContainer"
+    test_section "Build DevContainer"
 
     # Convert path and get appropriate command wrapper
     win_path=$(convert_to_windows_path "$TEST_WORKSPACE")
@@ -402,7 +402,7 @@ fi
 echo "═══ Test 3: Container BitBot Commands ═══"
 echo ""
 
-run_test "Test bitbot help command"
+test_section "Test bitbot help command"
 if [[ -f ".devcontainer/bitbot/bitbot" ]]; then
     if bash ".devcontainer/bitbot/bitbot" help &>/tmp/bitbot-help-$$.log; then
         if grep -qiE "usage|help|command" /tmp/bitbot-help-$$.log; then
@@ -420,7 +420,7 @@ else
     test_fail "Container bitbot command not found"
 fi
 
-run_test "Test bitbot invalid command handling"
+test_section "Test bitbot invalid command handling"
 if bash ".devcontainer/bitbot/bitbot" invalid-command &>/tmp/bitbot-invalid-$$.log; then
     test_fail "Invalid command should return error"
 else
@@ -433,7 +433,7 @@ else
 fi
 rm -f /tmp/bitbot-invalid-$$.log
 
-run_test "Test helpers.sh can be sourced"
+test_section "Test helpers.sh can be sourced"
 if [[ -f ".devcontainer/bitbot/core/util/helpers.sh" ]]; then
     if bash -c "source .devcontainer/bitbot/core/util/helpers.sh && command_exists bash" 2>/dev/null; then
         test_pass "helpers.sh sourced and functions work"
@@ -444,7 +444,7 @@ else
     test_fail "helpers.sh not found"
 fi
 
-run_test "Test bitbot script has valid shebang"
+test_section "Test bitbot script has valid shebang"
 if [[ -f ".devcontainer/bitbot/bitbot" ]]; then
     if head -1 ".devcontainer/bitbot/bitbot" | grep -q "^#!/"; then
         test_pass "bitbot has valid shebang"
@@ -455,7 +455,7 @@ else
     test_fail "bitbot not found"
 fi
 
-run_test "Test all core commands are executable"
+test_section "Test all core commands are executable"
 all_executable=true
 for cmd in .devcontainer/bitbot/core/commands/*.sh; do
     if [[ ! -x "$cmd" ]]; then
@@ -478,7 +478,7 @@ echo ""
 echo "═══ Test 4: Wrapper Integration ═══"
 echo ""
 
-run_test "Test claude-wrapper.sh syntax and structure"
+test_section "Test claude-wrapper.sh syntax and structure"
 if [[ -f ".devcontainer/bitbot/wrapper/claude-wrapper.sh" ]]; then
     if bash -n ".devcontainer/bitbot/wrapper/claude-wrapper.sh" 2>/dev/null; then
         # Check for key functions
@@ -494,7 +494,7 @@ else
     test_fail "claude-wrapper.sh not found"
 fi
 
-run_test "Test watchdog.sh syntax and monitoring logic"
+test_section "Test watchdog.sh syntax and monitoring logic"
 if [[ -f ".devcontainer/bitbot/wrapper/watchdog.sh" ]]; then
     if bash -n ".devcontainer/bitbot/wrapper/watchdog.sh" 2>/dev/null; then
         # Check for monitoring functions
@@ -510,7 +510,7 @@ else
     test_fail "watchdog.sh not found"
 fi
 
-run_test "Test wrapper scripts are executable"
+test_section "Test wrapper scripts are executable"
 wrapper_executable=true
 for script in .devcontainer/bitbot/wrapper/*.sh; do
     if [[ ! -x "$script" ]]; then
@@ -524,7 +524,7 @@ else
     test_fail "Some wrapper scripts not executable"
 fi
 
-run_test "Test send-wrapper-command.sh exists"
+test_section "Test send-wrapper-command.sh exists"
 if [[ -f ".devcontainer/bitbot/wrapper/send-wrapper-command.sh" ]]; then
     if [[ -x ".devcontainer/bitbot/wrapper/send-wrapper-command.sh" ]]; then
         test_pass "send-wrapper-command.sh is executable"
@@ -544,7 +544,7 @@ echo ""
 echo "═══ Test 5: Configuration Files ═══"
 echo ""
 
-run_test "Verify .bitbot/config.json"
+test_section "Verify .bitbot/config.json"
 if [[ -f ".bitbot/config.json" ]]; then
     if jq . .bitbot/config.json &>/dev/null; then
         test_pass "config.json is valid JSON"
@@ -555,7 +555,7 @@ else
     test_fail "config.json not found"
 fi
 
-run_test "Verify .gitignore patterns"
+test_section "Verify .gitignore patterns"
 if [[ -f ".gitignore" ]]; then
     if grep -q ".bitbot/internal/local/" .gitignore; then
         test_pass ".gitignore contains .bitbot/internal/local/ pattern"
@@ -600,42 +600,42 @@ else
         fi
     }
 
-    run_test "Test bitbot command in container"
+    test_section "Test bitbot command in container"
     if run_in_container "/usr/local/bitbot/bitbot help" | grep -qiE "usage|help|command"; then
         test_pass "bitbot command works in container"
     else
         test_fail "bitbot command failed in container"
     fi
 
-    run_test "Test wrapper script accessibility"
+    test_section "Test wrapper script accessibility"
     if run_in_container "test -x /usr/local/bitbot/wrapper/claude-wrapper.sh && echo OK" | grep -q "OK"; then
         test_pass "Wrapper scripts mounted and executable"
     else
         test_fail "Wrapper scripts not accessible"
     fi
 
-    run_test "Test pipe directory can be created"
+    test_section "Test pipe directory can be created"
     if run_in_container "mkdir -p /workspace/.bitbot/tmp/pipes && echo OK" | grep -q "OK"; then
         test_pass "Pipe directory creation works"
     else
         test_fail "Pipe directory creation failed"
     fi
 
-    run_test "Test tmux availability in container"
+    test_section "Test tmux availability in container"
     if run_in_container "command -v tmux && echo OK" | grep -q "OK"; then
         test_pass "tmux available in container"
     else
         test_fail "tmux not available (required for layer 2)"
     fi
 
-    run_test "Test helpers.sh functions in container"
+    test_section "Test helpers.sh functions in container"
     if run_in_container "source /usr/local/bitbot/core/util/helpers.sh && command_exists bash && echo OK" | grep -q "OK"; then
         test_pass "helpers.sh works in container"
     else
         test_fail "helpers.sh failed in container"
     fi
 
-    run_test "Test claude command availability"
+    test_section "Test claude command availability"
     if run_in_container "command -v claude && echo OK" | grep -q "OK"; then
         test_pass "Claude Code available in container"
     else
