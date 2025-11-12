@@ -8,6 +8,9 @@
 #
 # This script is called by test-user-flow-container-interactive.sh
 
+# Enable output to user (like tmux showing output)
+log_user 1
+
 set timeout 30
 set container [lindex $argv 0]
 
@@ -44,6 +47,16 @@ proc test_info {msg} {
     send_user "${BLUE}ℹ INFO${NC}: $msg\n"
 }
 
+proc log_checkpoint {context} {
+    global BLUE YELLOW NC
+    send_user "\n"
+    send_user "${BLUE}\[Expect Output${context:+: $context}\]${NC}\n"
+    send_user "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+    send_user "(Output shown above in real-time)\n"
+    send_user "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+    send_user "\n"
+}
+
 send_user "\n"
 send_user "=== BitBot Interactive Container Test (Expect) ===\n"
 send_user "\n"
@@ -61,14 +74,17 @@ spawn docker exec -it $container bash -c {
 
 expect {
     "Continue?" {
+        log_checkpoint "Prompt displayed"
         test_pass "Prompt displayed"
         send "y\r"
         exp_continue
     }
     "You answered: y" {
+        log_checkpoint "Answer received"
         test_pass "Input processed correctly"
     }
     timeout {
+        log_checkpoint "Timeout occurred"
         test_fail "Prompt timed out"
         exit 1
     }
@@ -92,6 +108,7 @@ spawn docker exec -it $container bash -c {
 
 expect {
     "Select an option:" {
+        log_checkpoint "Menu displayed"
         test_pass "Menu displayed"
         exp_continue
     }
@@ -105,9 +122,11 @@ expect {
         exp_continue
     }
     "You selected: 2" {
+        log_checkpoint "Selection confirmed"
         test_pass "Selection processed correctly"
     }
     timeout {
+        log_checkpoint "Selection timeout"
         test_fail "Selection prompt timed out"
     }
 }
@@ -138,6 +157,7 @@ spawn docker exec -it $container bash -c {
 
 expect {
     "Setup Wizard" {
+        log_checkpoint "Wizard started"
         test_pass "Wizard started"
         exp_continue
     }
@@ -147,6 +167,7 @@ expect {
         exp_continue
     }
     "Hello, TestUser!" {
+        log_checkpoint "Step 1 complete"
         test_pass "Step 1 input processed"
         exp_continue
     }
@@ -156,6 +177,7 @@ expect {
         exp_continue
     }
     "Mode: dev" {
+        log_checkpoint "Step 2 complete"
         test_pass "Step 2 input processed"
         exp_continue
     }
@@ -165,12 +187,15 @@ expect {
         exp_continue
     }
     "Setup complete!" {
+        log_checkpoint "Wizard completed"
         test_pass "Wizard completed successfully"
     }
     "Setup cancelled" {
+        log_checkpoint "Wizard cancelled"
         test_fail "Wizard was cancelled (should complete)"
     }
     timeout {
+        log_checkpoint "Wizard timeout"
         test_fail "Wizard timed out"
     }
 }
@@ -191,14 +216,17 @@ spawn docker exec -it $container bash -c {
 
 expect {
     "Quick prompt" {
+        log_checkpoint "Timeout test started"
         test_pass "Timeout test prompt shown"
         send "fast\r"
         exp_continue
     }
     "Got: fast" {
+        log_checkpoint "Timeout test completed"
         test_pass "Timeout test completed within time limit"
     }
     timeout {
+        log_checkpoint "Timeout triggered"
         test_fail "Timeout occurred (may be intentional for testing)"
     }
 }
@@ -223,11 +251,13 @@ spawn docker exec -it $container bash -c {
 expect {
     -re "version: (\\d+\\.\\d+\\.\\d+)" {
         set version $expect_out(1,string)
+        log_checkpoint "Version detected: $version"
         test_pass "Version pattern matched: $version"
         exp_continue
     }
     -re "location: (/.*)" {
         set location $expect_out(1,string)
+        log_checkpoint "Location detected: $location"
         test_pass "Location pattern matched: $location"
         exp_continue
     }
@@ -236,9 +266,11 @@ expect {
         exp_continue
     }
     "Done" {
+        log_checkpoint "Pattern matching complete"
         test_pass "Pattern matching test completed"
     }
     timeout {
+        log_checkpoint "Pattern matching timeout"
         test_fail "Pattern matching test timed out"
     }
 }

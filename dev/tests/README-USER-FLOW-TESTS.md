@@ -164,6 +164,8 @@ See `sparc/0-research/TERMINAL_AUTOMATION_TESTING.md` for detailed analysis.
 - Built-in timeout handling
 - Pattern matching for output validation
 - Industry standard for interactive automation
+- **Output forwarding:** Uses `log_user 1` to show real-time output like tmux
+- **Checkpoints:** `log_checkpoint()` function matches tmux's `log_tmux_output()` pattern
 
 ## Master Test Runner
 
@@ -234,13 +236,25 @@ Runs all user flow tests in sequence.
 All test files follow consistent patterns:
 
 ### Common Functions
+
+**Bash scripts:**
 ```bash
-test_pass()    # Log passing test
-test_fail()    # Log failing test
-test_info()    # Log informational message
-test_warning() # Log warning
-log_tmux_output() # Capture tmux session output
+test_pass()        # Log passing test
+test_fail()        # Log failing test
+test_info()        # Log informational message
+test_warning()     # Log warning
+log_tmux_output()  # Capture tmux session output
 ```
+
+**Expect scripts:**
+```tcl
+test_pass {msg}       # Log passing test
+test_fail {msg}       # Log failing test
+test_info {msg}       # Log informational message
+log_checkpoint {ctx}  # Show output checkpoint (like log_tmux_output)
+```
+
+Both bash and expect use the same visual pattern for output logging!
 
 ### Test Phases
 1. **Prerequisites Check** - Verify requirements
