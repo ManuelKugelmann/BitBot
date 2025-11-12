@@ -1,6 +1,6 @@
 ---
 name: claude-do-not-stop
-description: Enable Stop hook automation for continuous multi-phase workflows. Use when working until finished, implementing multiple tasks sequentially, running test-fix-commit loops, or workflows requiring automatic continuation. User can invoke with /claude-do-not-stop [reason].
+description: Enable continuous work mode. Use PROACTIVELY when user says "keep working", "don't stop", "finish everything", "complete all tasks". Automatically continues until work is complete. User can invoke with /claude-do-not-stop [reason].
 ---
 
 # Enable Stop Hook Automation

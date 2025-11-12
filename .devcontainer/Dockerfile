@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     file \
     jq \
+    rsync \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Verify MinGW installation

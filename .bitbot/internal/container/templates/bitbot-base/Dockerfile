@@ -1,18 +1,17 @@
 FROM ubuntu:22.04
 
-# Install essentials
+# Set noninteractive to avoid prompts during build
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Install minimal essentials
+# Note: Node.js and Claude Code are installed via devcontainer features
 RUN apt-get update && apt-get install -y \
     curl \
     git \
     ca-certificates \
     jq \
     tmux \
-    && curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
-    && apt-get install -y nodejs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install Claude Code
-RUN npm install -g @anthropic-ai/claude-code
 
 # Create workspace
 RUN mkdir -p /workspace

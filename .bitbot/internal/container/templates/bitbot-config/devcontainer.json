@@ -1,4 +1,6 @@
 {
+  "name": "BitBot Config Mode",
+  "dockerFile": "Dockerfile",
   "workspaceFolder": "/workspace",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
@@ -6,14 +8,29 @@
     },
     "ghcr.io/anthropics/devcontainer-features/claude-code:1": {
       "version": "latest"
-    }
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   "remoteUser": "root",
-  "$comment": "Config template details - merged with templates/shared/base.devcontainer.json",
-  "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
-  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/bitbot-config",
-  "name": "BitBot Config Mode",
-  "dockerFile": "Dockerfile",
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.bitbot/internal/container/home/.tmux.conf,target=/root/.tmux.conf,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.bitbot/internal/container/home/.config,target=/root/.config,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude,target=/root/.claude,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude/CLAUDE.md,target=/root/.claude/CLAUDE.md,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude/settings.json,target=/root/.claude/settings.json,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude/.credentials.json,target=/root/.claude/.credentials.json,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,consistency=cached"
+  ],
+  "runArgs": [
+    "--cpus=4",
+    "--memory=8g",
+    "--memory-swap=8g",
+    "--pids-limit=2048"
+  ],
+  "$comment": "Config template details - merged with templates/bitbot-base/devcontainer.json",
+  "$comment2": "bitbot-base/devcontainer.json + details.devcontainer.json => devcontainer.json",
+  "$comment3": "Run: templates/scripts/merge-devcontainer.sh templates/bitbot-config",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -30,8 +47,6 @@
       }
     }
   },
-  "mounts": [
-    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-  ]
+  "$comment_config_mounts": "Config mode: Override .devcontainer mount to RW",
+  "postCreateCommand": "npm install -g @devcontainers/cli && echo '✓ DevContainer CLI installed'"
 }
