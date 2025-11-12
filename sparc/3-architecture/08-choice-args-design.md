@@ -14,9 +14,11 @@ Design for `--choice-*` arguments to make all BitBot interactive prompts bypassa
 
 ### workspace/bitbot-init.sh
 
-| Prompt | Context | Current Bypass | Proposed Flag |
-|--------|---------|----------------|---------------|
-| Config mode | `bitbot init` | `--config`, `--no-config` | ✓ Already supported |
+| Prompt | Context | Choices | Proposed Flag |
+|--------|---------|---------|---------------|
+| Config mode | `bitbot init` (auto mode) | yes/no | `BITBOT_CHOICE_CONFIG_MODE` |
+
+Note: `--config` and `--no-config` flags still available for explicit control.
 
 ### util/git.sh
 
@@ -42,7 +44,7 @@ Design for `--choice-*` arguments to make all BitBot interactive prompts bypassa
 Use environment variables for simplicity and flexibility:
 
 ```bash
-# Config mode (already supported via --config/--no-config)
+# Workspace init prompts
 BITBOT_CHOICE_CONFIG_MODE="yes|no"
 
 # Git prompts
