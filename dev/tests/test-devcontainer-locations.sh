@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 #
 # DevContainer Location Test - WSL home vs /mnt/c/
-# Tests that devcontainers work correctly in both locations
+# Tests that devcontainers can be built in both locations
 #
 # This test validates filesystem compatibility for devcontainers:
 #   - WSL native filesystem (ext4) - best performance
 #   - Windows mount (/mnt/c/) - 9P protocol
+#
+# Note: Only tests build success. Exec/run tests require additional
+#       container management (up/down) which is tested elsewhere.
 #
 # DevContainer CLI Strategy:
 #   - Method 3 (cmd.exe wrapper): For Windows mounts (/mnt/c/) - converts to C:\ paths
@@ -104,10 +107,13 @@ test_devcontainer() {
     local test_dir="$1"
     local location_name="$2"
 
-    echo ""
-    echo "Testing DevContainer ($location_name)"
-    echo "Location: $test_dir"
-    echo ""
+    # Send all diagnostic output to stderr so only return value goes to stdout
+    {
+        echo ""
+        echo "Testing DevContainer ($location_name)"
+        echo "Location: $test_dir"
+        echo ""
+    } >&2
 
     local start_time=$(date +%s)
     local success=false
@@ -116,81 +122,45 @@ test_devcontainer() {
     local win_path=$(convert_to_windows_path "$test_dir")
 
     # Try to build devcontainer
-    echo "Building devcontainer..."
+    echo "Building devcontainer..." >&2
     cd "$test_dir"
 
     if [[ "$DEVC_CMD" == "devcontainer.cmd" ]]; then
         # Using devcontainer.cmd - need wrapper
         if [[ "$test_dir" == /mnt/* ]]; then
             # Method 3: cmd.exe with cd trick
-            if timeout 300 cmd.exe /c "cd /d $win_path && devcontainer.cmd build --workspace-folder ." &>/tmp/devc-build-$$.log; then
-                echo "✓ DevContainer built successfully"
-
-                # Try to run a command in the devcontainer
-                echo "Running test command in devcontainer..."
-                if timeout 60 cmd.exe /c "cd /d $win_path && devcontainer.cmd exec --workspace-folder . bash /workspaces/$(basename "$test_dir")/test.sh" &>/tmp/devc-exec-$$.log; then
-                    echo "✓ DevContainer executed command successfully"
-                    success=true
-                else
-                    echo "✗ DevContainer command execution failed"
-                    echo "Log:"
-                    cat /tmp/devc-exec-$$.log
-                fi
+            if timeout 300 cmd.exe /c "cd /d $win_path && devcontainer.cmd build --workspace-folder ." >&2; then
+                echo "✓ DevContainer built successfully" >&2
+                success=true
             else
-                echo "✗ DevContainer build failed"
-                echo "Log:"
-                cat /tmp/devc-build-$$.log
+                echo "✗ DevContainer build failed" >&2
             fi
         else
             # Method 4: PowerShell with UNC path
-            if timeout 300 powershell.exe -NoProfile -Command "devcontainer.cmd build --workspace-folder '$win_path'" &>/tmp/devc-build-$$.log; then
-                echo "✓ DevContainer built successfully"
-
-                # Try to run a command in the devcontainer
-                echo "Running test command in devcontainer..."
-                if timeout 60 powershell.exe -NoProfile -Command "devcontainer.cmd exec --workspace-folder '$win_path' bash /workspaces/$(basename "$test_dir")/test.sh" &>/tmp/devc-exec-$$.log; then
-                    echo "✓ DevContainer executed command successfully"
-                    success=true
-                else
-                    echo "✗ DevContainer command execution failed"
-                    echo "Log:"
-                    cat /tmp/devc-exec-$$.log
-                fi
+            if timeout 300 powershell.exe -NoProfile -Command "devcontainer.cmd build --workspace-folder '$win_path'" >&2; then
+                echo "✓ DevContainer built successfully" >&2
+                success=true
             else
-                echo "✗ DevContainer build failed"
-                echo "Log:"
-                cat /tmp/devc-build-$$.log
+                echo "✗ DevContainer build failed" >&2
             fi
         fi
     else
         # Using devcontainer CLI directly
-        if timeout 300 devcontainer build --workspace-folder . &>/tmp/devc-build-$$.log; then
-            echo "✓ DevContainer built successfully"
-
-            # Try to run a command in the devcontainer
-            echo "Running test command in devcontainer..."
-            if timeout 60 devcontainer exec --workspace-folder . bash /workspaces/$(basename "$test_dir")/test.sh &>/tmp/devc-exec-$$.log; then
-                echo "✓ DevContainer executed command successfully"
-                success=true
-            else
-                echo "✗ DevContainer command execution failed"
-                echo "Log:"
-                cat /tmp/devc-exec-$$.log
-            fi
+        if timeout 300 devcontainer build --workspace-folder . >&2; then
+            echo "✓ DevContainer built successfully" >&2
+            success=true
         else
-            echo "✗ DevContainer build failed"
-            echo "Log:"
-            cat /tmp/devc-build-$$.log
+            echo "✗ DevContainer build failed" >&2
         fi
     fi
 
     local end_time=$(date +%s)
     local duration=$((end_time - start_time))
 
-    rm -f /tmp/devc-build-$$.log /tmp/devc-exec-$$.log
-
-    echo "Time: ${duration}s"
-    echo ""
+    {
+        echo "Time: ${duration}s"
+        echo ""
+    } >&2
 
     if [[ "$success" == "true" ]]; then
         echo "1"  # Return success
