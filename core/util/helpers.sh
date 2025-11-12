@@ -287,12 +287,45 @@ get_config_value() {
 
 prompt_yes_no() {
     # Prompt for yes/no input with default
-    # Usage: prompt_yes_no <question> <default>
+    # Usage: prompt_yes_no <question> <default> [choice_env_var]
     # Returns: "yes" or "no"
+    #
+    # Args:
+    #   $1 - question: The question to ask
+    #   $2 - default: Default answer ("yes" or "no")
+    #   $3 - choice_env_var: (optional) Environment variable name to check for non-interactive choice
+    #
+    # Example:
+    #   answer=$(prompt_yes_no "Continue?" "yes" "BITBOT_CHOICE_CONTINUE")
+    #   # Can be overridden with: BITBOT_CHOICE_CONTINUE=no
     local question="$1"
     local default="${2:-}"
+    local choice_env_var="${3:-}"
     local response
 
+    # Check if choice provided via environment variable (non-interactive mode)
+    if [[ -n "$choice_env_var" ]]; then
+        local choice_value="${!choice_env_var:-}"
+        if [[ -n "$choice_value" ]]; then
+            # Validate choice value
+            case "$choice_value" in
+                y|yes|Y|YES)
+                    echo "yes"
+                    return 0
+                    ;;
+                n|no|N|NO)
+                    echo "no"
+                    return 0
+                    ;;
+                *)
+                    print_warning "Invalid value for $choice_env_var: '$choice_value' (expected 'yes' or 'no')"
+                    # Fall through to interactive prompt
+                    ;;
+            esac
+        fi
+    fi
+
+    # Interactive prompt
     # Display question with default indicator
     if [[ "$default" == "yes" ]]; then
         read -r -p "$question (Y/n): " response
@@ -322,21 +355,55 @@ prompt_yes_no() {
             ;;
         *)
             print_warning "Invalid input, please enter 'y' or 'n'"
-            prompt_yes_no "$question" "$default"
+            prompt_yes_no "$question" "$default" "$choice_env_var"
             ;;
     esac
 }
 
 prompt_choice() {
     # Prompt for choice from numbered list
-    # Usage: prompt_choice <question> <default_index> <choice1> <choice2> ...
+    # Usage: prompt_choice <question> <default_index> [choice_env_var] <choice1> <choice2> ...
     # Returns: selected choice index (0-based)
+    #
+    # Args:
+    #   $1 - question: The question to ask
+    #   $2 - default_index: Default choice index (0-based)
+    #   $3 - choice_env_var: (optional) Environment variable name to check for non-interactive choice
+    #        If empty string "", no environment variable check is performed
+    #   $4+ - choices: List of choice strings
+    #
+    # Example:
+    #   choice=$(prompt_choice "What to do?" 0 "BITBOT_CHOICE_ACTION" "Option 1" "Option 2" "Option 3")
+    #   # Can be overridden with: BITBOT_CHOICE_ACTION=1 (0-based index)
     local question="$1"
     local default_index="$2"
-    shift 2
+    local choice_env_var="$3"
+    shift 3
     local choices=("$@")
     local response
 
+    # Check if choice provided via environment variable (non-interactive mode)
+    if [[ -n "$choice_env_var" ]]; then
+        local choice_value="${!choice_env_var:-}"
+        if [[ -n "$choice_value" ]]; then
+            # Validate choice value is numeric
+            if [[ "$choice_value" =~ ^[0-9]+$ ]]; then
+                # Validate range (0-based)
+                if [[ $choice_value -ge 0 ]] && [[ $choice_value -lt ${#choices[@]} ]]; then
+                    echo "$choice_value"
+                    return 0
+                else
+                    print_warning "Invalid value for $choice_env_var: '$choice_value' (expected 0-$((${#choices[@]}-1)))"
+                    # Fall through to interactive prompt
+                fi
+            else
+                print_warning "Invalid value for $choice_env_var: '$choice_value' (expected numeric index)"
+                # Fall through to interactive prompt
+            fi
+        fi
+    fi
+
+    # Interactive prompt
     # Display question (to stderr so it's not captured by command substitution)
     echo "$question" >&2
     echo "" >&2
@@ -366,7 +433,7 @@ prompt_choice() {
     # Validate numeric input
     if ! [[ "$response" =~ ^[0-9]+$ ]]; then
         print_warning "Invalid choice, please enter a number"
-        prompt_choice "$question" "$default_index" "${choices[@]}"
+        prompt_choice "$question" "$default_index" "$choice_env_var" "${choices[@]}"
         return 0
     fi
 
@@ -376,7 +443,7 @@ prompt_choice() {
         return 0
     else
         print_warning "Invalid choice, please enter a number between 1 and ${#choices[@]}"
-        prompt_choice "$question" "$default_index" "${choices[@]}"
+        prompt_choice "$question" "$default_index" "$choice_env_var" "${choices[@]}"
         return 0
     fi
 }

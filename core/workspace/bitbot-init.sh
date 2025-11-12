@@ -90,16 +90,16 @@ bitbot_init() {
             launch_config_mode=false
             ;;
         auto)
-            # Prompt in interactive mode only
-            if [[ -t 0 ]]; then
-                echo "Would you like to launch config mode now?"
-                echo "Config mode provides AI assistance to help you configure your .devcontainer."
-                echo ""
-                read -r -p "Launch config mode? [y/N]: " user_response
+            # Prompt in interactive mode only (or use environment variable)
+            echo "Would you like to launch config mode now?"
+            echo "Config mode provides AI assistance to help you configure your .devcontainer."
+            echo ""
 
-                if [[ "$user_response" =~ ^[Yy]$ ]]; then
-                    launch_config_mode=true
-                fi
+            local user_response
+            user_response=$(prompt_yes_no "Launch config mode?" "no" "BITBOT_CHOICE_CONFIG_MODE")
+
+            if [[ "$user_response" == "yes" ]]; then
+                launch_config_mode=true
             fi
             ;;
         *)

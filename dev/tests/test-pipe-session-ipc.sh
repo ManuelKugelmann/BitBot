@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # Test pipe-based session IPC between session-start hook and wrapper
+#
+# MIGRATED TO USE: test-framework.sh
+
 set -euo pipefail
 
-echo "=== Testing Pipe-Based Session IPC ==="
-echo ""
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/helpers/test-framework.sh"
+
+test_suite_begin "Pipe-Based Session IPC"
 
 # Test setup
 TEST_DIR="/tmp/bitbot-pipe-test-$$"
@@ -23,7 +28,7 @@ MOCK_PID=12345
 PIPE="$RUNTIME_DIR/pipes/claude-${MOCK_PID}.pipe"
 mkfifo "$PIPE"
 
-echo "✓ Created test pipe: $PIPE"
+echo " Created test pipe: $PIPE"
 echo ""
 
 # Start pipe reader in background (simulates wrapper)
@@ -34,7 +39,7 @@ echo ""
         echo "Pipe reader: Received command='$cmd' session_id='$session_id'"
 
         if [ "$cmd" = "session" ]; then
-            echo "✓ SUCCESS: Received session ID via pipe: $session_id"
+            echo " SUCCESS: Received session ID via pipe: $session_id"
             exit 0
         fi
     done
@@ -49,9 +54,9 @@ TEST_SESSION_ID="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 
 if [ -p "$PIPE" ]; then
     echo "session $TEST_SESSION_ID" > "$PIPE"
-    echo "✓ Sent 'session $TEST_SESSION_ID' to pipe"
+    echo " Sent 'session $TEST_SESSION_ID' to pipe"
 else
-    echo "✗ FAIL: Pipe doesn't exist"
+    echo " Pipe doesn't exist"
     exit 1
 fi
 
@@ -60,7 +65,7 @@ sleep 1
 
 # Check if reader got the message
 if kill -0 $READER_PID 2>/dev/null; then
-    echo "✗ FAIL: Pipe reader still running (didn't receive message)"
+    echo " Pipe reader still running (didn't receive message)"
     kill $READER_PID 2>/dev/null || true
     exit 1
 fi

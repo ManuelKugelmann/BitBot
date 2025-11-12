@@ -3,61 +3,34 @@
 # GitHub Codespaces Quick Test
 # Tests BitBot functionality that works in Codespaces (without Docker-in-Docker)
 #
+# MIGRATED TO USE: test-framework.sh
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BITBOT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+# Source test framework
+source "${SCRIPT_DIR}/helpers/test-framework.sh"
 
-pass_count=0
-fail_count=0
-skip_count=0
+test_suite_begin "BitBot Codespaces Quick Test"
 
+echo "ℹ Note: Codespaces already runs .devcontainer"
+echo "  This test validates container/bitbot scripts"
 echo ""
-echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║  BitBot Codespaces Quick Test         ║${NC}"
-echo -e "${CYAN}║  (Tests container bitbot scripts)     ║${NC}"
-echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
-echo ""
-echo -e "${BLUE}ℹ Note: Codespaces already runs .devcontainer${NC}"
-echo -e "${BLUE}  This test validates container/bitbot scripts${NC}"
-echo ""
-
-test_pass() {
-    echo -e "${GREEN}✓${NC} $1"
-    pass_count=$((pass_count + 1))
-}
-
-test_fail() {
-    echo -e "${RED}✗${NC} $1"
-    fail_count=$((fail_count + 1))
-}
-
-test_skip() {
-    echo -e "${YELLOW}⊘${NC} $1"
-    skip_count=$((skip_count + 1))
-}
 
 # Detect if running in Codespaces
 if [[ -n "${CODESPACES:-}" ]] || [[ -n "${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-}" ]]; then
-    echo -e "${BLUE}ℹ Running in GitHub Codespaces${NC}"
+    echo "ℹ Running in GitHub Codespaces"
     IN_CODESPACES=true
 else
-    echo -e "${YELLOW}⚠ Not running in Codespaces (testing locally)${NC}"
+    echo "⚠ Not running in Codespaces (testing locally)"
     IN_CODESPACES=false
 fi
 echo ""
 
 # Test 1: Environment Detection
-echo -e "${BLUE}═══ Test 1: Environment ═══${NC}"
+echo "═══ Test 1: Environment ═══"
 echo ""
 
 if [[ "$IN_CODESPACES" == true ]]; then
@@ -82,7 +55,7 @@ fi
 echo ""
 
 # Test 2: BitBot CLI
-echo -e "${BLUE}═══ Test 2: BitBot CLI ═══${NC}"
+echo "═══ Test 2: BitBot CLI ═══"
 echo ""
 
 if [[ -f "$BITBOT_ROOT/core/bitbot" ]]; then
@@ -113,7 +86,7 @@ fi
 echo ""
 
 # Test 3: Docker Availability
-echo -e "${BLUE}═══ Test 3: Docker (Limited in Codespaces) ═══${NC}"
+echo "═══ Test 3: Docker (Limited in Codespaces) ═══"
 echo ""
 
 if command -v docker &> /dev/null; then
@@ -137,7 +110,7 @@ fi
 echo ""
 
 # Test 4: Container BitBot Scripts
-echo -e "${BLUE}═══ Test 4: Container BitBot Scripts ═══${NC}"
+echo "═══ Test 4: Container BitBot Scripts ═══"
 echo ""
 
 CONTAINER_BITBOT="$BITBOT_ROOT/container/bitbot"
@@ -172,7 +145,7 @@ done
 echo ""
 
 # Test 5: Run Subset of Test Suite
-echo -e "${BLUE}═══ Test 5: Quick Unit Tests ═══${NC}"
+echo "═══ Test 5: Quick Unit Tests ═══"
 echo ""
 
 # Run tests that don't require Docker
@@ -209,7 +182,7 @@ fi
 echo ""
 
 # Test 6: Claude Code (if available)
-echo -e "${BLUE}═══ Test 6: Claude Code Integration ═══${NC}"
+echo "═══ Test 6: Claude Code Integration ═══"
 echo ""
 
 if command -v claude-code &> /dev/null; then
@@ -228,36 +201,16 @@ fi
 
 echo ""
 
-# Summary
-echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║          Test Summary                  ║${NC}"
-echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
-echo ""
-echo -e "  Passed:  ${GREEN}$pass_count${NC}"
-echo -e "  Failed:  ${RED}$fail_count${NC}"
-echo -e "  Skipped: ${YELLOW}$skip_count${NC}"
-echo ""
-
-if [[ $fail_count -eq 0 ]]; then
-    echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  BitBot works in Codespaces! ✓        ║${NC}"
-    echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
+# Test suite complete
+if [[ "$IN_CODESPACES" == true ]]; then
     echo ""
-
-    if [[ "$IN_CODESPACES" == true ]]; then
-        echo -e "${YELLOW}Note: Some features require Docker-in-Docker:${NC}"
-        echo "  • bitbot work (start work container)"
-        echo "  • bitbot config (start config container)"
-        echo "  • Full integration tests"
-        echo ""
-        echo "These are tested in GitHub Actions CI."
-    fi
-
-    exit 0
-else
-    echo -e "${RED}╔════════════════════════════════════════╗${NC}"
-    echo -e "${RED}║  Some tests failed ✗                  ║${NC}"
-    echo -e "${RED}╚════════════════════════════════════════╝${NC}"
+    echo "Note: Some features require Docker-in-Docker:"
+    echo "  • bitbot work (start work container)"
+    echo "  • bitbot config (start config container)"
+    echo "  • Full integration tests"
     echo ""
-    exit 1
+    echo "These are tested in GitHub Actions CI."
+    echo ""
 fi
+
+test_suite_end
