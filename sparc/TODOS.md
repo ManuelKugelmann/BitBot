@@ -2,7 +2,7 @@
 
 **Status**: Pre-Alpha → Alpha (v0.1.0)
 
-**Last Updated**: 2025-10-30
+**Last Updated**: 2025-11-12
 
 ---
 
@@ -30,12 +30,26 @@
   - **Tmux output logging:** log_tmux_output() helper for debugging
   - **Bug fixes:** Fixed duplicate PATH entry bug, workspace detection in tests
 
-### 2. Config Agent Preparation (P1 - Important)
+### 2. Test Suite Migration (P1 - Important) 🔥
+
+**Status**: 13/26 tests migrated (50%) - **Phase 3 Complete** ✅
+
+- [x] Phase 1: Quick wins (3 tests) ✅
+- [x] Phase 2: Workspace tests (2 tests) ✅
+- [x] Phase 3: Medium complexity (4 tests) ✅
+- [ ] Phase 4: Complex CI tests (3 tests) - **NEXT**
+  - [ ] `test-wrapper-layer1.sh`
+  - [ ] Remaining session/container tests
+- [ ] Phase 5: Non-CI tests (11 tests)
+
+**See**: `dev/tests/MIGRATION-PLAN.md` for details
+
+### 3. Config Agent Preparation (P1 - Important)
 
 - [ ] Configure agent to reference TEMPLATES.md for template customization help
 - [ ] Agent should understand template merge process (shared scripts)
 
-### 3. Bug Fixes (P0 - Critical)
+### 4. Bug Fixes (P0 - Critical)
 
 - [ ] Document all known issues in GitHub
 - [ ] Fix critical bugs (blocking issues)
@@ -67,6 +81,11 @@
 
 - [x] tmux integration & session management ✅ DONE
 - [x] Multi-session support ✅ DONE
+- [x] Claude context self-management system ✅ DONE
+  - Wrapper infrastructure with pipes
+  - Statusline wrapper for context tracking
+  - Restart/compact/clear skills
+  - Do-not-stop automation hook
 - [ ] Container resource limits & monitoring
 
 ### Integration (P2)
@@ -98,7 +117,8 @@
 ## Technical Debt
 
 - [x] Line ending handling ✅ SOLVED (via .gitattributes)
-- [x] Test coverage ✅ DONE (7 automated test suites)
+- [x] Test coverage ✅ DONE (34 automated test suites)
+- [x] Test framework consolidation ✅ IN PROGRESS (13/26 tests migrated, 50%)
 - [ ] Windows launcher optimization (38KB → smaller)
 - [ ] Error handling improvements (comprehensive error messages + recovery)
 
@@ -158,16 +178,17 @@
 
 ---
 
-**Last Updated**: 2025-10-24
+**Last Major Update**: 2025-10-24
+**Status Update**: 2025-11-12
 
 Urgent:
 
 - [ ] test dev container rebuild after config (terminal, vscode, new start / while in use)
 - [x] where do global files live for codespaces ? ✅ SOLVED: `.bitbot/internal/` mount strategy
-- [ ] mermaid in readme
+- [x] mermaid in readme ✅ DONE
 - [ ] update folder structure in readme
 - [ ] less duplicate info in readme
-- [ ] update todos in readme
+- [x] update todos tracking to use /sparc/TODOS.md ✅ DONE
 
 ## Recent Additions
 
@@ -183,8 +204,8 @@ Urgent:
 **Infrastructure Version Tracking:**
 - [x] Research `.version` and `global/` directory purpose ✅
 - [x] Create design document for hash-based tracking ✅
-- [ ] Decide: Keep `.version` as-is, implement hash-based, or remove entirely
-- [ ] Implement infrastructure verification if needed
+- [x] Decision: Defer implementation (not currently needed) ✅
+- See: `sparc/5-completion/INFRASTRUCTURE-VERSION-TRACKING.md`
 
 **Session Data Organization:**
 - [ ] Consider moving `.bitbot/session-env/` to `.bitbot/tmp/session-env/`
@@ -194,19 +215,14 @@ Urgent:
   - Requires updating: wrapper, hooks, skills, docs
 
 **Wrapper Infrastructure:**
-- [x] Move ccstatusline-wrapper to /container/bitbot/wrapper/ ✅
-- [x] Document wrapper mount point in containers ✅
-- [x] Aggressive session cleanup strategy implemented ✅
-- [x] Rename ccstatusline-wrapper to statusline-wrapper (tool-agnostic) ✅
-- [x] Document distinction between claude-wrapper and statusline-wrapper ✅
-- [x] Create wrapper system architecture doc (02-wrapper-system.md) ✅
-- [x] Add wrapper overview to CLAUDE.md ✅
-- [x] Create claude-inspect-context-size skill (.bitbot/scripts/) ✅
-- [x] Enhance context management: work continuation over thresholds ✅
-- [x] Add context color signals to statusline-wrapper ✅
-- [x] Create comprehensive ccstatusline config with git branch ✅
-- [x] Functional grouping: Model │ Git │ Context │ Session ✅
-- [x] Dynamic context colors: 🟢🟡🟠🔴 aligned with break point strategy ✅
+- [x] Complete wrapper infrastructure implementation ✅ DONE
+  - Claude wrapper with pipe control (restart/compact/clear)
+  - Statusline wrapper for context tracking
+  - Watchdog for stall detection
+  - Session management utilities
+  - Context size inspection skill
+  - Comprehensive documentation in CLAUDE.md
+  - Architecture docs: `sparc/3-architecture/02-wrapper-system.md`
 
 ### Infrastructure (2025-10-28)
 
@@ -218,24 +234,15 @@ Urgent:
 - [x] Create core/shared/ for version tracking ✅
 - [x] Fix dogfooding conflict (host vs container bitbot command) ✅
 - [x] Design Codespaces infrastructure strategy ✅ (See: `sparc/1-specification/13_CODESPACES_INFRASTRUCTURE.md`)
-- [ ] Implement `.bitbot/internal/` directory structure
-  - [ ] Add `sync_infrastructure()` shared function
-  - [ ] Update `bitbot init` to create `.bitbot/internal/container/` and call sync
-  - [ ] Update `bitbot work` to call `sync_infrastructure()` before starting container
-  - [ ] Update `bitbot config` to call `sync_infrastructure()` before starting container
-- [ ] Update templates (simple readonly mounts)
-  - [ ] Update base.devcontainer.json (add `.bitbot/internal/` readonly mount)
-  - [ ] Update bitbot-config template (add Docker socket mount)
-- [ ] Optional container-side detection
-  - [ ] Add `check-infrastructure.sh` to detect uncommitted changes (work mode)
-- [ ] Testing
-  - [ ] Test local environment (host command sync workflow)
-  - [ ] Test Codespaces (uses committed copies, no host commands)
-  - [ ] Test switching modes (work ↔ config)
+- [x] Implement `.bitbot/internal/` directory structure ✅ DONE
+  - `sync_infrastructure()` function implemented
+  - `bitbot init` creates structure and syncs
+  - Templates include container bitbot scripts
+  - Readonly mounts configured
+- [x] Integrate wrapper into BitBot container startup ✅ DONE
+- [x] Add relevant session info to statusline ✅ DONE
 - [ ] Test watchdog in real-world stall scenarios
-- [ ] Add relevant session info to statusline (session ID, PID, wrapper status)
-- [ ] Integrate wrapper into BitBot container startup
-- [ ] Replace tmux-based restart with pipe-based system
+- [ ] Optional: Replace tmux-based restart with pipe-based system (current works well)
 
 ### Skills Testing (2025-10-29)
 
