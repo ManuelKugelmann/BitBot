@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # Test session-start hook WITH wrapper pipe
+#
+# MIGRATED TO USE: test-framework.sh
+
 set -euo pipefail
 
-echo "=== Testing Session Hook With Wrapper Pipe ==="
-echo ""
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/helpers/test-framework.sh"
+
+test_suite_begin "Session Hook With Wrapper Pipe"
 
 # Setup mock environment
 TEST_DIR="/tmp/bitbot-wrapper-test-$$"
@@ -23,7 +28,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "✓ Created wrapper pipe: $PIPE"
+echo "Created wrapper pipe: $PIPE"
 echo ""
 
 # Start pipe reader (simulates wrapper)
@@ -33,10 +38,10 @@ echo ""
         echo "Wrapper: Received command='$cmd' session_id='$session_id'"
 
         if [ "$cmd" = "session" ] && [ "$session_id" = "test-session-67890" ]; then
-            echo "✓ Wrapper received correct session ID via pipe"
+            echo "Wrapper received correct session ID via pipe"
             exit 0
         else
-            echo "✗ Wrapper received unexpected data"
+            echo "Wrapper received unexpected data"
             exit 1
         fi
     fi
@@ -58,26 +63,23 @@ READER_EXIT=$?
 
 # Verify environment export
 if grep -q "CLAUDE_SESSION_ID='test-session-67890'" "$CLAUDE_ENV_FILE"; then
-    echo "✓ Session ID exported to CLAUDE_ENV_FILE"
+    test_pass "Session ID exported to CLAUDE_ENV_FILE"
 else
-    echo "✗ Session ID NOT exported to CLAUDE_ENV_FILE"
-    exit 1
+    test_fail "Session ID exported to CLAUDE_ENV_FILE"
 fi
 
 # Verify no state files created
 STATE_FILES=$(find "$TEST_DIR" -name ".wrapper-session-*.state" 2>/dev/null || true)
 if [ -n "$STATE_FILES" ]; then
-    echo "✗ FAIL: State files created (should only use pipe)"
-    exit 1
+    test_fail "No state files created (should only use pipe)"
 else
-    echo "✓ No state files created (correct - using pipe instead)"
+    test_pass "No state files created (correct - using pipe instead)"
 fi
 
-echo ""
 if [ $READER_EXIT -eq 0 ]; then
-    echo "=== TEST PASSED ==="
-    echo "Session ID communicated via pipe, no state files created"
+    test_pass "Wrapper received session ID via pipe"
 else
-    echo "=== TEST FAILED ==="
-    exit 1
+    test_fail "Wrapper received session ID via pipe"
 fi
+
+test_suite_end
