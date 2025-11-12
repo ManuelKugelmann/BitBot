@@ -287,7 +287,7 @@ BitBot follows the **SPARC** methodology for structured development. When workin
 | **2. Pseudocode**       | `sparc/2-pseudocode/`    | Algorithm design            | `numbered-kebab-case.md`             |
 | **3. Architecture**     | `sparc/3-architecture/`  | System design, diagrams     | `numbered-kebab-case.md`             |
 | **4. Refinement**       | `sparc/4-refinement/`    | POCs, tests, iterations     | `poc-*/`, `test-*.sh`                |
-| **5. Completion**       | `sparc/5-completion/`    | TODOs, progress tracking    | `TODO-TRACKER.md`, `SPEC-TODO.md`    |
+| **5. Completion**       | `sparc/5-completion/`    | TODOs, progress tracking    | See `/sparc/TODOS.md`                |
 
 ### When to Use Each Phase
 
@@ -322,8 +322,7 @@ BitBot follows the **SPARC** methodology for structured development. When workin
 - **Not for final tests** - use `dev/tests/` instead
 
 **5. Completion** - Tracking progress:
-- `TODO-TRACKER.md` - Current sprint tasks
-- `SPEC-TODO.md` - Specification gaps
+- `/sparc/TODOS.md` - Current tasks and roadmap
 - Progress tracking documents
 - **Check here** before starting new work
 
@@ -368,7 +367,7 @@ BitBot follows the **SPARC** methodology for structured development. When workin
 - **DO NOT** attempt big refactorings or implementation steps in one go
 - **DO NOT** use pwsh to run PowerShell scripts
 - **DO NOT** add 🤖 Generated with [Claude Code] or Co-Authored-By to commits
-- DO step by step, small steps, track tasks using TodoWrite tool (session) AND `/sparc/TODOS.md` (persistent). test after steps. fix. commit if working.
+- DO step by step, small steps, track tasks using TodoWrite tool (session) AND `/sparc/TODOS.md` (persistent). Test after steps. Fix. Commit if working.
 - DO use test-workflow skill for iterative development: implement → test → fix → commit → push
 - DON'T: large changes, multiple changes, large combined commits
 - DO use worktrees when doing more complex git work like e.g. a release.
@@ -397,7 +396,7 @@ BitBot includes a Stop hook that automatically continues work after Claude finis
 - Edit `.bitbot/DO-NOT-STOP.txt` - Change continuation message directly
 
 **Use cases:**
-- Multi-phase implementations (implement tasks from TODO-TRACKER.md)
+- Multi-phase implementations (implement tasks from `/sparc/TODOS.md`)
 - Test-fix-commit loops (run tests, fix failures, repeat)
 - Documentation generation (create docs for all modules)
 

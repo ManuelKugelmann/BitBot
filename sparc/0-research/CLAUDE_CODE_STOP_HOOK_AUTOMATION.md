@@ -215,16 +215,16 @@ STOP_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false')
 
 [ "$STOP_ACTIVE" = "true" ] && exit 0
 
-# Check TODO-TRACKER.md for pending tasks
-PENDING=$(grep -c "^- \[ \]" sparc/5-completion/TODO-TRACKER.md)
+# Check TODOS.md for pending tasks
+PENDING=$(grep -c "^- \[ \]" sparc/TODOS.md)
 
 if [ "$PENDING" -gt 0 ]; then
-    NEXT=$(grep "^- \[ \]" sparc/5-completion/TODO-TRACKER.md | head -n1)
+    NEXT=$(grep "^- \[ \]" sparc/TODOS.md | head -n1)
 
     cat <<EOF
 {
   "decision": "block",
-  "reason": "Implementation phase complete. Continue with next task: $NEXT. Read TODO-TRACKER.md and implement the next uncompleted item."
+  "reason": "Implementation phase complete. Continue with next task: $NEXT. Read /sparc/TODOS.md and implement the next uncompleted item."
 }
 EOF
 else
@@ -404,7 +404,7 @@ Create tools for hook management:
 
 BitBot includes sample Stop hooks for automated workflows:
 
-- **Implementation Loop**: Automatically implements tasks from TODO-TRACKER.md
+- **Implementation Loop**: Automatically implements tasks from /sparc/TODOS.md
 - **Test-Fix Loop**: Runs tests after changes and auto-fixes failures
 - **Doc Generation**: Creates documentation for undocumented modules
 
@@ -488,7 +488,7 @@ Documentation mentions SessionStart receives `"source": "resume"` but doesn't de
 - [Claude Code Hooks Guide](https://docs.claude.com/en/docs/claude-code/hooks-guide.md)
 - [Claude Code Hooks Reference](https://docs.claude.com/en/docs/claude-code/hooks)
 - User example: Stop hook with session resumption
-- [BitBot TODO-TRACKER.md](../../sparc/5-completion/TODO-TRACKER.md)
+- [BitBot TODOS.md](../../sparc/TODOS.md)
 
 ---
 
@@ -500,6 +500,6 @@ Stop hook automation enables powerful automated workflows for repetitive multi-p
 1. Provide sample hooks for common workflows
 2. Include emergency stop mechanism
 3. Document automation capabilities
-4. Test with TODO-TRACKER integration
+4. Test with TODOS.md integration
 
 **Status**: ✅ Research complete. Ready for implementation planning.
