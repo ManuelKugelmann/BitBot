@@ -705,4 +705,4 @@ BitBot includes a Stop hook that automatically continues work after Claude finis
 - **Mount Structure**: See `sparc/1-specification/12_MOUNT_STRUCTURE.md`
 
 ---
-
+- Errors and problems must be fixed and solved, Not ignored or circumvented.
