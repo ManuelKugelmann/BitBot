@@ -30,27 +30,68 @@
   - **Tmux output logging:** log_tmux_output() helper for debugging
   - **Bug fixes:** Fixed duplicate PATH entry bug, workspace detection in tests
 
-### 2. Test Suite Migration (P1 - Important) 🔥
+### 2. Test Suite Issues & Expansion (P0 - CRITICAL) 🔥
 
-**Status**: 13/26 tests migrated (50%) - **Phase 3 Complete** ✅
+**Test Execution Status** (run-tests.sh):
+- ✅ 5/6 core tests passing (83.3%)
+- ❌ 1 test failing: DevContainer Locations (WSL home)
+- ❌ 1 test error: Integration Test (not migrated)
 
-- [x] Phase 1: Quick wins (3 tests) ✅
-- [x] Phase 2: Workspace tests (2 tests) ✅
-- [x] Phase 3: Medium complexity (4 tests) ✅
-- [ ] Phase 4: Complex CI tests (3 tests) - **NEXT**
-  - [ ] `test-wrapper-layer1.sh`
-  - [ ] Remaining session/container tests
-- [ ] Phase 5: Non-CI tests (11 tests)
+**Critical Issues**:
+- [ ] **P0**: Fix DevContainer location test failure (WSL home)
+- [ ] **P0**: Migrate test-integration.sh to framework
+- [ ] **P0**: Expand run-tests.sh - only 8/33 tests run (24% coverage!)
 
-**See**: `dev/tests/MIGRATION-PLAN.md` for details
+**Missing from run-tests.sh** (25+ working tests not executed):
+- [ ] Add user flow tests (test-user-flow-*.sh) - 34+ tests passing
+- [ ] Add init tests (interactive/non-interactive)
+- [ ] Add session tests (test-session-*.sh) - 23+ tests passing
+- [ ] Add infrastructure tests (sync, merge, helpers) - 63+ tests passing
+- [ ] Add integration test (bitbot-integration) - 19 tests passing
+
+**Test Framework Migration** (13/26 migrated, 50%):
+- [x] Phase 1-3 complete ✅
+- [ ] Phase 4: Complex CI tests (wrapper-layer1, etc.)
+- [ ] Phase 5: Non-CI tests
+
+**See**: `dev/tests/MIGRATION-PLAN.md`, `/tmp/test-gaps-analysis.md`
 
 ### 3. Config Agent Preparation (P1 - Important)
 
 - [ ] Configure agent to reference TEMPLATES.md for template customization help
 - [ ] Agent should understand template merge process (shared scripts)
 
-### 4. Bug Fixes (P0 - Critical)
+### 4. Untested Code Paths (P1 - Important) ⚠️
 
+**Commands** (3/6 tested in run-tests.sh):
+- [x] `bitbot help` / `--help` / `-h` ✅
+- [x] `bitbot version` / `--version` / `-v` ✅
+- [ ] `bitbot init` (interactive with prompts)
+- [ ] `bitbot init --config` flag
+- [ ] `bitbot init --no-config` flag
+- [ ] `bitbot work` (container operations)
+- [ ] `bitbot work vscode` (VS Code integration)
+- [ ] `bitbot config` (config mode)
+- [ ] `bitbot config vscode`
+- [ ] `bitbot vscode` (shorthand for work vscode)
+
+**Code Branches Not Tested**:
+- [ ] Uninitialized workspace: init prompt (yes/no responses)
+- [ ] Uninitialized workspace: command rejection
+- [ ] Global context: config migration from old location
+- [ ] Global context: validation after init
+- [ ] Container reuse across work/config modes
+- [ ] Mode switching (work ↔ config)
+- [ ] Error paths: invalid commands
+- [ ] Error paths: missing prerequisites
+- [ ] Error paths: failed container builds
+- [ ] Git safety: uncommitted changes warnings
+
+**Recommendation**: Create test-bitbot-work.sh, test-bitbot-config.sh, test-init-flags.sh
+
+### 5. Bug Fixes (P0 - Critical)
+
+- [ ] **FIX**: DevContainer location test failing on WSL home
 - [ ] Document all known issues in GitHub
 - [ ] Fix critical bugs (blocking issues)
 - [ ] Triage non-critical bugs (defer to post-alpha)
@@ -179,7 +220,7 @@
 ---
 
 **Last Major Update**: 2025-10-24
-**Status Update**: 2025-11-12
+**Test Analysis**: 2025-11-12 (run-tests.sh: 5/6 passing, 25+ tests not included)
 
 Urgent:
 
