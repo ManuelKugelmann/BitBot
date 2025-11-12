@@ -59,7 +59,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq
+          sudo apt-get install -y jq tmux
 
       - name: Install DevContainer CLI
         run: npm install -g @devcontainers/cli
@@ -99,6 +99,36 @@ jobs:
         run: |
           cd dev/tests
           ./test-workspace-init.sh
+
+      - name: Run non-interactive init tests
+        run: |
+          cd dev/tests
+          ./test-bitbot-init-non-interactive.sh
+
+      - name: Run interactive init tests
+        run: |
+          cd dev/tests
+          ./test-bitbot-init-interactive.sh
+
+      - name: Run infrastructure sync tests
+        run: |
+          cd dev/tests
+          ./test-infrastructure-sync.sh
+
+      - name: Run devcontainer merge tests
+        run: |
+          cd dev/tests
+          ./test-merge-devcontainer.sh
+
+      - name: Run session management tests
+        run: |
+          cd dev/tests
+          ./test-session-management.sh
+
+      - name: Run wrapper tests
+        run: |
+          cd dev/tests
+          ./test-wrapper-layer1.sh
 
       - name: Run container BitBot tests
         run: |
