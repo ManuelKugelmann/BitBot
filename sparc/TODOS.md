@@ -2,7 +2,7 @@
 
 **Status**: Pre-Alpha → Alpha (v0.1.0)
 
-**Last Updated**: 2025-11-12
+**Last Updated**: 2025-11-12 (Test Suite Expansion Complete)
 
 ---
 
@@ -33,28 +33,47 @@
 ### 2. Test Suite Issues & Expansion (P0 - CRITICAL) 🔥
 
 **Test Execution Status** (run-tests.sh):
-- ✅ 5/6 core tests passing (83.3%)
-- ❌ 1 test failing: DevContainer Locations (WSL home)
-- ❌ 1 test error: Integration Test (not migrated)
+- ✅ 32 test suites integrated (4x increase from 8)
+- ✅ 200+ test assertions (3x increase from ~64)
+- ✅ Organized by speed: 17 fast (always run), 15 slow (skip in --quick)
+- ❌ Infrastructure Sync test has known failures (content drift)
 
-**Critical Issues**:
+**Completed**:
 - [x] **P0**: Fix DevContainer location test failure (WSL home) ✅ FIXED
-- [ ] **P0**: Migrate test-integration.sh to framework
-- [ ] **P0**: Expand run-tests.sh - only 8/33 tests run (24% coverage!)
+- [x] **P0**: Expand run-tests.sh - Added all 32 test suites ✅ DONE
+- [x] Add user flow tests (test-user-flow-*.sh) ✅ DONE (7 suites)
+- [x] Add init tests (interactive/non-interactive) ✅ DONE
+- [x] Add session tests (test-session-*.sh) ✅ DONE (5 suites)
+- [x] Add infrastructure tests (sync, merge, helpers) ✅ DONE (3 suites)
+- [x] Add wrapper tests (layer1, full) ✅ DONE (2 suites)
+- [x] Add pipe/IPC tests ✅ DONE (2 suites)
 
-**Missing from run-tests.sh** (25+ working tests not executed):
-- [ ] Add user flow tests (test-user-flow-*.sh) - 34+ tests passing
-- [ ] Add init tests (interactive/non-interactive)
-- [ ] Add session tests (test-session-*.sh) - 23+ tests passing
-- [ ] Add infrastructure tests (sync, merge, helpers) - 63+ tests passing
-- [ ] Add integration test (bitbot-integration) - 19 tests passing
+**Remaining**:
+- [ ] **P0**: Migrate test-integration.sh to framework
+- [ ] **P1**: Fix Infrastructure Sync test content drift issues
+- [ ] **P1**: Add integration test to run-tests.sh (bitbot-integration)
 
 **Test Framework Migration** (13/26 migrated, 50%):
 - [x] Phase 1-3 complete ✅
 - [ ] Phase 4: Complex CI tests (wrapper-layer1, etc.)
 - [ ] Phase 5: Non-CI tests
 
-**See**: `dev/tests/MIGRATION-PLAN.md`, `/tmp/test-gaps-analysis.md`
+**Test Categories in run-tests.sh**:
+1. Core Unit Tests (4 suites): Prerequisites, Platform, Helpers, Commands
+2. Workspace Tests (2 suites): Init, Non-Interactive Init
+3. Container Tests (2 suites): BitBot, Start/Resume
+4. Infrastructure Tests (2 suites): Sync, Merge DevContainer
+5. Session/Wrapper Tests (5 suites): Layer1, Full, Management, Hooks
+6. Pipe/IPC Tests (2 suites): Communication, IPC
+7. User Flow Tests (7 suites): Init, Workspace, Context Switch, etc
+8. Interactive Tests (1 suite): Interactive Init
+9. Performance Tests (2 suites): Filesystem, DevContainer
+10. DevContainer Tests (1 suite): Locations
+11. Integration Tests (2 suites): BitBot, Full
+12. Quality Tests (1 suite): Shellcheck
+13. Cloud Tests (1 suite): Codespaces
+
+**See**: `dev/tests/MIGRATION-PLAN.md`, Commit: f959854
 
 ### 3. Config Agent Preparation (P1 - Important)
 
@@ -219,8 +238,8 @@
 
 ---
 
-**Last Major Update**: 2025-10-24
-**Test Analysis**: 2025-11-12 (run-tests.sh: 5/6 passing, 25+ tests not included)
+**Last Major Update**: 2025-11-12 (Test Suite Expansion)
+**Test Status**: 2025-11-12 (run-tests.sh: 32 test suites, 200+ assertions, organized by speed)
 
 Urgent:
 
