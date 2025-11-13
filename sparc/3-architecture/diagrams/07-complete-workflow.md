@@ -105,12 +105,12 @@ graph TB
         InnerCmd -->|resume| ResumeCmd
 
         StartCmd --> CreateTmux[Create tmux session<br/>tmux new-session]
-        CreateTmux --> LaunchClaude[Launch Claude Code<br/>tmux send-keys 'claude']
+        CreateTmux --> WrapperLaunch[Launch via wrapper<br/>claude-wrapper.sh claude]
 
         ResumeCmd --> SelectSession[Select existing session]
         SelectSession --> AttachTmux[Attach to tmux session<br/>tmux attach-session]
 
-        LaunchClaude --> AgentMode{Container<br/>mode?}
+        WrapperLaunch --> AgentMode{Container<br/>mode?}
         AgentMode -->|Work| WorkAI([Claude with work tools<br/>AI codes freely])
         AgentMode -->|Config| ConfigAI([Claude with config tools<br/>AI edits infra])
 
@@ -164,17 +164,33 @@ graph TB
 **Workspace Structure**:
 ```
 .bitbot/
-├── config.json              # Workspace config
-├── local/                   # Git-ignored (session data)
-├── internal/                # Config mode data
-│   ├── devcontainer.json   # Config mode container
-│   └── local/              # Git-ignored (config session)
+├── config.json              # Workspace config (launch mode, skip flags)
+├── local/                   # Work mode session data (gitignored)
+├── internal/                # Infrastructure files
+│   ├── .devcontainer/       # Config mode devcontainer
+│   │   └── devcontainer.json
+│   ├── container/           # Container infrastructure (committed)
+│   │   └── home/
+│   │       └── .tmux.conf
+│   ├── global/              # Global config overlay structure (gitignored)
+│   │   ├── .bitbot/
+│   │   └── .claude/
+│   └── local/               # Config mode session data (gitignored)
+└── tmp/                     # Runtime files (gitignored)
+    ├── pipes/               # Wrapper IPC pipes
+    └── sessions/            # Session state
 ```
 
 **DevContainer Setup**:
 - Existing `.devcontainer/` → Use as-is
 - No `.devcontainer/` → Copy from template
-- Template path: `$BITBOT_HOME/container/templates/workspace/`
+- Template path: `$BITBOT_HOME/container/templates/bitbot-work/`
+
+**Global Config Location**:
+- Global config: `$BITBOT_HOME/global/.bitbot/config.json`
+- Contains default launch mode (terminal/vscode)
+- Contains default skip flags (git push recommendation, safety checks)
+- Migration from old `config.json` at root handled automatically
 
 ### Work Mode Container
 
@@ -197,16 +213,19 @@ graph TB
 ### Config Mode Container
 
 **Access Model**:
-- Full read-write workspace access
+- Read-write workspace access (allows editing `.devcontainer/`)
+- Read-only overlay for `.bitbot/internal/` (protects infrastructure)
 - Separate container from work mode
-- AI optimized for infrastructure tasks
-- Uses `$BITBOT_HOME/container/templates/config/`
+- Uses workspace-specific devcontainer at `.bitbot/internal/.devcontainer/`
+- References global Dockerfile: `$BITBOT_HOME/container/templates/bitbot-config/Dockerfile`
 
 **Use Cases**:
 - Edit `.devcontainer/devcontainer.json`
 - Add VS Code extensions
 - Configure container features
 - Update Dockerfile
+
+**Note**: Config mode is optional after `bitbot init` (default: no). Use `bitbot init --config` to force launch, or `bitbot config` anytime.
 
 ### Git Safety Integration
 
@@ -217,9 +236,12 @@ graph TB
 - Never blocks execution
 
 **Safety Functions** (`util/git.sh`):
+- `recommend_git_push_before_init()` - Two-stage prompting:
+  1. Push recommendation (uncommitted/unpushed changes)
+  2. Safety checks (secrets warning, API keys)
 - `check_git_uncommitted()` - Detect dirty working tree
 - `count_uncommitted_files()` - Count modified files
-- `recommend_git_push_before_init()` - Prompt before changes
+- **Three-choice system**: Exit to fix, Skip this time, Skip permanently (saves to workspace config)
 
 ### Prerequisites Validation
 
@@ -252,6 +274,59 @@ graph TB
 - Container reused if already running
 - Hex encoding prevents path corruption
 
+### Wrapper Integration (Container)
+
+**All Claude launches** go through wrapper for session management:
+
+**Wrapper Script**: `/usr/local/bitbot/wrapper/claude-wrapper.sh`
+
+**Architecture**:
+- Creates control pipe: `.bitbot/tmp/pipes/claude-<PID>.pipe`
+- Intercepts status line for context tracking
+- Provides restart capability (exit, restart, compact, clear)
+- Watchdog monitoring for session health
+
+**Session Flow**:
+```bash
+# When launching Claude in tmux
+tmux new-session -s "bitbot-YYYYMMDD-HHMMSS" \
+  "/usr/local/bitbot/wrapper/claude-wrapper.sh claude --resume"
+```
+
+**Benefits**:
+- Skills can trigger restart/compaction autonomously
+- Context % tracked via status line wrapper
+- Session recovery on crashes
+- Programmatic session control
+
+**Components**:
+- `claude-wrapper.sh` - Main wrapper (pipe control, restart)
+- `statusline-wrapper/wrapper.sh` - Status line interception
+- `send-wrapper-command.sh` - Send commands to wrapper
+- `watchdog.sh` - Monitor session health
+
+### WSL Path Handling
+
+**DevContainer Command Wrapping** (`util/devcontainer.sh`):
+
+**Method 3 (cmd.exe)** - For Windows mount paths (`/mnt/c/...`):
+```bash
+cmd.exe /c "cd /d \"C:\path\" && devcontainer.cmd --workspace-folder ."
+```
+
+**Method 4 (PowerShell)** - For WSL native paths:
+```bash
+pwsh.exe -Command "devcontainer.cmd --workspace-folder '\\wsl.localhost\Ubuntu\home\user\project'"
+```
+
+**Why needed**: Direct devcontainer.cmd execution from WSL with UNC paths causes corruption. Wrappers prevent this.
+
+**Additional WSL Features**:
+- Project location warning (performance impact on `/mnt/*` paths)
+- Windows environment sync (PATH, BITBOT_HOME)
+- Portable installation detection and auto-fix
+- Path conversion utilities (`wslpath`)
+
 ## Component Interactions
 
 ### File Dependencies
@@ -274,9 +349,11 @@ graph TB
 - `HISTFILE` - Container bash history location
 - Platform-specific vars for detection
 
-**No Global State**:
-- All workspace config in `.bitbot/config.json`
-- No system-wide configuration
+**Configuration Hierarchy**:
+- Global config: `$BITBOT_HOME/global/.bitbot/config.json` (default launch mode, default skip flags)
+- Workspace config: `.bitbot/config.json` (workspace launch mode, workspace skip flags)
+- Workspace values override global values (JSON merge)
+- Skip flags: Can be set globally or per-workspace (git push recommendation, safety checks)
 - Each workspace independent
 
 ### Error Propagation
