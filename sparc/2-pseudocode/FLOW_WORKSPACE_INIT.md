@@ -634,8 +634,10 @@ my-awesome-project/
 1. ✅ Test work mode: `bitbot work`
 2. ✅ Verify .devcontainer is read-only in work mode
 3. ✅ Verify bash history persistence across sessions
-4. ✅ Commit .devcontainer/ to git (if desired)
-5. ✅ Add .bitbot/ to .gitignore (state is local)
+4. ✅ Commit .devcontainer/ to git immediately
+5. ✅ Merge .devcontainer changes to main branch ASAP (enables team collaboration)
+6. ✅ Keep .devcontainer updated with template improvements (sync regularly)
+7. ✅ Add .bitbot/ entries to .gitignore (local session data)
 
 ---
 

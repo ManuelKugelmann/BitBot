@@ -335,7 +335,6 @@ wsl -d BitBot-Alpine bash -l -c "..."
 - Contains:
   - Default launch mode (terminal/vscode)
   - Default skip flags (git push recommendation, safety checks)
-  - Global MCP configurations
   - Platform-specific defaults
 
 **Workspace Configuration**:
