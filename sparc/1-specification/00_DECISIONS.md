@@ -323,6 +323,60 @@ wsl -d BitBot-Alpine bash -l -c "..."
 
 ---
 
+### D-13: Configuration Format and Location
+
+**Decision**: JSON format with hierarchical global/workspace structure
+
+**Implementation** (based on MVP experience):
+
+**Global Configuration**:
+- Location: `$BITBOT_HOME/global/.bitbot/config.json`
+- Format: JSON (not YAML as in preliminary specs)
+- Contains:
+  - Default launch mode (terminal/vscode)
+  - Default skip flags (git push recommendation, safety checks)
+  - Global MCP configurations
+  - Platform-specific defaults
+
+**Workspace Configuration**:
+- Location: `.bitbot/config.json`
+- Format: JSON
+- Contains:
+  - Workspace-specific launch mode override
+  - Workspace-specific skip flags override
+  - Workspace metadata (name, initialized timestamp)
+  - Custom agent configurations
+
+**Hierarchy**:
+- Workspace values override global values (JSON merge)
+- Skip flags can be set at either level or both
+- Each workspace independent
+
+**Rationale for JSON over YAML**:
+- Native bash/jq parsing (no external YAML parser needed)
+- DevContainer compatibility (devcontainer.json uses JSON)
+- Simpler merge logic for hierarchy
+- No whitespace sensitivity issues
+- Better Windows compatibility
+
+**Migration Support**:
+- Old `config.json` at `$BITBOT_HOME/config.json` → migrated to `global/.bitbot/config.json`
+- Backup created with timestamp
+- Automatic on first run after upgrade
+
+**Portable Installation**:
+- `$BITBOT_HOME` can be any directory (not fixed to `~/.bitbot/`)
+- Symlink resolution and PATH verification on every global run
+- Auto-fix offers if installation moved
+- Windows environment sync on WSL (PATH, BITBOT_HOME)
+
+**References**:
+- Implementation: `core/global/bitbot-init.sh` (migration logic)
+- Configuration hierarchy: Workspace config overrides global
+- Portable installation testing: Cross-platform verification
+
+---
+
 ## Decision Matrix
 
 | Decision | Priority | Status | MVP |
@@ -339,6 +393,7 @@ wsl -d BitBot-Alpine bash -l -c "..."
 | D-10: Terminal output | P2 | ✅ Tested | Yes |
 | D-11: Prerequisites | P0 | ✅ Tested | Yes |
 | D-12: BitBot WSL (Windows) | P0 | ✅ Tested | Yes |
+| D-13: Config format/location | P0 | ✅ Implemented | Yes |
 
 ---
 
