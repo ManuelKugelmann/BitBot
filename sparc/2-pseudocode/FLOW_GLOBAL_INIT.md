@@ -112,7 +112,7 @@ This is your first run. Let's set up BitBot...
 
 Checking Docker...
   ✓ Docker installed (Docker version 24.0.7, build afdd53b)
-  ✓ Docker is running
+  ✗ Docker is not running (will be required for work/config modes)
 
 Checking Docker Compose...
   ✓ Docker Compose v2 (Docker Compose version v2.23.0)
@@ -127,7 +127,8 @@ Checking VS Code...
 Checking Git...
   ✓ Git installed (git version 2.42.0)
 
-[+] All prerequisites OK
+[i] Docker not running - Setup can continue
+    Docker will be required when launching work/config modes
 ```
 
 **Alternative: Docker not running**
@@ -201,7 +202,7 @@ Choice [2]: █
 
 ```
 
-  ✓ Created config.json
+  ✓ Created global/.bitbot/config.json
   ✓ Default mode: VS Code
 ```
 
@@ -215,10 +216,10 @@ Choice [2]: █
 
     To use VS Code integration later:
       1. Install VS Code: https://code.visualstudio.com/
-      2. Edit /home/user/bitbot/config.json
+      2. Edit /home/user/bitbot/global/.bitbot/config.json
       3. Set "launch_mode": "vscode"
 
-  ✓ Created config.json
+  ✓ Created global/.bitbot/config.json
   ✓ Default mode: Terminal
 ```
 
@@ -390,14 +391,11 @@ After global init:
 ```
 {INSTALL_BASE_PATH}/bitbot/
 ├── bitbot                        # Main executable (already exists)
-├── lib/                          # Library scripts (already exist)
-├── config-devcontainer/          # Config mode devcontainer (already exists)
-│   ├── devcontainer.json
-│   └── Dockerfile
-├── devcontainer-template/        # Base template for workspace .devcontainer (already exists)
-│   ├── devcontainer.json         # Minimal template with BitBot defaults
-│   └── Dockerfile                # Base Alpine/Ubuntu image
-├── config.json                   # CREATED - Global settings (init marker)
+├── core/                         # Core scripts (already exist)
+├── container/                    # Container templates and scripts (already exist)
+├── global/                       # Global BitBot data
+│   └── .bitbot/
+│       └── config.json           # CREATED - Global settings (init marker)
 └── ... other files ...
 
 ~/.bashrc (or ~/.zshrc)
@@ -541,7 +539,8 @@ Path = C:\Users\user\bitbot;...     (Windows User PATH)
 - ✅ Validate PATH and BITBOT_HOME on **every** invocation from install folder
 - ✅ Running `./bitbot` (no args) triggers move check
 - ✅ Offer to update shell config if environment is incorrect or installation moved
-- ✅ Check config.json exists in install folder (not ~/.bitbot/)
+- ✅ Check config.json exists in `$BITBOT_HOME/global/.bitbot/` (not ~/.bitbot/)
+- ✅ Migrate old config.json from root to global/.bitbot/ if found (backward compatibility)
 
 **User is ready to:**
 

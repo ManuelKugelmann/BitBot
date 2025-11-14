@@ -198,7 +198,24 @@ Workspace ready for initialization
 [+] Workspace initialized
 ```
 
-**Both scenarios then launch config mode:**
+**Config mode prompt (default: no):**
+
+**Note**: Can be controlled with flags:
+- `bitbot init --config` - Always launch config mode
+- `bitbot init --no-config` - Never launch config mode
+- `bitbot init` (no flag) - Prompt user (default: no)
+
+```
+[+] Workspace initialized
+
+Launch config mode to review/edit .devcontainer? (y/N): █
+```
+
+**User chooses:**
+- **N** (or Enter): Skip config mode, workspace ready for `bitbot work`
+- **Y**: Launch config mode
+
+**If user launches config mode:**
 
 **TODO: Add comprehensive config mode warning (Post-MVP)**
 Before launching config mode, show warning that:
@@ -473,38 +490,42 @@ After workspace init, the following structure exists:
 my-awesome-project/
 ├── .devcontainer/
 │   ├── bitbot/                   # Container BitBot commands (copied from BitBot)
-│   │   ├── bitbot
-│   │   └── core/
-│   ├── home/                     # Per-workspace AI configs
-│   │   ├── .claude/
-│   │   ├── .claude-flow/
-│   │   └── .opencode/
-│   ├── devcontainer.json         # Generated (base + details merged)
-│   ├── details.devcontainer.json # Template-specific settings
-│   ├── Dockerfile
+│   │   ├── bitbot                # Container-side BitBot launcher
+│   │   └── core/                 # Container commands (start, resume, help)
+│   ├── devcontainer.json         # Workspace devcontainer config
+│   ├── Dockerfile                # Workspace container image
 │   └── README.md
 ├── .bitbot/
+│   ├── config.json               # Workspace configuration
 │   ├── internal/                 # Infrastructure files
+│   │   ├── .devcontainer/        # Config mode devcontainer
+│   │   │   └── devcontainer.json
 │   │   ├── container/            # Container infrastructure (committed)
-│   │   │   ├── home/
-│   │   │   │   └── .tmux.conf
-│   │   │   └── bitbot/
-│   │   │       └── core/
-│   │   ├── global/               # Reserved (gitignored)
-│   │   └── .version              # Infrastructure version
-│   └── tmp/                  # Runtime files (gitignored)
+│   │   │   └── home/
+│   │   │       └── .tmux.conf
+│   │   ├── global/               # Global config overlay structure (gitignored)
+│   │   │   ├── .bitbot/
+│   │   │   └── .claude/
+│   │   └── local/                # Config mode session data (gitignored)
+│   ├── local/                    # Work mode session data (gitignored)
+│   └── tmp/                      # Runtime files (gitignored)
 │       ├── pipes/                # Wrapper IPC pipes
 │       └── sessions/             # Session state
 ├── .git/                         # Existing git repo
-├── .gitignore                    # Updated to ignore .bitbot/tmp/ and .bitbot/internal/global/
+├── .gitignore                    # Updated to ignore .bitbot/local/, .bitbot/internal/local/, .bitbot/internal/global/, .bitbot/tmp/
 ├── src/                          # Existing project files
 └── README.md
 ```
 
 **Key Directories:**
-- `.bitbot/internal/container/` - Infrastructure (readonly in container, committed)
-- `.bitbot/tmp/` - Runtime files (read-write, gitignored)
-- `.devcontainer/` - DevContainer config (readonly overlay in work mode)
+- `.bitbot/config.json` - Workspace config (launch mode, skip flags)
+- `.bitbot/internal/.devcontainer/` - Config mode devcontainer
+- `.bitbot/internal/container/` - Container infrastructure (committed)
+- `.bitbot/internal/global/` - Overlay structure for global configs (gitignored)
+- `.bitbot/internal/local/` - Config mode session data (gitignored)
+- `.bitbot/local/` - Work mode session data (gitignored)
+- `.bitbot/tmp/` - Runtime files: wrapper pipes, session state (gitignored)
+- `.devcontainer/` - Workspace devcontainer (readonly overlay in work mode)
 
 ---
 
@@ -613,8 +634,10 @@ my-awesome-project/
 1. ✅ Test work mode: `bitbot work`
 2. ✅ Verify .devcontainer is read-only in work mode
 3. ✅ Verify bash history persistence across sessions
-4. ✅ Commit .devcontainer/ to git (if desired)
-5. ✅ Add .bitbot/ to .gitignore (state is local)
+4. ✅ Commit .devcontainer/ to git immediately
+5. ✅ Merge .devcontainer changes to main branch ASAP (enables team collaboration)
+6. ✅ Keep .devcontainer updated with template improvements (sync regularly)
+7. ✅ Add .bitbot/ entries to .gitignore (local session data)
 
 ---
 
@@ -623,17 +646,17 @@ my-awesome-project/
 | Aspect | Work Mode | Config Mode |
 |--------|-----------|-------------|
 | **Purpose** | Daily development | Edit infrastructure |
-| **DevContainer** | Workspace's .devcontainer/ | Uses same .devcontainer/ |
-| **Launch** | `bitbot work` | `bitbot config` (or auto-launch from init) |
-| **.devcontainer** | Read-only overlay ✓ | Read-only overlay ✓ (edit via workspace) |
+| **DevContainer** | Workspace's .devcontainer/ | `.bitbot/internal/.devcontainer/` |
+| **Launch** | `bitbot work` | `bitbot config` (or optional launch from init) |
+| **.devcontainer** | Read-only overlay ✓ | Read-write (via workspace mount) |
 | **.bitbot/internal/** | Read-only overlay ✓ | Read-only overlay ✓ |
 | **.bitbot/tmp/** | Read-write (via workspace) | Read-write (via workspace) |
 | **Workspace** | /workspace (RW) | /workspace (RW) |
-| **Docker Socket** | ❌ Not available | ✅ Mounted for rebuilds |
-| **When to use** | Write code, run tests | Review/commit infrastructure, rebuild container |
-| **Safety** | Can't accidentally modify infrastructure | Same - infrastructure readonly, Docker access for rebuilds |
+| **Docker Socket** | ❌ Not available | ❌ Not available (MVP) |
+| **When to use** | Write code, run tests | Review/edit .devcontainer configuration |
+| **Safety** | Can't accidentally modify infrastructure | Can edit .devcontainer but not .bitbot/internal/ |
 
-**Note:** Both modes have readonly overlays for `.devcontainer/` and `.bitbot/internal/`. Config mode adds Docker socket access for rebuilding containers.
+**Note:** Work mode protects `.devcontainer/` with readonly overlay. Config mode allows editing `.devcontainer/` via RW workspace mount, but still protects `.bitbot/internal/` with readonly overlay. Docker socket mounting is planned for post-MVP.
 
 ---
 

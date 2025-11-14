@@ -137,7 +137,7 @@ flowchart TD
     Enter[User enters container] --> Welcome[Welcome message]
     Welcome --> Sess{Check<br/>sessions}
 
-    Sess -->|Existing| ShowList[Show session list:<br/>• claude-20251022-1430]
+    Sess -->|Existing| ShowList[Show session list:<br/>• bitbot-20251022-1430]
     Sess -->|None| ShowHelp[Show: bitbot start]
 
     ShowList --> UserDec1{User<br/>Decision}
@@ -221,7 +221,7 @@ stateDiagram-v2
 ╚════════════════════════════════════════════════════════╝
 
 Found existing tmux sessions:
-  • claude-20251022-1430 (1 window)
+  • bitbot-20251022-1430 (1 window)
 
 To resume: bitbot resume
 To start new: bitbot start
@@ -242,7 +242,7 @@ user@container:/workspace$
 $ bitbot resume
 
 Found 1 tmux session:
-  • claude-20251022-1430 (created 2 hours ago)
+  • bitbot-20251022-1430 (created 2 hours ago)
 
 Resuming session...
 
@@ -255,8 +255,8 @@ $ bitbot resume
 
 Select session to resume:
 
-  1) claude-20251022-1430 (1 window)
-  2) claude-20251022-1600 (2 windows)
+  1) bitbot-20251022-1430 (1 window)
+  2) bitbot-20251022-1600 (2 windows)
   0) Cancel
 
 Choice: 1
@@ -277,7 +277,7 @@ $ bitbot start
 BitBot - Claude Code Launcher
 
 Found existing tmux sessions:
-  • claude-20251022-1430 (created 2 hours ago)
+  • bitbot-20251022-1430 (created 2 hours ago)
 
 Would you like to:
   1) Resume existing session
@@ -299,9 +299,9 @@ Launching: claude --resume
 
 Workspace: /workspace
 Mode: work
-Session: claude-20251022-1630
+Session: bitbot-20251022-1630
 
-[Creates tmux session and launches Claude]
+[Creates tmux session with wrapper and launches Claude]
 [Attaches to session]
 ```
 
@@ -333,9 +333,9 @@ Launching: claude (interactive)
 
 Workspace: /workspace
 Mode: work
-Session: claude-20251022-1630
+Session: bitbot-20251022-1630
 
-[Creates session and launches Claude]
+[Creates session with wrapper and launches Claude]
 ```
 
 ---
@@ -409,7 +409,7 @@ DevContainer Configuration:
   ℹ Read-Only access
 
 tmux Sessions:
-  • claude-20251022-1430 (1 window)
+  • bitbot-20251022-1430 (1 window)
 
 Available Tools:
   ✓ git 2.34.1
@@ -459,6 +459,8 @@ $
 
 ### No tmux Installed
 
+**Note**: This fallback is **not implemented** in MVP. tmux is required.
+
 ```
 $ bitbot start
 
@@ -466,8 +468,7 @@ ERROR: tmux not found
   tmux is required for session management
   Install: apt-get install tmux
 
-  Falling back to direct launch...
-  Running: claude
+Container cannot launch without tmux
 ```
 
 ### No Claude Installed
@@ -486,13 +487,48 @@ ERROR: claude command not found
 ```
 $ bitbot resume claude-invalid
 
-ERROR: Session 'claude-invalid' not found
+ERROR: Session 'bitbot-invalid' not found
 
 Available sessions:
-  • claude-20251022-1430
+  • bitbot-20251022-1430
 
 Try: bitbot resume
 ```
+
+---
+
+## Wrapper Integration
+
+**All Claude launches** go through the wrapper script for enhanced session management:
+
+**Wrapper Script**: `/usr/local/bitbot/wrapper/claude-wrapper.sh`
+
+**Features**:
+- Control pipe: `.bitbot/tmp/pipes/claude-<PID>.pipe`
+- Session restart capability (exit, restart, compact, clear)
+- Watchdog monitoring for session health
+- Status line interception for context tracking
+
+**How it works**:
+```bash
+# When launching Claude in tmux
+tmux new-session -s "bitbot-20251022-1630" \
+  "/usr/local/bitbot/wrapper/claude-wrapper.sh claude --resume"
+```
+
+**Benefits**:
+- Skills can trigger restart/compaction autonomously
+- Context % tracked via status line wrapper
+- Session recovery on crashes
+- Programmatic session control
+
+**Related Components**:
+- `claude-wrapper.sh` - Main wrapper (pipe control, restart)
+- `statusline-wrapper/wrapper.sh` - Status line interception
+- `send-wrapper-command.sh` - Send commands to wrapper via pipe
+- `watchdog.sh` - Monitor session health
+
+See: `sparc/0-research/WRAPPER_INTEGRATION.md` for technical details
 
 ---
 
@@ -500,9 +536,12 @@ Try: bitbot resume
 
 **MVP (Phase 1)**:
 - [x] Basic session management pseudocode
-- [ ] Implement start command
-- [ ] Implement resume command
-- [ ] Container entrypoint integration
+- [x] Implement start command
+- [x] Implement resume command
+- [x] Container entrypoint integration (smart launcher)
+- [x] Wrapper integration for all Claude launches
+- [ ] Implement analyze command (planned)
+- [ ] Implement status command (planned)
 
 **Post-MVP (Phase 2)**:
 - [ ] Session persistence
@@ -545,15 +584,16 @@ ENV PATH="/opt/bitbot:${PATH}"
 
 **User can**:
 - [x] Enter container and see helpful guidance
-- [ ] Start Claude Code in tmux with one command
-- [ ] Resume previous session easily
-- [ ] Choose launch mode (--resume or interactive)
-- [ ] Manage multiple sessions
-- [ ] Get workspace analysis
-- [ ] Check container status
+- [x] Start Claude Code in tmux with one command
+- [x] Resume previous session easily
+- [x] Choose launch mode (--resume or interactive)
+- [x] Manage multiple sessions
+- [ ] Get workspace analysis (planned - analyze command)
+- [ ] Check container status (planned - status command)
 
 **System provides**:
-- [ ] Clear prompts and choices
-- [ ] Sensible defaults
-- [ ] Error handling with guidance
-- [ ] Non-blocking workflow
+- [x] Clear prompts and choices
+- [x] Sensible defaults
+- [x] Error handling with guidance
+- [x] Non-blocking workflow
+- [x] Wrapper integration for session management
