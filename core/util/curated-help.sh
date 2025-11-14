@@ -8,6 +8,8 @@
 # Usage: source this file, then use help_* variables
 #
 
+# shellcheck disable=SC2034  # Variables defined for external use via sourcing
+
 # ============================================================================
 # Docker Help
 # ============================================================================
