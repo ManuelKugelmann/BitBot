@@ -311,7 +311,27 @@ interactive_mode() {
 # Main Entry Point
 # ============================================================================
 
+show_usage() {
+    echo "Usage:"
+    echo "  $0                     # Interactive mode"
+    echo "  $0 <source> <target>   # Command line mode"
+    echo ""
+    echo "Examples:"
+    echo "  $0                                    # Interactive"
+    echo "  $0 /mnt/c/Projects/MyApp ~/projects   # Move MyApp to ~/projects"
+    echo ""
+}
+
 main() {
+    # Validate arguments first (before platform check)
+    # This allows usage info to be shown on any platform
+    if [[ $# -ne 0 ]] && [[ $# -ne 2 ]]; then
+        print_error "Invalid arguments"
+        echo ""
+        show_usage
+        return 1
+    fi
+
     # Check if running on WSL
     if ! grep -qi microsoft /proc/version 2>/dev/null; then
         print_error "This tool only runs on WSL"
@@ -319,6 +339,7 @@ main() {
         echo "This migration tool is designed for WSL environments where"
         echo "Windows filesystem mounts (/mnt/c) have performance issues."
         echo ""
+        show_usage
         return 1
     fi
 
@@ -326,21 +347,9 @@ main() {
     if [[ $# -eq 0 ]]; then
         # Interactive mode
         interactive_mode
-    elif [[ $# -eq 2 ]]; then
-        # Command line mode
-        migrate_project "$1" "$2"
     else
-        print_error "Invalid arguments"
-        echo ""
-        echo "Usage:"
-        echo "  $0                     # Interactive mode"
-        echo "  $0 <source> <target>   # Command line mode"
-        echo ""
-        echo "Examples:"
-        echo "  $0                                    # Interactive"
-        echo "  $0 /mnt/c/Projects/MyApp ~/projects   # Move MyApp to ~/projects"
-        echo ""
-        return 1
+        # Command line mode (already validated as 2 args)
+        migrate_project "$1" "$2"
     fi
 }
 
