@@ -14,8 +14,14 @@ echo ""
 # Detect Windows username
 WIN_USER="${USER}"
 if [ -z "$WIN_USER" ]; then
-    # Fallback: try to get from /mnt/c/Users
-    WIN_USER=$(ls /mnt/c/Users | grep -v "Public\|Default" | head -n1)
+    # Fallback: try to get from /mnt/c/Users (avoid Public/Default)
+    for user in /mnt/c/Users/*; do
+        username=$(basename "$user")
+        if [ "$username" != "Public" ] && [ "$username" != "Default" ] && [ -d "$user" ]; then
+            WIN_USER="$username"
+            break
+        fi
+    done
 fi
 
 if [ -z "$WIN_USER" ]; then
