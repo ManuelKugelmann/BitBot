@@ -71,11 +71,11 @@
 - [ ] **P1**: Fix Merge DevContainer test (template content drift - minor)
 - [ ] **P1**: Add integration test to run-tests.sh (bitbot-integration)
 
-**Test Framework Migration** (14/26 migrated, 54%):
+**Test Framework Migration** (35/35 migrated, 100%):
 - [x] Phase 1-3 complete ✅
-- [x] Phase 5 partial ✅ (test-integration.sh migrated)
-- [ ] Phase 4: Complex CI tests (wrapper-layer1, etc.)
-- [ ] Phase 5: Remaining non-CI tests
+- [x] Phase 4 complete ✅ (all CI tests migrated)
+- [x] Phase 5 complete ✅ (all non-CI tests migrated)
+- [x] **MIGRATION 100% COMPLETE** ✅✅✅ (All 35 active tests use test-framework.sh)
 
 **Test Categories in run-tests.sh**:
 1. Core Unit Tests (4 suites): Prerequisites, Platform, Helpers, Commands
