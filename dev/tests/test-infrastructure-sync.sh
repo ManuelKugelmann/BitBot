@@ -188,14 +188,21 @@ else
 fi
 
 # ============================================================================
-# Test 7: Test sync idempotency
+# Test 7: Test sync idempotency (in clean workspace)
 # ============================================================================
 
 test_section "Test 7: Sync Idempotency"
 
+# Create clean test workspace
+test_workspace="/tmp/bitbot-sync-test-$$"
+mkdir -p "$test_workspace"
+
+# Run initial sync
+rsync -a --delete "$BITBOT_ROOT/container/" "$test_workspace/" > /dev/null 2>&1
+
 # Test: Run sync again and check for changes
 # Count files that would be transferred (excluding rsync's summary lines)
-sync_output=$(rsync -avn --delete "$BITBOT_ROOT/container/" "$BITBOT_ROOT/.bitbot/internal/container/" 2>&1 | \
+sync_output=$(rsync -avn --delete "$BITBOT_ROOT/container/" "$test_workspace/" 2>&1 | \
     grep -v "^sending incremental file list" | \
     grep -v "^$" | \
     grep -v "^sent .* bytes" | \
@@ -216,7 +223,7 @@ fi
 test_section "Test 8: Rsync Command"
 
 # Test: Test rsync dry-run
-if rsync -an --delete "$BITBOT_ROOT/container/" "$BITBOT_ROOT/.bitbot/internal/container/" > /dev/null 2>&1; then
+if rsync -an --delete "$BITBOT_ROOT/container/" "$test_workspace/" > /dev/null 2>&1; then
     test_pass "rsync command succeeds"
 else
     test_fail "rsync command failed"
@@ -224,9 +231,9 @@ fi
 
 # Test: Verify --delete flag behavior
 # Create a test file that shouldn't exist
-test_file="$BITBOT_ROOT/.bitbot/internal/container/test-should-be-deleted.txt"
+test_file="$test_workspace/test-should-be-deleted.txt"
 touch "$test_file"
-rsync -a --delete "$BITBOT_ROOT/container/" "$BITBOT_ROOT/.bitbot/internal/container/" > /dev/null 2>&1
+rsync -a --delete "$BITBOT_ROOT/container/" "$test_workspace/" > /dev/null 2>&1
 
 if [ ! -f "$test_file" ]; then
     test_pass "rsync --delete removes extraneous files"
@@ -234,6 +241,9 @@ else
     test_fail "rsync --delete did not remove extraneous file"
     rm -f "$test_file"
 fi
+
+# Cleanup test workspace
+rm -rf "$test_workspace"
 
 # ============================================================================
 # Test 9: Verify directory structure count
