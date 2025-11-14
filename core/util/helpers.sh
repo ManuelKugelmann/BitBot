@@ -88,12 +88,30 @@ get_global_config_dir() {
     echo "$config_dir"
 }
 
-get_global_config_file() {
-    # Get global BitBot config file path ($BITBOT_HOME/global/.bitbot/config.json)
-    # Returns: Path to global config file
+get_global_settings_file() {
+    # Get global BitBot settings file path ($BITBOT_HOME/global/.bitbot/settings.json)
+    # Returns: Path to global settings file
     local config_dir
     config_dir=$(get_global_config_dir)
-    echo "${config_dir}/config.json"
+    echo "${config_dir}/settings.json"
+}
+
+get_settings_file() {
+    # Context-aware settings file path
+    # Returns workspace settings if BITBOT_WORKSPACE set, global settings otherwise
+    # Usage: settings=$(get_settings_file)
+    if [[ -n "${BITBOT_WORKSPACE:-}" ]]; then
+        # Workspace context (container)
+        echo "${BITBOT_WORKSPACE}/.bitbot/settings.json"
+    else
+        # Global context (host)
+        get_global_settings_file
+    fi
+}
+
+# Deprecated alias for backward compatibility
+get_global_config_file() {
+    get_global_settings_file
 }
 
 convert_wsl_to_windows_path() {
@@ -195,7 +213,7 @@ update_json_value() {
     local value="$3"
 
     if ! file_exists "$file"; then
-        print_error "Config file not found: $file"
+        print_error "Settings file not found: $file"
         return 1
     fi
 
@@ -247,16 +265,15 @@ merge_configs() {
 }
 
 get_merged_workspace_config() {
-    # Get merged config for a workspace
+    # Get merged config for a workspace (merged settings)
     # Usage: get_merged_workspace_config <workspace_path>
     local workspace_path="$1"
 
-    local bitbot_install
-    bitbot_install=$(get_bitbot_install_dir)
-    local global_config="${bitbot_install}/config.json"
-    local workspace_config="${workspace_path}/.bitbot/config.json"
+    local global_settings
+    global_settings=$(get_global_settings_file)
+    local workspace_settings="${workspace_path}/.bitbot/settings.json"
 
-    merge_configs "$global_config" "$workspace_config"
+    merge_configs "$global_settings" "$workspace_settings"
 }
 
 get_config_value() {
@@ -279,6 +296,46 @@ get_config_value() {
             sed -E 's/.*:[[:space:]]*"?([^",}]*)"?.*/\1/' | \
             head -n 1
     fi
+}
+
+get_setting() {
+    # Context-aware setting value retrieval
+    # Returns setting from workspace or global settings based on context
+    # Usage: value=$(get_setting <key>)
+    local key="$1"
+
+    if [[ -n "${BITBOT_WORKSPACE:-}" ]]; then
+        # Workspace context - check merged workspace + global settings
+        get_config_value "$BITBOT_WORKSPACE" "$key"
+    else
+        # Global context - check global settings only
+        local settings_file
+        settings_file=$(get_global_settings_file)
+        if [[ -f "$settings_file" ]]; then
+            read_json_value "$settings_file" "$key"
+        fi
+    fi
+}
+
+update_setting() {
+    # Context-aware setting update
+    # Updates setting in workspace or global settings based on context
+    # Usage: update_setting <key> <value>
+    local key="$1"
+    local value="$2"
+
+    local settings_file
+    settings_file=$(get_settings_file)
+
+    # Ensure settings file exists
+    if [[ ! -f "$settings_file" ]]; then
+        local settings_dir
+        settings_dir=$(dirname "$settings_file")
+        mkdir -p "$settings_dir"
+        echo "{}" > "$settings_file"
+    fi
+
+    update_json_value "$settings_file" "$key" "$value"
 }
 
 # ============================================================================
@@ -491,6 +548,327 @@ print_error() {
 print_step() {
     local message="$1"
     echo "[>] $message"
+}
+
+# ============================================================================
+# AI-Enhanced Error Helpers (Flow B: AI on Request)
+# ============================================================================
+
+print_error_with_ai_help() {
+    # Show error with curated help, offer AI assistance and auto-fix
+    # Usage: print_error_with_ai_help <error_message> <curated_help> <ai_context> <auto_fix_function> <allow_always> <prompt_message> [preference_key]
+    #
+    # Prompt format: "<prompt> ? [y]es, [a]lways, [N]o, help[?], fi[x]"
+    # Note: [a]lways only shown if allow_always="true", fi[x] only if auto_fix_function provided
+    #
+    # Args:
+    #   $1 - error_message: The error message to display
+    #   $2 - curated_help: Pre-written help text (instant, covers 80% of cases)
+    #   $3 - ai_context: Context string for AI query (e.g., "Docker installation")
+    #   $4 - auto_fix_function: Function name for auto-fix ("" if not available)
+    #   $5 - allow_always: "true" to show [a]lways option, "" for setup/one-time decisions
+    #   $6 - prompt_message: Context-aware prompt (e.g., "Continue without Docker", "Start Docker now")
+    #   $7 - preference_key: (optional) Config key for saving [a]lways preference (e.g., "skip-git-push-warning")
+    #
+    # Returns:
+    #   0 = continue (user chose 'y' or 'a')
+    #   1 = exit (user chose 'N')
+    #   2 = retry (after successful auto-fix)
+    #
+    # Example - setup (no 'always', no auto-fix): [y/N/?]
+    #   print_error_with_ai_help \
+    #       "Docker not found" \
+    #       "$HELP_DOCKER_NOT_INSTALLED" \
+    #       "Docker installation" \
+    #       "" \
+    #       "" \
+    #       "Continue without Docker"
+    #
+    # Example - runtime check (with 'always', with auto-fix, with preference): [y/a/N/?/x]
+    #   print_error_with_ai_help \
+    #       "Docker daemon not running" \
+    #       "$HELP_DOCKER_DAEMON_NOT_RUNNING" \
+    #       "Docker startup" \
+    #       "autofix_start_docker_daemon" \
+    #       "true" \
+    #       "Start Docker now" \
+    #       "skip-docker-daemon-check"
+
+    local error_message="$1"
+    local curated_help="$2"
+    local ai_context="$3"
+    local auto_fix_function="${4:-}"
+    local allow_always="${5:-}"
+    local prompt_message="${6:-What would you like to do}"
+    local preference_key="${7:-}"
+
+    # Check if preference already saved (skip prompt if user chose [a]lways before)
+    if [[ -n "$preference_key" ]] && [[ "$allow_always" == "true" ]]; then
+        local saved_pref
+        saved_pref=$(get_setting "$preference_key" 2>/dev/null || echo "")
+
+        # If preference is "true", skip prompt
+        if [[ "$saved_pref" == "true" ]]; then
+            return 0  # Skip prompt, user chose [a]lways before
+        fi
+    fi
+
+    # Show error
+    print_error "$error_message"
+    echo "" >&2
+
+    # Show curated help (instant)
+    echo -e "$curated_help" >&2
+    echo "" >&2
+
+    # Build prompt with conditional options
+    # Base: "[y]es, [N]o, help[?]"
+    # Add [a]lways if allow_always="true"
+    # Add fi[x] if auto_fix_function provided
+    local prompt_suffix="[y]es"
+
+    if [[ "$allow_always" == "true" ]]; then
+        prompt_suffix="${prompt_suffix}, [a]lways"
+    fi
+
+    prompt_suffix="${prompt_suffix}, [N]o, help[?]"
+
+    if [[ -n "$auto_fix_function" ]] && command -v "$auto_fix_function" &>/dev/null; then
+        prompt_suffix="${prompt_suffix}, fi[x]"
+    fi
+
+    # Prompt with dynamically built options
+    local response
+    read -r -p "$prompt_message ? $prompt_suffix: " response
+
+    # Handle response (exact single character matching to differentiate from arbitrary text)
+    case "$response" in
+        [Aa])
+            # User chose "yes always" (exact 'a' or 'A')
+            if [[ "$allow_always" == "true" ]]; then
+                echo "" >&2
+
+                # Save preference if preference_key provided
+                if [[ -n "$preference_key" ]]; then
+                    update_setting "$preference_key" "true"
+                    print_info "Saved preference: $preference_key"
+                else
+                    print_info "Continuing (preference not saved - no preference key provided)"
+                fi
+
+                echo "" >&2
+                return 0
+            else
+                # [a]lways not available for this check
+                print_warning "Option 'a' (always) not available for this operation"
+                echo "" >&2
+                print_error_with_ai_help "$error_message" "$curated_help" "$ai_context" "$auto_fix_function" "$allow_always" "$prompt_message" "$preference_key"
+                return $?
+            fi
+            ;;
+        [Xx])
+            # User requested auto-fix (exact 'x' or 'X')
+            if [[ -n "$auto_fix_function" ]] && command -v "$auto_fix_function" &>/dev/null; then
+                echo "" >&2
+                echo "⚙ Attempting automatic fix..." >&2
+                echo "" >&2
+
+                # Call auto-fix function
+                if "$auto_fix_function"; then
+                    echo "" >&2
+                    print_success "Auto-fix completed successfully"
+                    echo "" >&2
+                    return 2  # Signal to retry the check
+                else
+                    echo "" >&2
+                    print_error "Auto-fix failed"
+                    echo "" >&2
+
+                    # Offer to continue anyway or exit
+                    read -r -p "Continue anyway ? [y]es, [N]o: " response
+                    case "$response" in
+                        [Yy]*)
+                            return 0
+                            ;;
+                        *)
+                            return 1
+                            ;;
+                    esac
+                fi
+            else
+                print_warning "Auto-fix not available for this issue"
+                echo "" >&2
+                return 1
+            fi
+            ;;
+        [\?])
+            # User requested AI help (exact '?')
+            echo "" >&2
+            echo "💡 AI Assistant:" >&2
+
+            # Source AI helper
+            local bitbot_install
+            bitbot_install=$(get_bitbot_install_dir)
+            if [[ -f "$bitbot_install/core/util/ai-helper/ai-helper.sh" ]]; then
+                # shellcheck source=/dev/null
+                source "$bitbot_install/core/util/ai-helper/ai-helper.sh"
+
+                # Call AI helper with full context
+                ask_ai "$ai_context" "$error_message - How to fix this issue? $curated_help" >&2
+            else
+                echo "AI helper not available (install Node.js for AI features)" >&2
+                echo "Showing curated help instead:" >&2
+                echo -e "$curated_help" >&2
+            fi
+
+            echo "" >&2
+
+            # Re-offer ALL choices after showing AI help
+            # Support conversational mode: any text = follow-up question to AI
+            echo "Next steps:" >&2
+            echo "  • Type 'y' to continue" >&2
+            if [[ "$allow_always" == "true" ]]; then
+                echo "  • Type 'a' to save preference (always)" >&2
+            fi
+            echo "  • Type 'N' to exit" >&2
+            if [[ -n "$auto_fix_function" ]] && command -v "$auto_fix_function" &>/dev/null; then
+                echo "  • Type 'x' to auto-fix" >&2
+            fi
+            echo "  • Ask another question (AI will respond)" >&2
+            echo "" >&2
+            read -r -p "Your choice: " response
+
+            # Handle response (exact matching for commands, else conversational)
+            case "$response" in
+                [Aa])
+                    # Yes always - save preference (exact 'a' or 'A')
+                    if [[ "$allow_always" == "true" ]]; then
+                        echo "" >&2
+
+                        # Save preference if preference_key provided
+                        if [[ -n "$preference_key" ]]; then
+                            update_setting "$preference_key" "true"
+                            print_info "Saved preference: $preference_key"
+                        else
+                            print_info "Continuing (preference not saved - no preference key provided)"
+                        fi
+
+                        echo "" >&2
+                        return 0
+                    else
+                        print_warning "Option 'a' (always) not available"
+                        echo "" >&2
+                        print_error_with_ai_help "$error_message" "$curated_help" "$ai_context" "$auto_fix_function" "$allow_always" "$prompt_message" "$preference_key"
+                        return $?
+                    fi
+                    ;;
+                [Xx])
+                    # User wants auto-fix after seeing AI help (exact 'x' or 'X')
+                    if [[ -n "$auto_fix_function" ]] && command -v "$auto_fix_function" &>/dev/null; then
+                        echo "" >&2
+                        echo "⚙ Attempting automatic fix..." >&2
+                        echo "" >&2
+
+                        if "$auto_fix_function"; then
+                            echo "" >&2
+                            print_success "Auto-fix completed successfully"
+                            echo "" >&2
+                            return 2  # Signal to retry
+                        else
+                            echo "" >&2
+                            print_error "Auto-fix failed"
+                            echo "" >&2
+                            read -r -p "Continue anyway ? [y]es, [N]o: " response
+                            [[ "$response" == [Yy] ]] && return 0 || return 1
+                        fi
+                    else
+                        print_warning "Auto-fix not available"
+                        return 1
+                    fi
+                    ;;
+                [Yy])
+                    # Yes once - continue (exact 'y' or 'Y')
+                    return 0
+                    ;;
+                [Nn])
+                    # No - exit (exact 'n' or 'N')
+                    return 1
+                    ;;
+                "")
+                    # Empty input - default to no (exit)
+                    return 1
+                    ;;
+                *)
+                    # Anything else = follow-up question to AI (conversational mode)
+                    echo "" >&2
+                    echo "💡 AI Assistant:" >&2
+
+                    # Source AI helper
+                    local bitbot_install
+                    bitbot_install=$(get_bitbot_install_dir)
+                    if [[ -f "$bitbot_install/core/util/ai-helper/ai-helper.sh" ]]; then
+                        # shellcheck source=/dev/null
+                        source "$bitbot_install/core/util/ai-helper/ai-helper.sh"
+
+                        # Ask follow-up question
+                        ask_ai "$ai_context" "$response" >&2
+                    else
+                        echo "AI helper not available" >&2
+                    fi
+
+                    # Recurse - offer choices again after answering
+                    echo "" >&2
+                    print_error_with_ai_help "$error_message" "$curated_help" "$ai_context" "$auto_fix_function" "$allow_always" "$prompt_message" "$preference_key"
+                    return $?
+                    ;;
+            esac
+            ;;
+        [Yy])
+            # User wants to continue once (exact 'y' or 'Y')
+            return 0
+            ;;
+        [Nn])
+            # User wants to exit (exact 'n' or 'N')
+            return 1
+            ;;
+        "")
+            # Empty input - default to no (exit)
+            return 1
+            ;;
+        *)
+            # Anything else - treat as conversational input for first-level prompt
+            echo "" >&2
+            print_warning "Did you mean to ask a question? Type '?' for AI help, then ask your question."
+            echo "" >&2
+            print_warning "Or choose: y, a (always), N (exit), ? (help), x (auto-fix)"
+            echo "" >&2
+            print_error_with_ai_help "$error_message" "$curated_help" "$ai_context" "$auto_fix_function" "$allow_always" "$prompt_message" "$preference_key"
+            return $?
+            ;;
+    esac
+}
+
+ask_ai_help() {
+    # Quick wrapper to get AI help for a topic
+    # Usage: ask_ai_help <context> <question>
+    #
+    # Example:
+    #   ask_ai_help "Docker installation" "How to install Docker Desktop on Windows?"
+
+    local context="$1"
+    local question="$2"
+
+    local bitbot_install
+    bitbot_install=$(get_bitbot_install_dir)
+
+    if [[ -f "$bitbot_install/core/util/ai-helper/ai-helper.sh" ]]; then
+        # shellcheck source=/dev/null
+        source "$bitbot_install/core/util/ai-helper/ai-helper.sh"
+        ask_ai "$context" "$question"
+    else
+        echo "AI helper not available (install Node.js for AI features)"
+        return 1
+    fi
 }
 
 # ============================================================================
