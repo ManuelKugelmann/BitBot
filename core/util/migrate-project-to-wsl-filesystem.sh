@@ -327,16 +327,7 @@ show_usage() {
 }
 
 main() {
-    # Validate arguments first (before platform check)
-    # This allows usage info to be shown on any platform
-    if [[ $# -ne 0 ]] && [[ $# -ne 2 ]]; then
-        print_error "Invalid arguments"
-        echo ""
-        show_usage
-        return 1
-    fi
-
-    # Check if running on WSL
+    # Check if running on WSL (fundamental requirement)
     if ! grep -qi microsoft /proc/version 2>/dev/null; then
         print_error "This tool only runs on WSL"
         echo ""
@@ -347,12 +338,20 @@ main() {
         return 1
     fi
 
+    # Validate arguments
+    if [[ $# -ne 0 ]] && [[ $# -ne 2 ]]; then
+        print_error "Invalid arguments"
+        echo ""
+        show_usage
+        return 1
+    fi
+
     # Parse arguments
     if [[ $# -eq 0 ]]; then
         # Interactive mode
         interactive_mode
     else
-        # Command line mode (already validated as 2 args)
+        # Command line mode (validated as 2 args)
         migrate_project "$1" "$2"
     fi
 }
