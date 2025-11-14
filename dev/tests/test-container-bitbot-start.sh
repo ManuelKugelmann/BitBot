@@ -7,6 +7,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Set BITBOT_HOME for tests
+export BITBOT_HOME="$PROJECT_ROOT"
+
 source "${SCRIPT_DIR}/helpers/test-framework.sh"
 
 # Test helper functions
@@ -35,35 +40,35 @@ echo ""
 
 # Test 1: Check bash syntax
 run_test "Bash syntax check for main bitbot"
-if bash -n container/bitbot/bitbot; then
+if bash -n "$PROJECT_ROOT/container/bitbot/bitbot"; then
     test_pass "Test passed"
 else
     test_fail "Test" "Syntax errors in bitbot"
 fi
 
 run_test "Bash syntax check for default.sh"
-if bash -n container/bitbot/core/commands/default.sh; then
+if bash -n "$PROJECT_ROOT/container/bitbot/core/commands/default.sh"; then
     test_pass "Test passed"
 else
     test_fail "Test" "Syntax errors in default.sh"
 fi
 
 run_test "Bash syntax check for start.sh"
-if bash -n container/bitbot/core/commands/start.sh; then
+if bash -n "$PROJECT_ROOT/container/bitbot/core/commands/start.sh"; then
     test_pass "Test passed"
 else
     test_fail "Test" "Syntax errors in start.sh"
 fi
 
 run_test "Bash syntax check for resume.sh"
-if bash -n container/bitbot/core/commands/resume.sh; then
+if bash -n "$PROJECT_ROOT/container/bitbot/core/commands/resume.sh"; then
     test_pass "Test passed"
 else
     test_fail "Test" "Syntax errors in resume.sh"
 fi
 
 run_test "Bash syntax check for tmux-utils.sh"
-if bash -n container/bitbot/core/util/tmux-utils.sh; then
+if bash -n "$PROJECT_ROOT/container/bitbot/core/util/tmux-utils.sh"; then
     test_pass "Test passed"
 else
     test_fail "Test" "Syntax errors in tmux-utils.sh"
@@ -71,14 +76,14 @@ fi
 
 # Test 2: Source utilities without errors
 run_test "Source helpers.sh"
-if source container/bitbot/core/util/helpers.sh 2>/dev/null; then
+if source "$PROJECT_ROOT/container/bitbot/core/util/helpers.sh" 2>/dev/null; then
     test_pass "Test passed"
 else
     test_fail "Test" "Failed to source helpers.sh"
 fi
 
 run_test "Source tmux-utils.sh"
-if source container/bitbot/core/util/tmux-utils.sh 2>/dev/null; then
+if source "$PROJECT_ROOT/container/bitbot/core/util/tmux-utils.sh" 2>/dev/null; then
     test_pass "Test passed"
 else
     test_fail "Test" "Failed to source tmux-utils.sh"
@@ -155,14 +160,14 @@ fi
 
 # Test 5: Check file permissions
 run_test "start.sh is executable"
-if [[ -x container/bitbot/core/commands/start.sh ]]; then
+if [[ -x "$PROJECT_ROOT/container/bitbot/core/commands/start.sh" ]]; then
     test_pass "Test passed"
 else
     test_fail "Test" "start.sh is not executable"
 fi
 
 run_test "resume.sh is executable"
-if [[ -x container/bitbot/core/commands/resume.sh ]]; then
+if [[ -x "$PROJECT_ROOT/container/bitbot/core/commands/resume.sh" ]]; then
     test_pass "Test passed"
 else
     test_fail "Test" "resume.sh is not executable"
@@ -213,28 +218,28 @@ fi
 
 # Test 9: Check command behavior
 run_test "Default command (no args) routes to default.sh"
-if grep -q 'core/commands/default.sh' container/bitbot/bitbot; then
+if grep -q 'core/commands/default.sh' "$PROJECT_ROOT/container/bitbot/bitbot"; then
     test_pass "Test passed"
 else
     test_fail "Test" "Default command doesn't route to default.sh"
 fi
 
 run_test "default.sh has smart session detection"
-if grep -q "prompt_resume_or_new\|show_launch_mode_choice" container/bitbot/core/commands/default.sh; then
+if grep -q "prompt_resume_or_new\|show_launch_mode_choice" "$PROJECT_ROOT/container/bitbot/core/commands/default.sh"; then
     test_pass "Test passed"
 else
     test_fail "Test" "default.sh missing resume/launch mode prompts"
 fi
 
 run_test "Start command creates fresh session (no prompts)"
-if ! grep -q "prompt_resume_or_new\|show_launch_mode_choice" container/bitbot/core/commands/start.sh; then
+if ! grep -q "prompt_resume_or_new\|show_launch_mode_choice" "$PROJECT_ROOT/container/bitbot/core/commands/start.sh"; then
     test_pass "Test passed"
 else
     test_fail "Test" "start.sh still contains resume/launch mode prompts"
 fi
 
 run_test "default.sh is executable"
-if [[ -x container/bitbot/core/commands/default.sh ]]; then
+if [[ -x "$PROJECT_ROOT/container/bitbot/core/commands/default.sh" ]]; then
     test_pass "Test passed"
 else
     test_fail "Test" "default.sh is not executable"
