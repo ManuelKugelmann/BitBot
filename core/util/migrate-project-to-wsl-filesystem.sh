@@ -320,6 +320,10 @@ show_usage() {
     echo "  $0                                    # Interactive"
     echo "  $0 /mnt/c/Projects/MyApp ~/projects   # Move MyApp to ~/projects"
     echo ""
+    echo "Requirements:"
+    echo "  - WSL (Windows Subsystem for Linux) environment"
+    echo "  - Designed for migrating projects from /mnt/c to WSL filesystem"
+    echo ""
 }
 
 main() {
