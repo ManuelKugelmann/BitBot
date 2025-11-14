@@ -234,19 +234,21 @@ else
     test_fail "bitbot-config devcontainer.json not created"
 fi
 
-# Test: Test bitbot-base template merge
-if bash "$MERGE_SCRIPT" "$PROJECT_ROOT/container/templates/bitbot-base" &> /dev/null; then
+# Test: Test bitbot-dev template merge
+if bash "$MERGE_SCRIPT" "$PROJECT_ROOT/container/templates/bitbot-dev" &> /dev/null; then
     test_pass "Test passed"
 else
-    test_fail "bitbot-base template merge failed"
+    test_fail "bitbot-dev template merge failed"
 fi
 
-# Test: Verify bitbot-base devcontainer.json created
-if [ -f "$PROJECT_ROOT/container/templates/bitbot-base/devcontainer.json" ]; then
+# Test: Verify bitbot-dev devcontainer.json created
+if [ -f "$PROJECT_ROOT/container/templates/bitbot-dev/devcontainer.json" ]; then
     test_pass "Test passed"
 else
-    test_fail "bitbot-base devcontainer.json not created"
+    test_fail "bitbot-dev devcontainer.json not created"
 fi
+
+# Note: bitbot-base is the standalone base template (no merge needed)
 
 # Cleanup
 test_section "Cleanup"
