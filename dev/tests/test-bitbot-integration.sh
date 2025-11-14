@@ -90,9 +90,10 @@ test_section "Test 3: bitbot init command"
 echo "test" > README.md
 
 # Run bitbot init with --no-config flag (non-interactive)
+# Set BITBOT_CHOICE_GIT_NO_REMOTE=1 to skip git remote prompt in CI
 # The init may fail when trying to launch devcontainer (expected in CI)
 # but should succeed in creating the workspace structure
-init_output=$(timeout 10 bash "$BITBOT_CMD" init --no-config 2>&1)
+init_output=$(BITBOT_CHOICE_GIT_NO_REMOTE=1 timeout 10 bash "$BITBOT_CMD" init --no-config 2>&1)
 init_exit_code=$?
 echo "$init_output"
 
