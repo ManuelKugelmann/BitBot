@@ -105,29 +105,34 @@
 
 ### 4. Untested Code Paths (P1 - Important) ⚠️
 
-**Commands** (3/6 tested in run-tests.sh):
+**Commands** (6/10 tested):
 - [x] `bitbot help` / `--help` / `-h` ✅
 - [x] `bitbot version` / `--version` / `-v` ✅
-- [ ] `bitbot init` (interactive with prompts)
-- [ ] `bitbot init --config` flag
-- [ ] `bitbot init --no-config` flag
-- [ ] `bitbot work` (container operations)
-- [ ] `bitbot work vscode` (VS Code integration)
-- [ ] `bitbot config` (config mode)
-- [ ] `bitbot config vscode`
-- [ ] `bitbot vscode` (shorthand for work vscode)
+- [x] `bitbot init` (interactive) ✅ test-bitbot-init-interactive.sh
+- [x] `bitbot init` (non-interactive) ✅ test-bitbot-init-non-interactive.sh
+- [x] `bitbot work` (uninitialized workspace handling) ✅ test-error-handling.sh
+- [x] `bitbot config` (uninitialized workspace handling) ✅ test-error-handling.sh
+- [ ] `bitbot work` (full container operations) - needs container
+- [ ] `bitbot work vscode` (VS Code integration) - needs VS Code
+- [ ] `bitbot config vscode` - needs VS Code
+- [ ] `bitbot vscode` (shorthand) - needs VS Code
 
-**Code Branches Not Tested**:
-- [ ] Uninitialized workspace: init prompt (yes/no responses)
-- [ ] Uninitialized workspace: command rejection
+**Code Branches Now Tested** ✅:
+- [x] Uninitialized workspace: command handling ✅ test-error-handling.sh
+- [x] Error paths: invalid commands ✅ test-error-handling.sh
+- [x] Error paths: command typos ✅ test-error-handling.sh
+- [x] Git safety: uncommitted changes warnings ✅ test-error-handling.sh
+- [x] Missing BITBOT_HOME handling ✅ test-error-handling.sh
+- [x] Re-initialization prevention ✅ test-error-handling.sh
+- [x] Invalid git repository handling ✅ test-error-handling.sh
+
+**Code Branches Still Not Tested**:
 - [ ] Global context: config migration from old location
 - [ ] Global context: validation after init
 - [ ] Container reuse across work/config modes
 - [ ] Mode switching (work ↔ config)
-- [ ] Error paths: invalid commands
-- [ ] Error paths: missing prerequisites
+- [ ] Error paths: missing prerequisites (partial coverage)
 - [ ] Error paths: failed container builds
-- [ ] Git safety: uncommitted changes warnings
 
 **Recommendation**: Create test-bitbot-work.sh, test-bitbot-config.sh, test-init-flags.sh
 

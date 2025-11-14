@@ -149,15 +149,19 @@ run_test "BitBot Commands (Migrated)" \
 run_test "Bare BitBot and Config Mode" \
     "${SCRIPT_DIR}/test-bitbot-bare-and-config.sh"
 
+# Test 6: Error Handling
+run_test "Error Handling" \
+    "${SCRIPT_DIR}/test-error-handling.sh"
+
 # ============================================================================
 # Workspace Tests (Fast - Always Run)
 # ============================================================================
 
-# Test 6: Workspace Init
+# Test 7: Workspace Init
 run_test "Workspace Initialization" \
     "${SCRIPT_DIR}/test-workspace-init.sh"
 
-# Test 7: BitBot Init (Non-Interactive)
+# Test 8: BitBot Init (Non-Interactive)
 run_test "BitBot Init (Non-Interactive)" \
     "${SCRIPT_DIR}/test-bitbot-init-non-interactive.sh"
 
