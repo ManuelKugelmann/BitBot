@@ -1,6 +1,7 @@
 ---
 name: fix-line-endings-check-bash
 description: Fix line endings AND check bash syntax in one step (recommended). Use after creating or editing bash scripts.
+allowed-tools: Bash
 ---
 
 # Fix Line Endings + Check Bash

@@ -1,6 +1,7 @@
 ---
 name: claude-do-not-stop
 description: Enable continuous work mode. Use PROACTIVELY when user says "keep working", "don't stop", "finish everything", "complete all tasks". Automatically continues until work is complete. User can invoke with /claude-do-not-stop [reason].
+allowed-tools: Bash, Read
 ---
 
 # Enable Stop Hook Automation
