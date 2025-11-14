@@ -4,11 +4,12 @@ FROM ubuntu:22.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install essentials + build tools + MinGW for Windows cross-compilation
-# Note: Node.js, Git, and AI tools are installed via devcontainer features
+# Note: Node.js and Claude Code are installed via devcontainer features
 RUN apt-get update && apt-get install -y \
     curl \
     wget \
     ca-certificates \
+    git \
     build-essential \
     mingw-w64 \
     gcc-mingw-w64-x86-64 \
@@ -18,6 +19,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     file \
     jq \
+    tmux \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Verify MinGW installation

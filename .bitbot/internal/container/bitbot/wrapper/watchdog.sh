@@ -15,8 +15,6 @@ set -euo pipefail
 CHECK_INTERVAL=30           # Check every 30 seconds
 CPU_THRESHOLD=95            # Alert if CPU > 95% for extended period
 HIGH_CPU_DURATION=300       # 5 minutes of high CPU = likely stalled (Type A)
-LOW_CPU_THRESHOLD=5         # Consider idle if CPU < 5%
-NO_ACTIVITY_TIMEOUT=600     # 10 minutes no session activity = stalled
 SESSION_UPDATE_TIMEOUT=300  # 5 minutes no session file update = stalled
 IO_BLOCK_DURATION=60        # 60 seconds in D state = I/O deadlock (Type C)
 
@@ -62,7 +60,6 @@ WATCHDOG_STATE="$RUNTIME_DIR/.watchdog-${CLAUDE_PID}.state"
 
 # State tracking
 HIGH_CPU_START=0
-LAST_SESSION_MTIME=0
 LAST_PIPE_CHECK=0
 IO_BLOCK_START=0
 LAST_BLKIO_TICKS=0
@@ -79,7 +76,8 @@ check_process_health() {
     fi
 
     # Get CPU usage (percentage)
-    local cpu_usage=$(ps -p "$CLAUDE_PID" -o %cpu= 2>/dev/null | tr -d ' ' | cut -d. -f1)
+    local cpu_usage
+    cpu_usage=$(ps -p "$CLAUDE_PID" -o %cpu= 2>/dev/null | tr -d ' ' | cut -d. -f1)
 
     if [ -z "$cpu_usage" ]; then
         log "Cannot read CPU usage - process may have just exited"
@@ -104,9 +102,12 @@ check_session_activity() {
     fi
 
     # Get last modification time
-    local mtime=$(stat -c %Y "$session_file" 2>/dev/null || stat -f %m "$session_file" 2>/dev/null)
-    local now=$(date +%s)
-    local age=$((now - mtime))
+    local mtime
+    mtime=$(stat -c %Y "$session_file" 2>/dev/null || stat -f %m "$session_file" 2>/dev/null)
+    local now
+    now=$(date +%s)
+    local age
+    age=$((now - mtime))
 
     echo "$age"
     return 0
@@ -132,17 +133,20 @@ check_pipe_health() {
 check_io_deadlock() {
     # Check process state from /proc/PID/stat (field 3)
     local stat_data
-    stat_data=$(cat /proc/$CLAUDE_PID/stat 2>/dev/null) || return 1
+    stat_data=$(cat /proc/"$CLAUDE_PID"/stat 2>/dev/null) || return 1
 
-    local state=$(echo "$stat_data" | awk '{print $3}')
+    local state
+    state=$(echo "$stat_data" | awk '{print $3}')
 
     # D state = uninterruptible sleep (usually I/O wait)
     if [ "$state" = "D" ]; then
         # Get wchan (wait channel) to see what kernel function is blocking
-        local wchan=$(cat /proc/$CLAUDE_PID/wchan 2>/dev/null)
+        local wchan
+        wchan=$(cat /proc/"$CLAUDE_PID"/wchan 2>/dev/null)
 
         # Get block I/O delay ticks (field 42)
-        local blkio_ticks=$(echo "$stat_data" | awk '{print $42}')
+        local blkio_ticks
+        blkio_ticks=$(echo "$stat_data" | awk '{print $42}')
 
         # Log details
         log "Process in D state (I/O wait), wchan: ${wchan:-unknown}, blkio_ticks: ${blkio_ticks:-0}"
@@ -156,7 +160,8 @@ check_io_deadlock() {
 
         # Track block I/O activity
         if [ "${LAST_BLKIO_TICKS:-0}" -gt 0 ]; then
-            local blkio_delta=$((blkio_ticks - LAST_BLKIO_TICKS))
+            local blkio_delta
+            blkio_delta=$((blkio_ticks - LAST_BLKIO_TICKS))
             if [ $blkio_delta -gt 100 ]; then
                 log "Significant I/O delay: +${blkio_delta} ticks"
             fi
@@ -221,20 +226,22 @@ monitor() {
         fi
 
         # Detect sustained high CPU (possible infinite loop)
-        local now=$(date +%s)
+        local now
+        now=$(date +%s)
         if [ "$cpu_usage" -gt "$CPU_THRESHOLD" ]; then
-            if [ $HIGH_CPU_START -eq 0 ]; then
+            if [ "$HIGH_CPU_START" -eq 0 ]; then
                 HIGH_CPU_START=$now
                 log "High CPU detected: ${cpu_usage}% (threshold: ${CPU_THRESHOLD}%)"
             else
-                local high_cpu_duration=$((now - HIGH_CPU_START))
+                local high_cpu_duration
+                high_cpu_duration=$((now - HIGH_CPU_START))
                 if [ $high_cpu_duration -gt $HIGH_CPU_DURATION ]; then
                     trigger_restart "Sustained high CPU (${cpu_usage}%) for ${high_cpu_duration}s"
                     exit 0
                 fi
             fi
         else
-            if [ $HIGH_CPU_START -ne 0 ]; then
+            if [ "$HIGH_CPU_START" -ne 0 ]; then
                 log "CPU usage normalized: ${cpu_usage}%"
             fi
             HIGH_CPU_START=0
@@ -242,8 +249,7 @@ monitor() {
 
         # Check 2: Session activity (if session ID provided)
         if [ -n "$SESSION_ID" ]; then
-            session_age=$(check_session_activity)
-            if [ $? -eq 0 ] && [ "$session_age" -gt "$SESSION_UPDATE_TIMEOUT" ]; then
+            if session_age=$(check_session_activity) && [ "$session_age" -gt "$SESSION_UPDATE_TIMEOUT" ]; then
                 log "Session file not updated for ${session_age}s (threshold: ${SESSION_UPDATE_TIMEOUT}s)"
                 # This is a warning, not necessarily a stall
                 # Claude might be thinking or waiting for user input
@@ -256,11 +262,12 @@ monitor() {
 
         if [ $io_check_status -eq 0 ]; then
             # Process is in D state
-            if [ $IO_BLOCK_START -eq 0 ]; then
+            if [ "$IO_BLOCK_START" -eq 0 ]; then
                 IO_BLOCK_START=$now
                 log "I/O block detected: $io_state"
             else
-                local io_block_duration=$((now - IO_BLOCK_START))
+                local io_block_duration
+                io_block_duration=$((now - IO_BLOCK_START))
                 if [ $io_block_duration -gt $IO_BLOCK_DURATION ]; then
                     trigger_restart "I/O deadlock detected (D state for ${io_block_duration}s): $io_state"
                     exit 0
@@ -268,7 +275,7 @@ monitor() {
             fi
         else
             # Not in D state anymore
-            if [ $IO_BLOCK_START -ne 0 ]; then
+            if [ "$IO_BLOCK_START" -ne 0 ]; then
                 log "I/O block cleared"
             fi
             IO_BLOCK_START=0
@@ -283,11 +290,13 @@ monitor() {
         fi
 
         # Save state
-        echo "last_check=$now" > "$WATCHDOG_STATE"
-        echo "cpu_usage=$cpu_usage" >> "$WATCHDOG_STATE"
-        echo "high_cpu_start=$HIGH_CPU_START" >> "$WATCHDOG_STATE"
-        echo "io_block_start=$IO_BLOCK_START" >> "$WATCHDOG_STATE"
-        echo "last_blkio_ticks=$LAST_BLKIO_TICKS" >> "$WATCHDOG_STATE"
+        {
+            echo "last_check=$now"
+            echo "cpu_usage=$cpu_usage"
+            echo "high_cpu_start=$HIGH_CPU_START"
+            echo "io_block_start=$IO_BLOCK_START"
+            echo "last_blkio_ticks=$LAST_BLKIO_TICKS"
+        } > "$WATCHDOG_STATE"
     done
 }
 

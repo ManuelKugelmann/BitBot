@@ -47,8 +47,6 @@
   },
 
   "permissions": {
-    "allow": [
-      ".claude/tools/**"
-    ]
+    "allow": []
   }
 }

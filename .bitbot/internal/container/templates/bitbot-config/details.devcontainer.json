@@ -1,7 +1,7 @@
 {
-  "$comment": "Config template details - merged with templates/shared/base.devcontainer.json",
-  "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
-  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/bitbot-config",
+  "$comment": "Config template details - merged with templates/bitbot-base/devcontainer.json",
+  "$comment2": "bitbot-base/devcontainer.json + details.devcontainer.json => devcontainer.json",
+  "$comment3": "Run: templates/scripts/merge-devcontainer.sh templates/bitbot-config",
 
   "name": "BitBot Config Mode",
   "dockerFile": "Dockerfile",
@@ -29,8 +29,10 @@
     }
   },
 
+  "$comment_config_mounts": "Config mode: Override .devcontainer mount to RW",
   "mounts": [
-    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-  ]
+    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,consistency=cached"
+  ],
+
+  "postCreateCommand": "npm install -g @devcontainers/cli && echo '✓ DevContainer CLI installed'"
 }
