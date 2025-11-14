@@ -1,6 +1,6 @@
 ---
 name: claude-allow-stop
-description: Disable Stop hook automation to allow normal completion. Use when asking questions, discussing approaches, working interactively, brainstorming, or workflows requiring back-and-forth conversation. User can invoke with /claude-allow-stop.
+description: Return to normal stop behavior. Use PROACTIVELY after completing all tasks in continuous work mode, when work is committed and tests pass, or when reaching natural stopping point. User can invoke with /claude-allow-stop.
 ---
 
 # Disable Stop Hook Automation

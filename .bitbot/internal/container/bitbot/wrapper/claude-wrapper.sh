@@ -53,6 +53,7 @@ WRAPPER_PID=$$
 mkdir -p "$PIPE_DIR"
 
 # Cleanup function
+# shellcheck disable=SC2317  # Trap handlers appear unreachable to shellcheck
 cleanup() {
     local exit_code=$?
 
@@ -70,7 +71,7 @@ cleanup() {
     # Cleanup empty pipe directory
     rmdir "$PIPE_DIR" 2>/dev/null || true
 
-    exit $exit_code
+    exit "$exit_code"
 }
 
 trap cleanup EXIT INT TERM
@@ -127,6 +128,16 @@ handle_command() {
             echo ""
             echo "Mode: compact"
             echo "Session ID: ${session_id:-<required>}"
+
+            # Parse optional compact prompt from remaining args
+            # Message format: "compact session-id [prompt text...]"
+            local compact_prompt=""
+            if [ $# -gt 2 ]; then
+                shift 2  # Remove 'compact' and 'session_id'
+                compact_prompt="$*"  # Rest is the prompt
+                echo "Prompt: $compact_prompt"
+            fi
+
             echo ""
 
             if [ -z "$session_id" ]; then
@@ -135,6 +146,8 @@ handle_command() {
             fi
 
             if [ -n "${CLAUDE_PID:-}" ]; then
+                # Pass compact prompt via env var
+                export COMPACT_PROMPT="$compact_prompt"
                 do_restart "compact" "$session_id"
             fi
             ;;
@@ -224,7 +237,14 @@ do_restart() {
 
         compact)
             echo "Running context compaction..."
-            run_compaction "$session_id"
+
+            # Check for custom compaction prompt
+            local compact_prompt=""
+            if [[ -n "${COMPACT_PROMPT:-}" ]]; then
+                compact_prompt="$COMPACT_PROMPT"
+            fi
+
+            run_compaction "$session_id" "$compact_prompt"
 
             echo "Restarting with session resume: $session_id"
             RESTART_ARGS=("--resume" "$session_id")
@@ -247,16 +267,27 @@ do_restart() {
 # Run context compaction
 run_compaction() {
     local session_id="$1"
+    local compact_prompt="${2:-}"
 
     # Create temp file for compaction output
-    local temp_output=$(mktemp)
-    trap "rm -f $temp_output" RETURN
+    local temp_output
+    temp_output=$(mktemp)
+    trap 'rm -f "$temp_output"' RETURN
 
     echo ""
 
+    # Build compaction command - use custom prompt if provided
+    local compact_cmd
+    if [[ -n "$compact_prompt" ]]; then
+        compact_cmd="/compact $compact_prompt"
+        echo "Using custom compaction guidance: $compact_prompt"
+    else
+        compact_cmd="/compact"
+    fi
+
     # Run compaction in background
     (
-        echo '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"/compact"}]}}'
+        echo "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"$compact_cmd\"}]}}"
         echo '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Concise summary:"}]}}'
     ) | timeout 300 claude -p --output-format=stream-json --input-format=stream-json --resume "$session_id" > "$temp_output" 2>&1 &
 
@@ -300,9 +331,6 @@ run_compaction() {
     # Brief delay
     sleep 0.5
 }
-
-# Store original arguments for potential restart
-ORIGINAL_ARGS=("$@")
 
 # Determine claude command (allow override for testing)
 CLAUDE_CMD="${CLAUDE_WRAPPER_CMD:-claude}"
