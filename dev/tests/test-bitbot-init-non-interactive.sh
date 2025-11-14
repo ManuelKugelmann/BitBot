@@ -130,6 +130,7 @@ git config user.name "BitBot Test"
 export BITBOT_CHOICE_GIT_NO_REMOTE=1  # Skip this time
 export BITBOT_CHOICE_GIT_UNPUSHED=1  # Skip this time
 export BITBOT_CHOICE_GIT_SAFETY=1  # Skip this time
+export BITBOT_CHOICE_CONFIG_MODE=1  # No (skip config mode launch)
 
 # Run with CI environment variable set
 export CI=true
