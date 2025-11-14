@@ -200,8 +200,8 @@ sync_output=$(rsync -avn --delete "$BITBOT_ROOT/container/" "$BITBOT_ROOT/.bitbo
     grep -v "^$" | \
     grep -v "^sent .* bytes" | \
     grep -v "^total size" | \
-    grep -v "speedup" || true | \
-    wc -l)
+    grep -v "speedup" | \
+    wc -l || true)
 
 if [ "$sync_output" -eq 0 ]; then
     test_pass "Sync is idempotent (no changes on re-run)"
