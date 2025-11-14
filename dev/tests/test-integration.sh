@@ -12,7 +12,7 @@
 # 6. Dual-location filesystem compatibility (WSL native + Windows mounts)
 #
 # Usage:
-#   ./test-integration.sh [--location wsl|windows|both] [--skip-build]
+#   ./test-integration-migrated.sh [--location wsl|windows|both] [--skip-build]
 #
 # Options:
 #   --location <loc>  Test location(s): wsl, windows, or both (default: both)
@@ -24,9 +24,9 @@
 #   both             Test both locations (default)
 #
 # Examples:
-#   ./test-integration.sh                              # Test both locations, skip build
-#   ./test-integration.sh --location windows           # Test Windows mount only
-#   BITBOT_TEST_SKIP_BUILD=0 ./test-integration.sh     # Test with devcontainer build
+#   ./test-integration-migrated.sh                              # Test both locations, skip build
+#   ./test-integration-migrated.sh --location windows           # Test Windows mount only
+#   BITBOT_TEST_SKIP_BUILD=0 ./test-integration-migrated.sh     # Test with devcontainer build
 #
 # DevContainer CLI Strategy:
 #   - Method 3 (cmd.exe wrapper): For Windows mounts (/mnt/c/) - converts to C:\ paths
@@ -37,8 +37,7 @@
 #   - WSL filesystem (ext4) provides better performance than /mnt/c/ (9P protocol)
 #   - Recommendation: Use WSL filesystem for development (see VS Code documentation)
 #
-# Note: This test validates the full BitBot system integration across
-# different filesystem configurations to ensure compatibility.
+# MIGRATED TO USE: test-framework.sh, workspace-helper.sh
 
 set -euo pipefail
 
@@ -47,10 +46,15 @@ BITBOT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 # Source test framework
 source "${SCRIPT_DIR}/helpers/test-framework.sh"
+source "${SCRIPT_DIR}/helpers/workspace-helper.sh"
+
+# ============================================================================
+# Configuration
+# ============================================================================
 
 # Parse arguments
 TEST_LOCATION="both"  # Default: test both locations
-SKIP_BUILD="${BITBOT_TEST_SKIP_BUILD:-0}"
+SKIP_BUILD="${BITBOT_TEST_SKIP_BUILD:-1}"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -84,11 +88,37 @@ WIN_TEST_WORKSPACE="/mnt/c/bitbot-integration-test-$$"
 # Current test workspace (will be set per test run)
 TEST_WORKSPACE=""
 
-test_suite_begin "BitBot Integration Test Suite - Full End-to-End Workflow"
+# ============================================================================
+# Cleanup Functions
+# ============================================================================
 
-# ============================================================================
-# Cleanup
-# ============================================================================
+cleanup_containers() {
+    local workspace="$1"
+
+    if [[ ! -f "$workspace/.devcontainer/devcontainer.json" ]]; then
+        return 0
+    fi
+
+    cd "$workspace" 2>/dev/null || return 0
+
+    if command -v devcontainer.cmd &>/dev/null; then
+        # Convert path and use appropriate wrapper
+        local win_path
+        local distro="${WSL_DISTRO_NAME:-Ubuntu}"
+
+        if [[ "$workspace" == /mnt/* ]]; then
+            # Method 3: cmd.exe with Windows path
+            win_path=$(echo "$workspace" | sed 's|/mnt/\([a-z]\)/|\U\1:/|' | sed 's|/|\\|g')
+            timeout 30 cmd.exe /c "cd /d $win_path && devcontainer.cmd down --workspace-folder ." &>/dev/null || true
+        else
+            # Method 4: PowerShell with UNC path
+            win_path="\\\\wsl.localhost\\${distro}${workspace}"
+            timeout 30 powershell.exe -NoProfile -Command "devcontainer.cmd down --workspace-folder '$win_path'" &>/dev/null || true
+        fi
+    elif command -v devcontainer &>/dev/null; then
+        timeout 30 devcontainer down --workspace-folder "$workspace" &>/dev/null || true
+    fi
+}
 
 cleanup() {
     echo ""
@@ -96,29 +126,10 @@ cleanup() {
 
     # Stop any running containers and remove workspaces
     for workspace in "$WSL_TEST_WORKSPACE" "$WIN_TEST_WORKSPACE"; do
-        if [[ -f "$workspace/.devcontainer/devcontainer.json" ]]; then
-            cd "$workspace" 2>/dev/null || true
-            if command -v devcontainer.cmd &>/dev/null; then
-                # Convert path and use appropriate wrapper
-                local win_path
-                local distro="${WSL_DISTRO_NAME:-Ubuntu}"
-
-                if [[ "$workspace" == /mnt/* ]]; then
-                    # Method 3: cmd.exe with Windows path
-                    win_path=$(echo "$workspace" | sed 's|/mnt/\([a-z]\)/|\U\1:/|' | sed 's|/|\\|g')
-                    timeout 30 cmd.exe /c "cd /d $win_path && devcontainer.cmd down --workspace-folder ." &>/dev/null || true
-                else
-                    # Method 4: PowerShell with UNC path
-                    win_path="\\\\wsl.localhost\\${distro}${workspace}"
-                    timeout 30 powershell.exe -NoProfile -Command "devcontainer.cmd down --workspace-folder '$win_path'" &>/dev/null || true
-                fi
-            elif command -v devcontainer &>/dev/null; then
-                timeout 30 devcontainer down --workspace-folder "$workspace" &>/dev/null || true
-            fi
+        if [[ -d "$workspace" ]]; then
+            cleanup_containers "$workspace"
+            rm -rf "$workspace" 2>/dev/null || true
         fi
-
-        # Remove workspace
-        rm -rf "$workspace" 2>/dev/null || true
     done
 
     # Remove test global config if we created it
@@ -136,63 +147,68 @@ cleanup() {
 trap cleanup EXIT
 
 # ============================================================================
-# Prerequisites Check
+# Prerequisites Functions
 # ============================================================================
 
-echo "═══ Prerequisites ═══"
-echo ""
+check_prerequisites() {
+    echo "═══ Prerequisites ═══"
+    echo ""
 
-# Set BITBOT_HOME and add to PATH
-export BITBOT_HOME="$BITBOT_ROOT"
-export PATH="$BITBOT_HOME/core:$PATH"
+    # Set BITBOT_HOME and add to PATH
+    export BITBOT_HOME="$BITBOT_ROOT"
+    export PATH="$BITBOT_HOME/core:$PATH"
 
-# Check bitbot command
-if ! command -v bitbot &>/dev/null; then
-    echo -e "${RED}✗ FAILED${NC}: bitbot command not found"
-    echo "BITBOT_HOME: $BITBOT_HOME"
-    echo "PATH: $PATH"
-    exit 1
-fi
-echo -e "${GREEN}✓${NC} bitbot command available"
+    # Skip interactive git prompts in tests
+    export BITBOT_CHOICE_GIT_NO_REMOTE=1  # Skip "add git remote" prompt (option 1 = "Skip this time")
 
-# Ensure global config exists (required for workspace init)
-test_section "Verify global config"
-if [[ ! -f "$BITBOT_HOME/config.json" ]]; then
-    # Create minimal global config for testing
-    cat > "$BITBOT_HOME/config.json" <<'EOF'
+    # Check bitbot command
+    if ! command -v bitbot &>/dev/null; then
+        echo -e "${RED}✗ FAILED${NC}: bitbot command not found"
+        echo "BITBOT_HOME: $BITBOT_HOME"
+        echo "PATH: $PATH"
+        exit 1
+    fi
+    echo -e "${GREEN}✓${NC} bitbot command available"
+
+    # Ensure global config exists (required for workspace init)
+    test_section "Verify global config"
+    if [[ ! -f "$BITBOT_HOME/config.json" ]]; then
+        # Create minimal global config for testing
+        cat > "$BITBOT_HOME/config.json" <<'EOF'
 {
   "version": "0.1.0",
   "launch_mode": "terminal",
   "created_at": "test-run"
 }
 EOF
-    test_pass "Created test global config"
-else
-    test_pass "Global config exists"
-fi
+        test_pass "Created test global config"
+    else
+        test_pass "Global config exists"
+    fi
 
-# Check devcontainer CLI
-DEVC_CMD=""
-if command -v devcontainer.cmd &>/dev/null; then
-    DEVC_CMD="cmd.exe /c devcontainer.cmd"
-    echo -e "${GREEN}✓${NC} Using devcontainer.cmd (VS Code built-in)"
-elif command -v devcontainer &>/dev/null; then
-    DEVC_CMD="devcontainer"
-    echo -e "${GREEN}✓${NC} Using devcontainer CLI"
-else
-    echo -e "${RED}✗ FAILED${NC}: DevContainer CLI not found"
-    echo "Install: npm install -g @devcontainers/cli"
-    exit 1
-fi
+    # Check devcontainer CLI
+    DEVC_CMD=""
+    if command -v devcontainer.cmd &>/dev/null; then
+        DEVC_CMD="cmd.exe /c devcontainer.cmd"
+        echo -e "${GREEN}✓${NC} Using devcontainer.cmd (VS Code built-in)"
+    elif command -v devcontainer &>/dev/null; then
+        DEVC_CMD="devcontainer"
+        echo -e "${GREEN}✓${NC} Using devcontainer CLI"
+    else
+        echo -e "${RED}✗ FAILED${NC}: DevContainer CLI not found"
+        echo "Install: npm install -g @devcontainers/cli"
+        exit 1
+    fi
 
-# Check Docker
-if ! docker info &>/dev/null; then
-    echo -e "${RED}✗ FAILED${NC}: Docker daemon not running"
-    exit 1
-fi
-echo -e "${GREEN}✓${NC} Docker daemon running"
+    # Check Docker
+    if ! docker info &>/dev/null; then
+        echo -e "${RED}✗ FAILED${NC}: Docker daemon not running"
+        exit 1
+    fi
+    echo -e "${GREEN}✓${NC} Docker daemon running"
 
-echo ""
+    echo ""
+}
 
 # ============================================================================
 # Path Conversion Helpers
@@ -225,351 +241,278 @@ get_devcontainer_cmd() {
 }
 
 # ============================================================================
-# Main Integration Test Function
+# Test Functions
 # ============================================================================
 
-run_integration_tests_for_location() {
-    local location_name="$1"
-    local workspace_path="$2"
+test_workspace_initialization() {
+    test_section "Create test workspace"
+    mkdir -p "$TEST_WORKSPACE"
+    cd "$TEST_WORKSPACE"
+    echo "# Integration Test" > README.md
+    git init &>/dev/null
+    test_pass "Test workspace created"
 
-    # Set global TEST_WORKSPACE for all tests
-    TEST_WORKSPACE="$workspace_path"
+    test_section "Initialize BitBot workspace"
+    # Note: bitbot init will try to launch config mode at the end,
+    # which may fail in test environment. We allow failure and
+    # check for successful workspace initialization instead.
+    bitbot init --no-config &>/dev/null || true
 
-    # Track container build status for this location
-    local CONTAINER_BUILT=false
-
-    echo ""
-    echo "╔════════════════════════════════════════╗"
-    echo -e "${CYAN}║  Testing Location: $(printf '%-21s' "$location_name")║${NC}"
-    echo -e "${CYAN}║  Path: $(printf '%-29s' "$workspace_path")║${NC}"
-    echo "╚════════════════════════════════════════╝"
-    echo ""
-
-# ============================================================================
-# Test 1: Workspace Initialization
-# ============================================================================
-
-echo "═══ Test 1: Workspace Initialization ═══"
-echo ""
-
-test_section "Create test workspace"
-mkdir -p "$TEST_WORKSPACE"
-cd "$TEST_WORKSPACE"
-echo "# Integration Test" > README.md
-git init &>/dev/null
-test_pass "Test workspace created"
-
-test_section "Initialize BitBot workspace"
-# Note: bitbot init will try to launch config mode at the end,
-# which may fail in test environment. We allow failure and
-# check for successful workspace initialization instead.
-bitbot init --no-config || true
-
-# Check if workspace was initialized (even if config launch failed)
-if [[ -d ".bitbot" ]] && [[ -d ".devcontainer" ]] && [[ -f ".bitbot/config.json" ]]; then
-    test_pass "bitbot init completed (workspace structure created)"
-else
-    test_fail "bitbot init failed to create workspace structure"
-    exit 1
-fi
-
-test_section "Verify workspace structure"
-if [[ -d ".bitbot" ]] && [[ -d ".devcontainer" ]]; then
-    test_pass "Workspace structure created (.bitbot, .devcontainer)"
-else
-    test_fail "Workspace structure incomplete"
-    exit 1
-fi
-
-test_section "Verify devcontainer.json"
-if [[ -f ".devcontainer/devcontainer.json" ]]; then
-    if jq . .devcontainer/devcontainer.json &>/dev/null; then
-        test_pass "devcontainer.json is valid JSON"
+    # Check if workspace was initialized (even if config launch failed)
+    if [[ -d ".bitbot" ]] && [[ -d ".devcontainer" ]] && [[ -f ".bitbot/config.json" ]]; then
+        test_pass "bitbot init completed (workspace structure created)"
     else
-        test_fail "devcontainer.json is invalid JSON"
+        test_fail "bitbot init failed to create workspace structure"
+        exit 1
     fi
-else
-    test_fail "devcontainer.json not found"
-fi
 
-test_section "Verify BitBot scripts copied"
-if [[ -d ".devcontainer/bitbot" ]]; then
-    if [[ -f ".devcontainer/bitbot/core/commands/start.sh" ]]; then
-        test_pass "Container BitBot scripts present"
+    test_section "Verify workspace structure"
+    if [[ -d ".bitbot" ]] && [[ -d ".devcontainer" ]]; then
+        test_pass "Workspace structure created (.bitbot, .devcontainer)"
     else
-        test_fail "BitBot scripts incomplete"
+        test_fail "Workspace structure incomplete"
+        exit 1
     fi
-else
-    test_fail "BitBot scripts not copied"
-fi
 
-echo ""
-
-# ============================================================================
-# Test 2: DevContainer Build (Optional - Very Slow)
-# ============================================================================
-
-echo "═══ Test 2: DevContainer Build (Optional) ═══"
-echo ""
-
-# Build container (controlled by argument or environment variable)
-CONTAINER_BUILT=false
-
-if [[ "$SKIP_BUILD" == "1" ]]; then
-    echo -e "${YELLOW}⊘ SKIPPED${NC}: Container build (BITBOT_TEST_SKIP_BUILD=1)"
-    echo -e "${YELLOW}ℹ${NC}  To test in-container execution, run: BITBOT_TEST_SKIP_BUILD=0 $0"
-    echo ""
-elif [[ "${BITBOT_TEST_BUILD_ONLY:-0}" == "1" ]]; then
-    test_section "Build DevContainer (build-only mode)"
-
-    # Convert path and get appropriate command wrapper
-    win_path=$(convert_to_windows_path "$TEST_WORKSPACE")
-    cmd_wrapper=$(get_devcontainer_cmd "$TEST_WORKSPACE")
-
-    echo "Building container (this may take several minutes)..."
-    if [[ "$TEST_WORKSPACE" == /mnt/* ]]; then
-        # Method 3: cmd.exe with cd trick
-        if timeout 600 $cmd_wrapper "cd /d $win_path && devcontainer.cmd build --workspace-folder ."; then
-            test_pass "DevContainer built successfully"
-            CONTAINER_BUILT=true
+    test_section "Verify devcontainer.json"
+    if [[ -f ".devcontainer/devcontainer.json" ]]; then
+        if jq . .devcontainer/devcontainer.json &>/dev/null; then
+            test_pass "devcontainer.json is valid JSON"
         else
-            test_fail "DevContainer build failed"
+            test_fail "devcontainer.json is invalid JSON"
         fi
     else
-        # Method 4: PowerShell with UNC path
-        if timeout 600 $cmd_wrapper "devcontainer.cmd build --workspace-folder '$win_path'"; then
-            test_pass "DevContainer built successfully"
-            CONTAINER_BUILT=true
-        else
-            test_fail "DevContainer build failed"
-        fi
+        test_fail "devcontainer.json not found"
     fi
 
-    echo ""
-else
+    test_section "Verify BitBot scripts copied"
+    if [[ -d ".devcontainer/bitbot" ]]; then
+        if [[ -f ".devcontainer/bitbot/core/commands/start.sh" ]]; then
+            test_pass "Container BitBot scripts present"
+        else
+            test_fail "BitBot scripts incomplete"
+        fi
+    else
+        test_fail "BitBot scripts not copied"
+    fi
+}
+
+test_devcontainer_build() {
+    # Build container (controlled by argument or environment variable)
+    local container_built=false
+
+    if [[ "$SKIP_BUILD" == "1" ]]; then
+        echo -e "${YELLOW}⊘ SKIPPED${NC}: Container build (BITBOT_TEST_SKIP_BUILD=1)"
+        echo -e "${YELLOW}ℹ${NC}  To test in-container execution, run: BITBOT_TEST_SKIP_BUILD=0 $0"
+        echo ""
+        echo "$container_built"
+        return 0
+    fi
+
     test_section "Build DevContainer"
 
     # Convert path and get appropriate command wrapper
+    local win_path
+    local cmd_wrapper
     win_path=$(convert_to_windows_path "$TEST_WORKSPACE")
     cmd_wrapper=$(get_devcontainer_cmd "$TEST_WORKSPACE")
 
     echo "Building container (this may take several minutes)..."
+
     if [[ "$TEST_WORKSPACE" == /mnt/* ]]; then
         # Method 3: cmd.exe with cd trick
         if timeout 600 $cmd_wrapper "cd /d $win_path && devcontainer.cmd build --workspace-folder ." &>/tmp/integration-build-$$.log; then
             test_pass "DevContainer built successfully"
-            CONTAINER_BUILT=true
+            container_built=true
         else
             test_fail "DevContainer build failed"
             echo "Build log:"
             tail -20 /tmp/integration-build-$$.log
-            rm -f /tmp/integration-build-$$.log
             # Continue with remaining tests even if build fails
         fi
     else
         # Method 4: PowerShell with UNC path
         if timeout 600 $cmd_wrapper "devcontainer.cmd build --workspace-folder '$win_path'" &>/tmp/integration-build-$$.log; then
             test_pass "DevContainer built successfully"
-            CONTAINER_BUILT=true
+            container_built=true
         else
             test_fail "DevContainer build failed"
             echo "Build log:"
             tail -20 /tmp/integration-build-$$.log
-            rm -f /tmp/integration-build-$$.log
             # Continue with remaining tests even if build fails
         fi
     fi
+
     rm -f /tmp/integration-build-$$.log
-
     echo ""
-fi
+    echo "$container_built"
+}
 
-# ============================================================================
-# Test 3: Container BitBot Commands (Execution Tests)
-# ============================================================================
-
-echo "═══ Test 3: Container BitBot Commands ═══"
-echo ""
-
-test_section "Test bitbot help command"
-if [[ -f ".devcontainer/bitbot/bitbot" ]]; then
-    if bash ".devcontainer/bitbot/bitbot" help &>/tmp/bitbot-help-$$.log; then
-        if grep -qiE "usage|help|command" /tmp/bitbot-help-$$.log; then
-            test_pass "bitbot help command works"
+test_container_bitbot_commands() {
+    test_section "Test bitbot help command"
+    if [[ -f ".devcontainer/bitbot/bitbot" ]]; then
+        if bash ".devcontainer/bitbot/bitbot" help &>/tmp/bitbot-help-$$.log; then
+            if grep -qiE "usage|help|command" /tmp/bitbot-help-$$.log; then
+                test_pass "bitbot help command works"
+            else
+                test_fail "bitbot help output invalid"
+                cat /tmp/bitbot-help-$$.log
+            fi
         else
-            test_fail "bitbot help output invalid"
+            test_fail "bitbot help command failed"
             cat /tmp/bitbot-help-$$.log
         fi
+        rm -f /tmp/bitbot-help-$$.log
     else
-        test_fail "bitbot help command failed"
-        cat /tmp/bitbot-help-$$.log
+        test_fail "Container bitbot command not found"
     fi
-    rm -f /tmp/bitbot-help-$$.log
-else
-    test_fail "Container bitbot command not found"
-fi
 
-test_section "Test bitbot invalid command handling"
-if bash ".devcontainer/bitbot/bitbot" invalid-command &>/tmp/bitbot-invalid-$$.log; then
-    test_fail "Invalid command should return error"
-else
-    # Should fail with error
-    if grep -qE "Unknown command|usage:" /tmp/bitbot-invalid-$$.log; then
-        test_pass "Invalid command handled correctly"
+    test_section "Test bitbot invalid command handling"
+    if bash ".devcontainer/bitbot/bitbot" invalid-command &>/tmp/bitbot-invalid-$$.log; then
+        test_fail "Invalid command should return error"
     else
-        test_fail "Invalid command error message missing"
-    fi
-fi
-rm -f /tmp/bitbot-invalid-$$.log
-
-test_section "Test helpers.sh can be sourced"
-if [[ -f ".devcontainer/bitbot/core/util/helpers.sh" ]]; then
-    if bash -c "source .devcontainer/bitbot/core/util/helpers.sh && command_exists bash" 2>/dev/null; then
-        test_pass "helpers.sh sourced and functions work"
-    else
-        test_fail "helpers.sh sourcing failed"
-    fi
-else
-    test_fail "helpers.sh not found"
-fi
-
-test_section "Test bitbot script has valid shebang"
-if [[ -f ".devcontainer/bitbot/bitbot" ]]; then
-    if head -1 ".devcontainer/bitbot/bitbot" | grep -q "^#!/"; then
-        test_pass "bitbot has valid shebang"
-    else
-        test_fail "bitbot missing shebang"
-    fi
-else
-    test_fail "bitbot not found"
-fi
-
-test_section "Test all core commands are executable"
-all_executable=true
-for cmd in .devcontainer/bitbot/core/commands/*.sh; do
-    if [[ ! -x "$cmd" ]]; then
-        all_executable=false
-        break
-    fi
-done
-if [[ "$all_executable" == "true" ]]; then
-    test_pass "All core commands are executable"
-else
-    test_fail "Some commands not executable"
-fi
-
-echo ""
-
-# ============================================================================
-# Test 4: Wrapper Integration (Execution Tests)
-# ============================================================================
-
-echo "═══ Test 4: Wrapper Integration ═══"
-echo ""
-
-test_section "Test claude-wrapper.sh syntax and structure"
-if [[ -f ".devcontainer/bitbot/wrapper/claude-wrapper.sh" ]]; then
-    if bash -n ".devcontainer/bitbot/wrapper/claude-wrapper.sh" 2>/dev/null; then
-        # Check for key functions
-        if grep -qE "handle_command|start_watchdog|cleanup" ".devcontainer/bitbot/wrapper/claude-wrapper.sh"; then
-            test_pass "claude-wrapper.sh has valid structure"
+        # Should fail with error
+        if grep -qE "Unknown command|usage:" /tmp/bitbot-invalid-$$.log; then
+            test_pass "Invalid command handled correctly"
         else
-            test_fail "claude-wrapper.sh missing key functions"
+            test_fail "Invalid command error message missing"
+        fi
+    fi
+    rm -f /tmp/bitbot-invalid-$$.log
+
+    test_section "Test helpers.sh can be sourced"
+    if [[ -f ".devcontainer/bitbot/core/util/helpers.sh" ]]; then
+        if bash -c "source .devcontainer/bitbot/core/util/helpers.sh && command_exists bash" 2>/dev/null; then
+            test_pass "helpers.sh sourced and functions work"
+        else
+            test_fail "helpers.sh sourcing failed"
         fi
     else
-        test_fail "claude-wrapper.sh has syntax errors"
+        test_fail "helpers.sh not found"
     fi
-else
-    test_fail "claude-wrapper.sh not found"
-fi
 
-test_section "Test watchdog.sh syntax and monitoring logic"
-if [[ -f ".devcontainer/bitbot/wrapper/watchdog.sh" ]]; then
-    if bash -n ".devcontainer/bitbot/wrapper/watchdog.sh" 2>/dev/null; then
-        # Check for monitoring functions
-        if grep -q "check_session_alive" ".devcontainer/bitbot/wrapper/watchdog.sh" || grep -q "monitor" ".devcontainer/bitbot/wrapper/watchdog.sh"; then
-            test_pass "watchdog.sh has monitoring logic"
+    test_section "Test bitbot script has valid shebang"
+    if [[ -f ".devcontainer/bitbot/bitbot" ]]; then
+        if head -1 ".devcontainer/bitbot/bitbot" | grep -q "^#!/"; then
+            test_pass "bitbot has valid shebang"
         else
-            test_fail "watchdog.sh missing monitoring functions"
+            test_fail "bitbot missing shebang"
         fi
     else
-        test_fail "watchdog.sh has syntax errors"
+        test_fail "bitbot not found"
     fi
-else
-    test_fail "watchdog.sh not found"
-fi
 
-test_section "Test wrapper scripts are executable"
-wrapper_executable=true
-for script in .devcontainer/bitbot/wrapper/*.sh; do
-    if [[ ! -x "$script" ]]; then
-        wrapper_executable=false
-        break
-    fi
-done
-if [[ "$wrapper_executable" == "true" ]]; then
-    test_pass "All wrapper scripts are executable"
-else
-    test_fail "Some wrapper scripts not executable"
-fi
-
-test_section "Test send-wrapper-command.sh exists"
-if [[ -f ".devcontainer/bitbot/wrapper/send-wrapper-command.sh" ]]; then
-    if [[ -x ".devcontainer/bitbot/wrapper/send-wrapper-command.sh" ]]; then
-        test_pass "send-wrapper-command.sh is executable"
+    test_section "Test all core commands are executable"
+    local all_executable=true
+    for cmd in .devcontainer/bitbot/core/commands/*.sh; do
+        if [[ ! -x "$cmd" ]]; then
+            all_executable=false
+            break
+        fi
+    done
+    if [[ "$all_executable" == "true" ]]; then
+        test_pass "All core commands are executable"
     else
-        test_fail "send-wrapper-command.sh not executable"
+        test_fail "Some commands not executable"
     fi
-else
-    test_fail "send-wrapper-command.sh not found"
-fi
+}
 
-echo ""
-
-# ============================================================================
-# Test 5: Configuration Files
-# ============================================================================
-
-echo "═══ Test 5: Configuration Files ═══"
-echo ""
-
-test_section "Verify .bitbot/config.json"
-if [[ -f ".bitbot/config.json" ]]; then
-    if jq . .bitbot/config.json &>/dev/null; then
-        test_pass "config.json is valid JSON"
+test_wrapper_integration() {
+    test_section "Test claude-wrapper.sh syntax and structure"
+    if [[ -f ".devcontainer/bitbot/wrapper/claude-wrapper.sh" ]]; then
+        if bash -n ".devcontainer/bitbot/wrapper/claude-wrapper.sh" 2>/dev/null; then
+            # Check for key functions
+            if grep -qE "handle_command|start_watchdog|cleanup" ".devcontainer/bitbot/wrapper/claude-wrapper.sh"; then
+                test_pass "claude-wrapper.sh has valid structure"
+            else
+                test_fail "claude-wrapper.sh missing key functions"
+            fi
+        else
+            test_fail "claude-wrapper.sh has syntax errors"
+        fi
     else
-        test_fail "config.json is invalid JSON"
+        test_fail "claude-wrapper.sh not found"
     fi
-else
-    test_fail "config.json not found"
-fi
 
-test_section "Verify .gitignore patterns"
-if [[ -f ".gitignore" ]]; then
-    if grep -q ".bitbot/internal/local/" .gitignore; then
-        test_pass ".gitignore contains .bitbot/internal/local/ pattern"
+    test_section "Test watchdog.sh syntax and monitoring logic"
+    if [[ -f ".devcontainer/bitbot/wrapper/watchdog.sh" ]]; then
+        if bash -n ".devcontainer/bitbot/wrapper/watchdog.sh" 2>/dev/null; then
+            # Check for monitoring functions
+            if grep -q "check_session_alive" ".devcontainer/bitbot/wrapper/watchdog.sh" || grep -q "monitor" ".devcontainer/bitbot/wrapper/watchdog.sh"; then
+                test_pass "watchdog.sh has monitoring logic"
+            else
+                test_fail "watchdog.sh missing monitoring functions"
+            fi
+        else
+            test_fail "watchdog.sh has syntax errors"
+        fi
     else
-        test_fail ".gitignore missing .bitbot/internal/local/ pattern"
+        test_fail "watchdog.sh not found"
     fi
-else
-    test_fail ".gitignore not found"
-fi
 
-echo ""
+    test_section "Test wrapper scripts are executable"
+    local wrapper_executable=true
+    for script in .devcontainer/bitbot/wrapper/*.sh; do
+        if [[ ! -x "$script" ]]; then
+            wrapper_executable=false
+            break
+        fi
+    done
+    if [[ "$wrapper_executable" == "true" ]]; then
+        test_pass "All wrapper scripts are executable"
+    else
+        test_fail "Some wrapper scripts not executable"
+    fi
 
-# ============================================================================
-# Test 6: In-Container Execution (Layer 1 Tests)
-# ============================================================================
+    test_section "Test send-wrapper-command.sh exists"
+    if [[ -f ".devcontainer/bitbot/wrapper/send-wrapper-command.sh" ]]; then
+        if [[ -x ".devcontainer/bitbot/wrapper/send-wrapper-command.sh" ]]; then
+            test_pass "send-wrapper-command.sh is executable"
+        else
+            test_fail "send-wrapper-command.sh not executable"
+        fi
+    else
+        test_fail "send-wrapper-command.sh not found"
+    fi
+}
 
-echo "═══ Test 6: In-Container Execution ═══"
-echo ""
+test_configuration_files() {
+    test_section "Verify .bitbot/config.json"
+    if [[ -f ".bitbot/config.json" ]]; then
+        if jq . .bitbot/config.json &>/dev/null; then
+            test_pass "config.json is valid JSON"
+        else
+            test_fail "config.json is invalid JSON"
+        fi
+    else
+        test_fail "config.json not found"
+    fi
 
-if [[ "$CONTAINER_BUILT" == "false" ]]; then
-    echo -e "${YELLOW}⊘ SKIPPED${NC}: Container not built (tests require built container)"
-    echo -e "${YELLOW}ℹ${NC}  To run these tests: BITBOT_TEST_SKIP_BUILD=0 $0"
-    echo ""
-else
+    test_section "Verify .gitignore patterns"
+    if [[ -f ".gitignore" ]]; then
+        if grep -q ".bitbot/internal/local/" .gitignore; then
+            test_pass ".gitignore contains .bitbot/internal/local/ pattern"
+        else
+            test_fail ".gitignore missing .bitbot/internal/local/ pattern"
+        fi
+    else
+        test_fail ".gitignore not found"
+    fi
+}
+
+test_in_container_execution() {
+    local container_built="$1"
+
+    if [[ "$container_built" == "false" ]]; then
+        echo -e "${YELLOW}⊘ SKIPPED${NC}: Container not built (tests require built container)"
+        echo -e "${YELLOW}ℹ${NC}  To run these tests: BITBOT_TEST_SKIP_BUILD=0 $0"
+        echo ""
+        return 0
+    fi
+
     # Convert path and get appropriate command wrapper
+    local win_path
+    local cmd_wrapper
     win_path=$(convert_to_windows_path "$TEST_WORKSPACE")
     cmd_wrapper=$(get_devcontainer_cmd "$TEST_WORKSPACE")
 
@@ -630,15 +573,70 @@ else
     else
         test_fail "Claude Code not available (expected in devcontainer)"
     fi
+}
+
+# ============================================================================
+# Main Integration Test Function
+# ============================================================================
+
+run_integration_tests_for_location() {
+    local location_name="$1"
+    local workspace_path="$2"
+
+    # Set global TEST_WORKSPACE for all tests
+    TEST_WORKSPACE="$workspace_path"
 
     echo ""
-fi
+    echo "╔══════════════════════════════════════════════════════════════════════════════╗"
+    echo -e "${CYAN}║  Testing Location: $(printf '%-59s' "$location_name")║${NC}"
+    echo -e "${CYAN}║  Path: $(printf '%-67s' "$workspace_path")║${NC}"
+    echo "╚══════════════════════════════════════════════════════════════════════════════╝"
+    echo ""
 
-} # End of run_integration_tests_for_location()
+    # Test 1: Workspace Initialization
+    echo "═══ Test 1: Workspace Initialization ═══"
+    echo ""
+    test_workspace_initialization
+    echo ""
+
+    # Test 2: DevContainer Build (Optional)
+    echo "═══ Test 2: DevContainer Build (Optional) ═══"
+    echo ""
+    local container_built
+    container_built=$(test_devcontainer_build)
+
+    # Test 3: Container BitBot Commands
+    echo "═══ Test 3: Container BitBot Commands ═══"
+    echo ""
+    test_container_bitbot_commands
+    echo ""
+
+    # Test 4: Wrapper Integration
+    echo "═══ Test 4: Wrapper Integration ═══"
+    echo ""
+    test_wrapper_integration
+    echo ""
+
+    # Test 5: Configuration Files
+    echo "═══ Test 5: Configuration Files ═══"
+    echo ""
+    test_configuration_files
+    echo ""
+
+    # Test 6: In-Container Execution
+    echo "═══ Test 6: In-Container Execution ═══"
+    echo ""
+    test_in_container_execution "$container_built"
+}
 
 # ============================================================================
-# Test Orchestration - Run Tests for Selected Locations
+# Test Orchestration
 # ============================================================================
+
+test_suite_begin "BitBot Integration Test Suite - Full End-to-End Workflow"
+
+# Check prerequisites
+check_prerequisites
 
 # Determine which locations to test
 locations_to_test=()

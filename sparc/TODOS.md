@@ -62,14 +62,20 @@
 - [x] **Verification**: No tests hiding output in logs ✅ VERIFIED
 
 **Remaining**:
-- [ ] **P0**: Migrate test-integration.sh to framework
+- [x] **P0**: Migrate test-integration.sh to framework ✅ DONE (Phase 5, 2025-11-14)
+  - Migrated to use test-framework.sh and workspace-helper.sh
+  - Reduced from 748 to 668 lines (80 lines saved)
+  - Added BITBOT_CHOICE_GIT_NO_REMOTE=1 for non-interactive git prompts
+  - 23 tests total (17 passing without container build, 73% success rate)
+  - 80-char wide test title boxes
 - [ ] **P1**: Fix Merge DevContainer test (template content drift - minor)
 - [ ] **P1**: Add integration test to run-tests.sh (bitbot-integration)
 
-**Test Framework Migration** (13/26 migrated, 50%):
+**Test Framework Migration** (14/26 migrated, 54%):
 - [x] Phase 1-3 complete ✅
+- [x] Phase 5 partial ✅ (test-integration.sh migrated)
 - [ ] Phase 4: Complex CI tests (wrapper-layer1, etc.)
-- [ ] Phase 5: Non-CI tests
+- [ ] Phase 5: Remaining non-CI tests
 
 **Test Categories in run-tests.sh**:
 1. Core Unit Tests (4 suites): Prerequisites, Platform, Helpers, Commands

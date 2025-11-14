@@ -4,11 +4,11 @@
 
 Migration of BitBot test suite to use shared helpers (`test-framework.sh` and `workspace-helper.sh`) to eliminate ~500 lines of duplicate code and standardize test infrastructure.
 
-**Status**: 13 of 26 tests migrated (50%) - **Phase 3 Complete** ✅
+**Status**: 14 of 26 tests migrated (54%) - **Phase 3 Complete** ✅
 
 ## Migration Status
 
-### ✓ Completed (13 tests)
+### ✓ Completed (14 tests)
 
 | Test | Lines | Status | Notes |
 |------|-------|--------|-------|
@@ -24,6 +24,7 @@ Migration of BitBot test suite to use shared helpers (`test-framework.sh` and `w
 | `test-infrastructure-sync.sh` | 273 | ✅ Phase 3 | Infrastructure sync (24 tests) |
 | `test-session-management.sh` | 231 | ✅ Phase 3 | Session management (23 tests, 100%) |
 | `test-container-bitbot.sh` | 237 | ✅ Phase 3 | Container scripts (31 tests, 100%) |
+| `test-integration.sh` | 668 | ✅ Phase 5 | Full integration test (23 tests, 73% without container build) |
 | `test-bitbot-commands-migrated.sh` | 166 | ✅ (POC) | Can be removed after Phase 1 |
 
 ### High Priority - Simple CI Tests (5 tests)
@@ -76,8 +77,8 @@ Not currently in CI, can be migrated after CI tests are done:
 - `test-devcontainer-locations.sh` (306 lines)
 - `test-wrapper.sh` (325 lines)
 
-**Large Integration Test** (1 test, 748 lines):
-- `test-integration.sh` (748 lines) - Very complex, migrate last
+**Large Integration Test** (1 test):
+- ~~`test-integration.sh` (748 lines)~~ - ✅ **MIGRATED** (Phase 5, now 668 lines)
 
 ## Migration Benefits
 
@@ -284,6 +285,7 @@ Complete remaining tests:
 - [x] 9/26 tests migrated (34.6%) - **Phase 3 Continuing** (merge-devcontainer done)
 - [x] 10/26 tests migrated (38.5%) - **Phase 3 Continuing** (bitbot-integration done)
 - [x] 13/26 tests migrated (50%) - **Phase 3 Complete** ✅ (infrastructure-sync, session-management, container-bitbot done)
+- [x] 14/26 tests migrated (54%) - **Phase 5 Partial** ✅ (test-integration done - large integration test)
 - [ ] 15/26 tests migrated (57.7%) - After Phase 4
 - [ ] 26/26 tests migrated (100%) - Complete
 
