@@ -29,8 +29,7 @@ apk add --no-cache \
     npm \
     curl \
     ca-certificates \
-    jq \
-    || { echo "[X] Package installation failed"; exit 1; }
+    jq || { echo "[X] Package installation failed"; exit 1; }
 
 echo "[+] Base packages installed"
 echo ""

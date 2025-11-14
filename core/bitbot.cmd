@@ -1,66 +1,55 @@
 @echo off
-REM BitBot Windows Entry Point
-REM Entry Platform: Windows cmd.exe / PowerShell
-REM Forwards all commands to BitBot in WSL Alpine
+REM BitBot Windows Entry Point (Minimal)
+REM Delegates all logic to bash scripts in BitBot-Alpine WSL
 
-set "DISTRO_NAME=BitBot-Alpine"
-
-REM Show entry platform info for version command
-if "%~1"=="version" (
-    echo Entry Point: Windows cmd.exe
-)
-
-REM Check if WSL is installed
+REM Check WSL installed
 wsl --status >nul 2>&1
 if %ERRORLEVEL% neq 0 (
-    echo Error: WSL not found. Install from: https://aka.ms/wsl2
-    exit /b 1
-)
-
-REM Check if BitBot-Alpine exists using PowerShell (handles UTF-16 better)
-powershell -NoProfile -Command "$list = wsl --list --quiet | ForEach-Object { $_.Trim() -replace '\x00', '' }; if ($list -contains '%DISTRO_NAME%') { exit 0 } else { exit 1 }" >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    if "%~1"=="version" (
-        echo Using WSL:     %DISTRO_NAME%
-    )
-)
-if %ERRORLEVEL% neq 0 (
-    echo BitBot-Alpine WSL distribution not found.
+    echo WSL not found.
     echo.
-    echo BitBot requires a dedicated WSL distribution for isolation.
+    echo BitBot requires WSL2 to run.
     echo.
-    set /p INSTALL="Install BitBot-Alpine now? (Y/n): "
+    set /p INSTALL="Install WSL2 now? (requires admin ^& reboot) (Y/n): "
 
     if /i "%INSTALL%"=="n" (
-        echo Installation cancelled. BitBot requires BitBot-Alpine to run.
+        echo.
+        echo Manual install: https://aka.ms/wsl2
         exit /b 1
     )
 
     echo.
-    echo Installing BitBot-Alpine...
-
-    REM Call install script
-    set "INSTALL_SCRIPT=%~dp0..\archive\manual-building\install-bitbot-wsl.ps1"
-    powershell -ExecutionPolicy Bypass -File "%INSTALL_SCRIPT%"
+    echo Installing WSL2 (this may take a few minutes)...
+    wsl --install
 
     if %ERRORLEVEL% neq 0 (
-        echo Installation failed.
+        echo.
+        echo Installation failed. Try manual install: https://aka.ms/wsl2
+        exit /b 1
+    )
+
+    echo.
+    echo WSL2 installed! Please REBOOT Windows, then run bitbot again.
+    echo.
+    pause
+    exit /b 0
+)
+
+REM Check BitBot-Alpine exists (no UTF-16 parsing needed!)
+wsl -d BitBot-Alpine --exec true >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    REM Not installed - run bootstrap
+    call "%~dp0install-bitbot.cmd"
+    if %ERRORLEVEL% neq 0 (
+        echo Installation failed
         exit /b 1
     )
 )
 
-REM Get script directory and bash script path
-set "SCRIPT_DIR=%~dp0"
-set "BASH_SCRIPT=%SCRIPT_DIR%bitbot"
-
-REM Execute in BitBot-Alpine WSL using bash -c with wslpath conversion inside bash
-REM This avoids Windows path escaping issues
-REM TODO: When BitBot is installed in Alpine, use: wsl -d %DISTRO_NAME% /opt/bitbot/bin/bitbot %*
+REM Launch BitBot in WSL (bash handles everything)
 if "%~1"=="" (
-    wsl -d %DISTRO_NAME% bash -c "$(wslpath -u '%BASH_SCRIPT%') work"
+    wsl -d BitBot-Alpine /opt/bitbot/bin/bitbot work
 ) else (
-    wsl -d %DISTRO_NAME% bash -c "$(wslpath -u '%BASH_SCRIPT%') %*"
+    wsl -d BitBot-Alpine /opt/bitbot/bin/bitbot %*
 )
 
-REM Exit with same code
 exit /b %ERRORLEVEL%
