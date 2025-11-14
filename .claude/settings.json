@@ -47,6 +47,17 @@
   },
 
   "permissions": {
-    "allow": []
+    "allow": [
+      ".claude/skills/check-bash/scripts/check-bash.sh",
+      ".claude/skills/claude-allow-stop/scripts/allow-stop.sh",
+      ".claude/skills/claude-do-not-stop/scripts/do-not-stop.sh",
+      ".claude/skills/claude-get-session-info/scripts/get-session-info.sh",
+      ".claude/skills/claude-restart-resume/scripts/claude-compact-resume.sh",
+      ".claude/skills/claude-restart-resume/scripts/claude-restart.sh",
+      ".claude/skills/fix-line-endings-check-bash/scripts/fix-line-endings-check-bash.sh",
+      ".claude/skills/fix-line-endings/scripts/fix-line-endings.sh",
+      ".claude/skills/run-with-timeout/scripts/run-with-timeout.sh",
+      ".claude/skills/test-workflow/scripts/test-workflow.sh"
+    ]
   }
 }
