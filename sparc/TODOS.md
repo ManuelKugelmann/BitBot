@@ -61,13 +61,17 @@
 - [x] Add pipe/IPC tests ✅ DONE (2 suites)
 - [x] **Verification**: No tests hiding output in logs ✅ VERIFIED
 
-**Remaining**:
+**Completed**:
 - [x] **P0**: Migrate test-integration.sh to framework ✅ DONE (Phase 5, 2025-11-14)
   - Migrated to use test-framework.sh and workspace-helper.sh
   - Reduced from 748 to 668 lines (80 lines saved)
   - Added BITBOT_CHOICE_GIT_NO_REMOTE=1 for non-interactive git prompts
   - 23 tests total (17 passing without container build, 73% success rate)
-  - 80-char wide test title boxes
+  - Updated test framework headers to 80 chars wide (titles only, summaries narrow)
+  - Fixed test-bitbot-init-non-interactive.sh (added BITBOT_CHOICE_CONFIG_MODE=1)
+  - All 38 tests in test-bitbot-init-non-interactive.sh now passing (100%)
+
+**Remaining**:
 - [ ] **P1**: Fix Merge DevContainer test (template content drift - minor)
 - [ ] **P1**: Add integration test to run-tests.sh (bitbot-integration)
 
