@@ -29,23 +29,31 @@
 
 ### D-02: Security & Mode System
 
-**Decision**: Two modes (work/setup) + git-based protection
+**Decision**: Two modes (work/config) + git-based protection
+
+**Implementation Note**: Originally specified as "setup mode", renamed to "config mode" during implementation for clarity. See consistency review archive for terminology change rationale.
 
 **Work Mode**:
 - Own `.devcontainer` mounted read-only inside work container
-- Workspace read-write
+- Workspace mounted read-write at `/workspace`
 - Git warnings on uncommitted/unpushed changes
 - AI agents run inside container
+- Infrastructure protected with readonly overlays
 
-**Setup Mode**:
-- Target workspace mounted at `/setup/workspace` (read-write)
-- Can modify `.devcontainer` for target workspace
-- `.git` folder can be protected (force review before push)
+**Config Mode**:
+- Workspace mounted read-write at `/workspace` (allows editing `.devcontainer`)
+- Uses workspace-specific devcontainer at `.bitbot/internal/.devcontainer/`
+- Infrastructure protected with readonly overlays (`.bitbot/internal/`)
+- Can modify workspace `.devcontainer` configuration
+- Git safety warnings before infrastructure changes
 - Separate container from work mode
+- Optional after init (default: no), explicit via `bitbot config`
 
 **Key Protection**:
-- `.bitbot/setup/` never mounted (BitBot internals on host)
-- Git push/bundle required before destructive operations
+- Infrastructure overlays readonly in both modes
+- `.bitbot/internal/` protected from accidental modification
+- Git warnings on uncommitted/unpushed changes
+- Three-choice safety system (exit/skip once/skip permanently)
 - Physical read-only mounts where needed
 
 **References**: Q2, D-03, D-11 from original specs
@@ -56,28 +64,33 @@
 
 **Decision**: Context-aware `bitbot` command (host vs container)
 
+**Implementation Note**: "setup" renamed to "config" during implementation.
+
 **Host Commands** (Container management):
 ```bash
 bitbot              # Smart launch (config default)
 bitbot work         # Launch work container
-bitbot setup        # Launch setup container
+bitbot config       # Launch config container
+bitbot init         # Initialize workspace (.bitbot/ + .devcontainer/)
+bitbot init --config    # Initialize and launch config mode
+bitbot init --no-config # Initialize without launching config mode
 bitbot vscode       # Launch VS Code (config default mode)
 bitbot vscode work  # Launch work in VS Code
-bitbot cli          # Launch CLI (config default mode)
-bitbot done         # Not applicable on host
 ```
 
-**Inside Container Commands** (AI/workspace management):
+**Inside Container Commands** (Session management):
 ```bash
-bitbot              # Launch default AI agent
-bitbot <agent>      # Launch specific agent
-bitbot done         # Review changes → git push → exit
+bitbot              # Smart launcher (auto-resume or start)
+bitbot start        # Start new Claude session in tmux
+bitbot resume       # Resume existing tmux session
+bitbot help         # Show available commands
 ```
 
 **Rationale**:
 - Same command name, behavior depends on context
 - Intuitive: "bitbot" always does the right thing
-- No mode switching inside containers
+- Smart launcher auto-resumes single session
+- Simple session management workflow
 
 **References**: Q4-Q5, D-08
 
@@ -323,6 +336,59 @@ wsl -d BitBot-Alpine bash -l -c "..."
 
 ---
 
+### D-13: Configuration Format and Location
+
+**Decision**: JSON format with hierarchical global/workspace structure
+
+**Implementation** (based on MVP experience):
+
+**Global Configuration**:
+- Location: `$BITBOT_HOME/global/.bitbot/config.json`
+- Format: JSON (not YAML as in preliminary specs)
+- Contains:
+  - Default launch mode (terminal/vscode)
+  - Default skip flags (git push recommendation, safety checks)
+  - Platform-specific defaults
+
+**Workspace Configuration**:
+- Location: `.bitbot/config.json`
+- Format: JSON
+- Contains:
+  - Workspace-specific launch mode override
+  - Workspace-specific skip flags override
+  - Workspace metadata (name, initialized timestamp)
+  - Custom agent configurations
+
+**Hierarchy**:
+- Workspace values override global values (JSON merge)
+- Skip flags can be set at either level or both
+- Each workspace independent
+
+**Rationale for JSON over YAML**:
+- Native bash/jq parsing (no external YAML parser needed)
+- DevContainer compatibility (devcontainer.json uses JSON)
+- Simpler merge logic for hierarchy
+- No whitespace sensitivity issues
+- Better Windows compatibility
+
+**Migration Support**:
+- Old `config.json` at `$BITBOT_HOME/config.json` → migrated to `global/.bitbot/config.json`
+- Backup created with timestamp
+- Automatic on first run after upgrade
+
+**Portable Installation**:
+- `$BITBOT_HOME` can be any directory (not fixed to `~/.bitbot/`)
+- Symlink resolution and PATH verification on every global run
+- Auto-fix offers if installation moved
+- Windows environment sync on WSL (PATH, BITBOT_HOME)
+
+**References**:
+- Implementation: `core/global/bitbot-init.sh` (migration logic)
+- Configuration hierarchy: Workspace config overrides global
+- Portable installation testing: Cross-platform verification
+
+---
+
 ## Decision Matrix
 
 | Decision | Priority | Status | MVP |
@@ -339,6 +405,7 @@ wsl -d BitBot-Alpine bash -l -c "..."
 | D-10: Terminal output | P2 | ✅ Tested | Yes |
 | D-11: Prerequisites | P0 | ✅ Tested | Yes |
 | D-12: BitBot WSL (Windows) | P0 | ✅ Tested | Yes |
+| D-13: Config format/location | P0 | ✅ Implemented | Yes |
 
 ---
 

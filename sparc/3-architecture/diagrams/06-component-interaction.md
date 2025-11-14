@@ -491,22 +491,38 @@ graph TB
 
 ## Shared State
 
-### No Global State
-BitBot avoids global configuration files:
-- No `~/.bitbot` config
-- No global workspace registry
-- All state in workspace directory
+### Configuration Hierarchy
+BitBot uses hierarchical configuration with global defaults and workspace overrides:
 
-### Workspace State
-All configuration stored in workspace:
+**Global Configuration**:
+```
+$BITBOT_HOME/
+└── global/
+    └── .bitbot/
+        └── config.json      # Global defaults (launch mode, skip flags)
+```
+
+**Workspace Configuration**:
 ```
 workspace/
 ├── .devcontainer/
 │   ├── devcontainer.json    # Container config
 │   └── Dockerfile           # Build instructions
-└── .bitbot/                 # (future) workspace metadata
-    └── config.json
+└── .bitbot/
+    ├── config.json          # Workspace config (overrides global)
+    ├── internal/            # Infrastructure files
+    │   ├── .devcontainer/   # Config mode devcontainer
+    │   ├── container/       # Container infrastructure (committed)
+    │   ├── global/          # Global config overlay (gitignored)
+    │   └── local/           # Config mode session data (gitignored)
+    ├── local/               # Work mode session data (gitignored)
+    └── tmp/                 # Runtime files (gitignored)
 ```
+
+**Hierarchy**:
+- No global workspace registry
+- Each workspace independent
+- Workspace values override global values (JSON merge)
 
 ---
 
@@ -521,12 +537,17 @@ workspace/
 | `PLATFORM`       | OS platform (wsl/macos/linux) | helpers.sh    |
 | `SKIP_GIT_CHECK` | Skip git safety            | User (flag)      |
 
+### Modified During Global Init
+BitBot modifies during global initialization:
+- `PATH` - Adds `$BITBOT_HOME` to user's shell config (~/.bashrc or ~/.zshrc)
+- `BITBOT_HOME` - Sets installation directory in shell config
+- Windows environment (WSL only) - Syncs PATH and BITBOT_HOME to Windows
+
 ### Not Modified
 BitBot does not modify:
-- `PATH`
 - `HOME`
 - `USER`
-- Any global environment variables
+- System-wide environment variables (only user profile)
 
 ---
 
