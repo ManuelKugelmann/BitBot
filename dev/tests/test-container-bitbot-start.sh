@@ -185,17 +185,17 @@ fi
 
 # Test 7: Check global tmux config exists
 run_test "Global tmux config exists"
-if [[ -f container/templates/bitbot-base/home/.tmux.conf ]]; then
+if [[ -f "$PROJECT_ROOT/container/templates/bitbot-base/home/.tmux.conf" ]]; then
     test_pass "Test passed"
 else
     test_fail "Test" "tmux.conf not found in container/templates/bitbot-base/home/"
 fi
 
 run_test "Global tmux config has required settings"
-if grep -q "set -g mouse on" container/templates/bitbot-base/home/.tmux.conf && \
-   grep -q "set -g status on" container/templates/bitbot-base/home/.tmux.conf && \
-   grep -q "set -g history-limit 10000" container/templates/bitbot-base/home/.tmux.conf && \
-   grep -q "BITBOT_PROJECT_PATH" container/templates/bitbot-base/home/.tmux.conf; then
+if grep -q "set -g mouse on" "$PROJECT_ROOT/container/templates/bitbot-base/home/.tmux.conf" && \
+   grep -q "set -g status on" "$PROJECT_ROOT/container/templates/bitbot-base/home/.tmux.conf" && \
+   grep -q "set -g history-limit 10000" "$PROJECT_ROOT/container/templates/bitbot-base/home/.tmux.conf" && \
+   grep -q "BITBOT_PROJECT_PATH" "$PROJECT_ROOT/container/templates/bitbot-base/home/.tmux.conf"; then
     test_pass "Test passed"
 else
     test_fail "Test" "container/templates/bitbot-base/home/.tmux.conf missing required settings"
