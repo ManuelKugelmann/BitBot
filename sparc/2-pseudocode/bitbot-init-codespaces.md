@@ -269,8 +269,8 @@ cat .devcontainer/devcontainer.json | grep postAttachCommand
 **To modify**:
 - `core/workspace/bitbot-init.sh` - Add `show_codespaces_info()` call
 - `core/util/git.sh` - Add git helper functions if not present
-- `container/templates/workspace/details.devcontainer.json` - Add `postAttachCommand`
-- `container/templates/shared/base.devcontainer.json` - Ensure base config is good
+- `container/templates/bitbot-work/details.devcontainer.json` - Add `postAttachCommand`
+- `container/templates/bitbot-base/devcontainer.json` - Ensure base config is good
 
 **To create** (if not exists):
 - `core/util/codespaces.sh` - Codespaces detection helpers

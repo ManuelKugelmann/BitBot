@@ -18,7 +18,7 @@ Each template contains:
 - Optional: `scripts/` - Post-create and setup scripts
 - Optional: `home/` - Shared home folder configurations
 
-Templates are merged with `container/templates/shared/base.devcontainer.json` during build.
+Templates are merged with `container/templates/bitbot-base/devcontainer.json` during build.
 
 ---
 
@@ -125,7 +125,6 @@ dev/tests/test-container-bitbot.sh
 
 ### Contents
 
-- `bitbot-base/devcontainer.json` - Base template (standalone, no merge needed)
 - `scripts/` - Build and setup automation
   - `install-dev-tools.sh` - Development tools
   - `install-ai-tools.sh` - AI tool installation (optional)
@@ -138,16 +137,16 @@ Templates use `merge-devcontainer.sh` to combine base and template-specific conf
 
 ```bash
 # Merge base + bitbotdev details → bitbotdev/devcontainer.json
-container/templates/shared/scripts/merge-devcontainer.sh container/templates/bitbotdev
+container/templates/scripts/merge-devcontainer.sh container/templates/bitbotdev
 
 # This merges:
-# - shared/base.devcontainer.json (common settings)
+# - bitbot-base/devcontainer.json (common settings)
 # - bitbotdev/details.devcontainer.json (template-specific)
 # → bitbotdev/devcontainer.json (final)
 ```
 
 **Why merge?**
-- DRY: Common settings defined once in `base.devcontainer.json`
+- DRY: Common settings defined once in `bitbot-base/devcontainer.json`
 - Maintainability: Update base settings, regenerate all templates
 - Flexibility: Each template adds its specific features via `details.devcontainer.json`
 
@@ -231,7 +230,7 @@ Same command name, context-aware behavior:
 1. **Create template directory**: `container/templates/mytemplate/`
 2. **Create Dockerfile**: Based on base template, add your customizations
 3. **Create details.devcontainer.json**: Template-specific features/extensions
-4. **Generate devcontainer.json**: Run `shared/scripts/merge-devcontainer.sh`
+4. **Generate devcontainer.json**: Run `scripts/merge-devcontainer.sh`
 5. **Test**: Build container and validate functionality
 6. **Document**: Add template overview to this file
 

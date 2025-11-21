@@ -9,9 +9,9 @@
     }
   },
   "remoteUser": "root",
-  "$comment": "BitBot Development template details - merged with templates/shared/base.devcontainer.json",
-  "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
-  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/bitbot/dev",
+  "$comment": "BitBot Development environment - based on bitbot-dev template",
+  "$comment2": "See: container/templates/bitbot-dev/ for template source",
+  "$comment3": "This is manually maintained (not auto-generated)",
   "name": "BitBot Development",
   "dockerFile": "Dockerfile",
   "customizations": {

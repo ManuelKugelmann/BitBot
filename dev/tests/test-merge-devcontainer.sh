@@ -62,23 +62,13 @@ fi
 # Test 1: Basic merge
 test_section "Test 1: Basic Merge"
 
-# Test: Create base.devcontainer.json
-mkdir -p "$TEST_DIR/shared"
-cat > "$TEST_DIR/shared/base.devcontainer.json" << 'EOF'
-{
-  "workspaceFolder": "/workspace",
-  "features": {
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "lts"
-    }
-  },
-  "remoteUser": "root"
-}
-EOF
-if [ -f "$TEST_DIR/shared/base.devcontainer.json" ]; then
-    test_pass "Created base.devcontainer.json test file"
+# Test: Verify actual base template exists
+BASE_TEMPLATE="$PROJECT_ROOT/container/templates/bitbot-base/devcontainer.json"
+if [ -f "$BASE_TEMPLATE" ]; then
+    test_pass "Base template exists at bitbot-base/devcontainer.json"
 else
-    test_fail "Failed to create test base file"
+    test_fail "Base template not found at bitbot-base/devcontainer.json"
+    exit 1
 fi
 
 # Test: Create details.devcontainer.json
@@ -87,7 +77,7 @@ cat > "$TEST_DIR/template1/details.devcontainer.json" << 'EOF'
 {
   "name": "Test Template",
   "features": {
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {
+    "ghcr.io/devcontainers/features/python:1": {
       "version": "latest"
     }
   }
@@ -99,26 +89,11 @@ else
     test_fail "Failed to create test details file"
 fi
 
-# Test: Run merge
-# Temporarily copy base to test location
-mkdir -p "$PROJECT_ROOT/container/templates/shared"
-cp "$TEST_DIR/shared/base.devcontainer.json" "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.bak"
-if [ -f "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json" ]; then
-    cp "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json" "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.original"
-fi
-cp "$TEST_DIR/shared/base.devcontainer.json" "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json"
-
+# Test: Run merge (uses actual bitbot-base/devcontainer.json)
 if bash "$MERGE_SCRIPT" "$TEST_DIR/template1" &> /dev/null; then
     test_pass "Merge script executed successfully"
 else
     test_fail "Merge failed"
-fi
-
-# Restore original base
-if [ -f "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.original" ]; then
-    mv "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.original" "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json"
-else
-    rm "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json"
 fi
 
 # Test: Verify merged devcontainer.json exists
@@ -135,16 +110,23 @@ else
     test_fail "Name from details not in merged file"
 fi
 
-# Test: Verify merged devcontainer.json has base features
+# Test: Verify merged devcontainer.json has base features from bitbot-base
 if grep -q '"ghcr.io/devcontainers/features/node:1"' "$TEST_DIR/template1/devcontainer.json"; then
-    test_pass "Base features (node) included in merge"
+    test_pass "Base features (node) included from bitbot-base template"
 else
     test_fail "Base features not in merged file"
 fi
 
-# Test: Verify merged devcontainer.json has details features
+# Test: Verify merged devcontainer.json has claude-code from base
 if grep -q '"ghcr.io/anthropics/devcontainer-features/claude-code:1"' "$TEST_DIR/template1/devcontainer.json"; then
-    test_pass "Details features (claude-code) included in merge"
+    test_pass "Claude Code feature included from bitbot-base template"
+else
+    test_fail "Claude Code feature not in merged file"
+fi
+
+# Test: Verify merged devcontainer.json has details features
+if grep -q '"ghcr.io/devcontainers/features/python:1"' "$TEST_DIR/template1/devcontainer.json"; then
+    test_pass "Details features (python) included in merge"
 else
     test_fail "Details features not in merged file"
 fi
@@ -178,15 +160,11 @@ else
     test_fail "Failed to create override test details"
 fi
 
-# Test: Merge with override
-cp "$TEST_DIR/shared/base.devcontainer.json" "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json"
+# Test: Merge with override (uses actual bitbot-base/devcontainer.json)
 if bash "$MERGE_SCRIPT" "$TEST_DIR/template2" &> /dev/null; then
     test_pass "Override merge executed successfully"
 else
     test_fail "Override merge failed"
-fi
-if [ -f "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.original" ]; then
-    mv "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.original" "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json"
 fi
 
 # Test: Verify remoteUser is overridden
@@ -259,15 +237,6 @@ if [ ! -d "$TEST_DIR" ]; then
     test_pass "Test directory removed successfully"
 else
     test_fail "Failed to remove test directory"
-fi
-
-# Test: Remove test base file
-rm -f "$TEST_DIR/shared/base.devcontainer.json"
-rm -f "$PROJECT_ROOT/container/templates/shared/base.devcontainer.json.bak"
-if [ ! -f "$TEST_DIR/shared/base.devcontainer.json" ]; then
-    test_pass "Test artifacts cleaned up"
-else
-    test_fail "Failed to remove test base file"
 fi
 
 # ============================================================================

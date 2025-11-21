@@ -123,7 +123,7 @@ BitBot uses **simple readonly mounts** in all modes (same as `.devcontainer/`):
 
 #### All Modes - Same Mount Strategy
 
-**File:** `container/templates/shared/base.devcontainer.json`
+**File:** `container/templates/bitbot-base/devcontainer.json`
 
 ```json
 {

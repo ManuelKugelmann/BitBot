@@ -4,7 +4,7 @@
 # Tests container-side BitBot scripts
 #
 # Container BitBot Mount Configuration:
-# - Base template (container/templates/shared/base.devcontainer.json) includes:
+# - Base template (container/templates/bitbot-base/devcontainer.json) includes:
 #     "mounts": ["source=${localWorkspaceFolder}/.devcontainer/bitbot,target=/usr/local/bitbot,type=bind,readonly"]
 # - During 'bitbot init', container/bitbot/ is copied to user's .devcontainer/bitbot/
 # - Mount makes scripts available at /usr/local/bitbot in all containers

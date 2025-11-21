@@ -1,7 +1,7 @@
 # Template Merge System Pseudocode
 
 **Purpose**: Merge base devcontainer config with template-specific details
-**Location**: `container/templates/shared/scripts/merge-devcontainer.sh`
+**Location**: `container/templates/scripts/merge-devcontainer.sh`
 **Status**: Implemented
 
 ---
@@ -9,7 +9,7 @@
 ## Overview
 
 BitBot templates use a two-file system to avoid duplication:
-- `shared/base.devcontainer.json` - Common settings for all templates
+- `bitbot-base/devcontainer.json` - Common settings for all templates (base template)
 - `{template}/details.devcontainer.json` - Template-specific settings
 
 The merge script combines these into the final `devcontainer.json`.
@@ -20,7 +20,7 @@ The merge script combines these into the final `devcontainer.json`.
 
 **Purpose**: Merge base + details → devcontainer.json
 
-**Implementation**: `container/templates/shared/scripts/merge-devcontainer.sh`
+**Implementation**: `container/templates/scripts/merge-devcontainer.sh`
 
 ```bash
 #!/bin/bash
@@ -182,7 +182,7 @@ EXIT 0
 
 **Purpose**: Merge all templates in one command
 
-**Implementation**: `container/templates/shared/scripts/merge-all.sh`
+**Implementation**: `container/templates/scripts/merge-all.sh`
 
 ```bash
 #!/bin/bash
@@ -254,11 +254,11 @@ ELSE:
 
 ### Base Template
 
-**File**: `container/templates/shared/base.devcontainer.json`
+**File**: `container/templates/bitbot-base/devcontainer.json`
 
 **Contains**:
 - Common settings for all templates
-- Standard features (git, curl, node)
+- Standard features (git, curl, node, claude-code, github-cli)
 - Base VS Code extensions
 - Default environment variables
 - Common mounts
@@ -325,14 +325,14 @@ ELSE:
 ### Development Workflow
 
 ```bash
-# 1. Edit base config
-vim container/templates/shared/base.devcontainer.json
+# 1. Edit base template
+vim container/templates/bitbot-base/devcontainer.json
 
-# 2. Edit template details
-vim container/templates/base/details.devcontainer.json
+# 2. Edit template-specific details
+vim container/templates/bitbot-work/details.devcontainer.json
 
-# 3. Merge
-container/templates/shared/scripts/merge-devcontainer.sh container/templates/base
+# 3. Merge single template
+container/templates/scripts/merge-devcontainer.sh container/templates/bitbot-work
 
 # 4. Test
 devcontainer build --workspace-folder .
@@ -341,8 +341,8 @@ devcontainer build --workspace-folder .
 ### Merge All Templates
 
 ```bash
-# After editing shared base
-container/templates/shared/scripts/merge-all.sh
+# After editing base template, regenerate all derived templates
+container/templates/scripts/merge-all.sh
 
 # Verify all merged correctly
 git diff container/templates/*/devcontainer.json
@@ -352,7 +352,7 @@ git diff container/templates/*/devcontainer.json
 
 ```bash
 # In GitHub Actions or pre-commit hook
-container/templates/shared/scripts/merge-all.sh
+container/templates/scripts/merge-all.sh
 
 IF exit_code != 0:
     ERROR: "Template merge failed"
@@ -361,7 +361,7 @@ IF exit_code != 0:
 # Check if devcontainer.json files were modified
 IF git_has_changes("container/templates/*/devcontainer.json"):
     ERROR: "devcontainer.json files out of sync"
-    ERROR: "Run: container/templates/shared/scripts/merge-all.sh"
+    ERROR: "Run: container/templates/scripts/merge-all.sh"
     EXIT 1
 ```
 
@@ -531,17 +531,18 @@ rm -rf "$TEST_DIR"
 ## Related Files
 
 **Implementation**:
-- `container/templates/shared/scripts/merge-devcontainer.sh`
-- `container/templates/shared/scripts/merge-all.sh`
+- `container/templates/scripts/merge-devcontainer.sh`
+- `container/templates/scripts/merge-all.sh`
 
-**Base Config**:
-- `container/templates/shared/base.devcontainer.json`
+**Base Template**:
+- `container/templates/bitbot-base/` - Standalone base template (no merge needed)
+  - `devcontainer.json` - Used as base for all other templates
+  - `details.devcontainer.json` - N/A (base is standalone)
 
 **Template Details**:
-- `container/templates/base/details.devcontainer.json`
-- `container/templates/config/details.devcontainer.json`
-- `container/templates/bitbotdev/details.devcontainer.json`
-- `container/templates/workspace/details.devcontainer.json`
+- `container/templates/bitbot-config/details.devcontainer.json`
+- `container/templates/bitbot-dev/details.devcontainer.json`
+- `container/templates/bitbot-work/details.devcontainer.json`
 
 **Generated Output**:
 - `container/templates/{template}/devcontainer.json`

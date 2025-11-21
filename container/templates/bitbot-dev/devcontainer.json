@@ -28,9 +28,9 @@
     "--memory-swap=8g",
     "--pids-limit=2048"
   ],
-  "$comment": "BitBot Development template details - merged with templates/shared/base.devcontainer.json",
-  "$comment2": "base.devcontainer.json + details.devcontainer.json => devcontainer.json",
-  "$comment3": "Run: templates/shared/scripts/merge-devcontainer.sh templates/bitbot-dev",
+  "$comment": "BitBot Development template details - merged with templates/bitbot-base/devcontainer.json",
+  "$comment2": "bitbot-base/devcontainer.json + details.devcontainer.json => devcontainer.json",
+  "$comment3": "Run: templates/scripts/merge-devcontainer.sh templates/bitbot-dev",
   "customizations": {
     "vscode": {
       "extensions": [
