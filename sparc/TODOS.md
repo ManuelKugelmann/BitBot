@@ -2,7 +2,7 @@
 
 **Status**: Pre-Alpha → Alpha (v0.1.0)
 
-**Last Updated**: 2025-11-12 (Test Fixes & Gitignore Updates)
+**Last Updated**: 2025-11-22 (Layered Mounts & Infrastructure Sync)
 
 ---
 
@@ -15,6 +15,11 @@
 - [ ] Fresh install test on Linux
 - [ ] VS Code integration verification (all platforms)
 - [ ] Terminal mode verification (all launchers)
+- [ ] **Codespaces layered mounts test** (2025-11-22)
+  - Test workspace in Codespaces (no `$BITBOT_HOME`)
+  - Verify empty BITBOT_HOME over-mounts are skipped gracefully
+  - Confirm workspace copy mounts work (`.bitbot/internal/global/.claude`, etc.)
+  - Expected: Container starts successfully, uses synced workspace copies
 - [x] Create tmux-wrapper-based user flow integration tests ✅ DONE
   - `dev/tests/test-user-flow-init.sh` tests global init flow (27/27 passing)
   - `dev/tests/test-user-flow-moved.sh` tests moved installation (7/7 passing)
