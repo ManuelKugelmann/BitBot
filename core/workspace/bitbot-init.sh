@@ -60,16 +60,10 @@ bitbot_init() {
     # Create workspace structure
     create_workspace_structure "$workspace_path"
 
-    # Copy template home files
-    copy_template_home_files "$workspace_path"
-
-    # Setup global config (symlink or copy)
-    setup_global_config "$workspace_path"
-
     # Create/copy .devcontainer if needed (must be before sync_infrastructure)
     setup_devcontainer "$workspace_path"
 
-    # Sync infrastructure (copy container bitbot scripts)
+    # Sync infrastructure (bitbot scripts, config template, home files, global files)
     sync_infrastructure "$workspace_path"
 
     # Success message
@@ -304,6 +298,33 @@ sync_infrastructure() {
     create_directory "$config_target"
     cp -r "$config_source"/* "$config_target/"
     print_success "Copied config template to .bitbot/internal/bitbot-config/"
+
+    # Sync home files to .bitbot/internal/container/home/
+    local home_source="${bitbot_install}/container/templates/bitbot-base/home"
+    local home_target="${workspace_path}/.bitbot/internal/container/home"
+
+    if [[ ! -d "$home_source" ]]; then
+        print_error "Home template source not found: $home_source"
+        return 1
+    fi
+
+    create_directory "$home_target"
+    cp -r "$home_source"/* "$home_target/" 2>/dev/null || true
+    cp -r "$home_source"/.[!.]* "$home_target/" 2>/dev/null || true
+    print_success "Copied home files to .bitbot/internal/container/home/"
+
+    # Sync global files to .bitbot/internal/global/
+    local global_source="${bitbot_install}/global"
+    local global_target="${workspace_path}/.bitbot/internal/global"
+
+    if [[ ! -d "$global_source" ]]; then
+        print_warning "Global source not found: $global_source (skipping)"
+    else
+        create_directory "$global_target"
+        cp -r "$global_source"/* "$global_target/" 2>/dev/null || true
+        cp -r "$global_source"/.[!.]* "$global_target/" 2>/dev/null || true
+        print_success "Copied global files to .bitbot/internal/global/"
+    fi
 
     echo ""
 }

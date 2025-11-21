@@ -1,4 +1,6 @@
 {
+  "$comment": "Config template details - merged with templates/bitbot-base/.devcontainer/devcontainer.json",
+  "$comment_mounts": "Layered mount strategy: workspace copy (Codespaces) + BITBOT_HOME over-mount (local)",
   "name": "BitBot Config Mode",
   "dockerFile": "Dockerfile",
   "features": {
@@ -18,6 +20,9 @@
     "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude/CLAUDE.md,target=/root/.claude/CLAUDE.md,type=bind,consistency=cached",
     "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude/settings.json,target=/root/.claude/settings.json,type=bind,readonly",
     "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude/.credentials.json,target=/root/.claude/.credentials.json,type=bind,consistency=cached",
+    "source=${localEnv:BITBOT_HOME:+${localEnv:BITBOT_HOME}/container/templates/bitbot-base/home/.tmux.conf},target=/root/.tmux.conf,type=bind,readonly",
+    "source=${localEnv:BITBOT_HOME:+${localEnv:BITBOT_HOME}/container/templates/bitbot-base/home/.config},target=/root/.config,type=bind,consistency=cached",
+    "source=${localEnv:BITBOT_HOME:+${localEnv:BITBOT_HOME}/global/.claude},target=/root/.claude,type=bind,consistency=cached",
     "source=${localWorkspaceFolder},target=/configspace,type=bind,consistency=cached",
     "source=${localWorkspaceFolder},target=/configspace/workspace,type=bind,consistency=cached"
   ],
@@ -27,7 +32,6 @@
     "--memory-swap=8g",
     "--pids-limit=2048"
   ],
-  "$comment": "Config template details - merged with templates/bitbot-base/.devcontainer/devcontainer.json",
   "$comment2": "bitbot-base/.devcontainer/devcontainer.json + details.devcontainer.json => devcontainer.json",
   "$comment3": "Run: templates/scripts/merge-devcontainer.sh templates/bitbot-config",
   "workspaceFolder": "/configspace",

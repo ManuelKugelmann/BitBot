@@ -913,12 +913,16 @@ append_to_file() {
 sync_workspace_infrastructure() {
     # Sync infrastructure from BitBot installation to workspace
     # Usage: sync_workspace_infrastructure <workspace_path>
-    # 
+    #
     # Syncs:
     # - Container BitBot scripts to .devcontainer/bitbot/
     # - Config template to .bitbot/internal/bitbot-config/
+    # - Home files to .bitbot/internal/container/home/
+    # - Global files to .bitbot/internal/global/
     #
     # Called before launching any workspace command (work, config, etc.)
+    # Note: Local dev uses layered mounts (workspace copy + $BITBOT_HOME over-mount)
+    #       Codespaces uses workspace copy only (committed to git)
     local workspace_path="$1"
 
     local bitbot_install
@@ -938,5 +942,21 @@ sync_workspace_infrastructure() {
 
     if [[ -d "$config_source" ]] && [[ -d "$config_target" ]]; then
         rsync -a --delete "$config_source/" "$config_target/" > /dev/null 2>&1 || true
+    fi
+
+    # Sync home files (tmux.conf, .config, etc.)
+    local home_source="${bitbot_install}/container/templates/bitbot-base/home"
+    local home_target="${workspace_path}/.bitbot/internal/container/home"
+
+    if [[ -d "$home_source" ]] && [[ -d "$home_target" ]]; then
+        rsync -a --delete "$home_source/" "$home_target/" > /dev/null 2>&1 || true
+    fi
+
+    # Sync global files (.claude, .bitbot)
+    local global_source="${bitbot_install}/global"
+    local global_target="${workspace_path}/.bitbot/internal/global"
+
+    if [[ -d "$global_source" ]] && [[ -d "$global_target" ]]; then
+        rsync -a --delete "$global_source/" "$global_target/" > /dev/null 2>&1 || true
     fi
 }
