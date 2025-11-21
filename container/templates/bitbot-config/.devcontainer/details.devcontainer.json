@@ -30,11 +30,10 @@
     }
   },
 
-  "$comment_config_mounts": "Config mode: Mount configspace root + workspace subdirectory",
+  "$comment_config_mounts": "Config mode: Mount configspace root + workspace (no .devcontainer override - already in workspace)",
   "mounts": [
     "source=${localWorkspaceFolder},target=/configspace,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder},target=/configspace/workspace,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder}/.devcontainer,target=/configspace/workspace/.devcontainer,type=bind,consistency=cached"
+    "source=${localWorkspaceFolder},target=/configspace/workspace,type=bind,consistency=cached"
   ],
 
   "postCreateCommand": "npm install -g @devcontainers/cli && echo '✓ DevContainer CLI installed'"

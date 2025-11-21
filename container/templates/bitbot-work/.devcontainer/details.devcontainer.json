@@ -13,6 +13,7 @@
     }
   },
 
+  "$comment_work_mounts": "Work mode: .devcontainer mounted readonly to prevent accidental edits (use config mode to edit)",
   "mounts": [
     "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
     "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly"

@@ -19,8 +19,7 @@
     "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude/settings.json,target=/root/.claude/settings.json,type=bind,readonly",
     "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude/.credentials.json,target=/root/.claude/.credentials.json,type=bind,consistency=cached",
     "source=${localWorkspaceFolder},target=/configspace,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder},target=/configspace/workspace,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder}/.devcontainer,target=/configspace/workspace/.devcontainer,type=bind,consistency=cached"
+    "source=${localWorkspaceFolder},target=/configspace/workspace,type=bind,consistency=cached"
   ],
   "runArgs": [
     "--cpus=4",
@@ -48,6 +47,6 @@
       }
     }
   },
-  "$comment_config_mounts": "Config mode: Mount configspace root + workspace subdirectory",
+  "$comment_config_mounts": "Config mode: Mount configspace root + workspace (no .devcontainer override - already in workspace)",
   "postCreateCommand": "npm install -g @devcontainers/cli && echo '✓ DevContainer CLI installed'"
 }
