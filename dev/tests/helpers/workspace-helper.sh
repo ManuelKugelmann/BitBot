@@ -169,12 +169,12 @@ setup_post_init_workspace() {
         mkdir -p .bitbot/internal/global/.claude
 
         # Copy devcontainer template files (bitbot-work as default)
-        if [[ -f "${BITBOT_HOME}/container/templates/bitbot-work/devcontainer.json" ]]; then
-            cp "${BITBOT_HOME}/container/templates/bitbot-work/devcontainer.json" .devcontainer/
+        if [[ -f "${BITBOT_HOME}/container/templates/bitbot-work/.devcontainer/devcontainer.json" ]]; then
+            cp "${BITBOT_HOME}/container/templates/bitbot-work/.devcontainer/devcontainer.json" .devcontainer/
         fi
 
-        if [[ -f "${BITBOT_HOME}/container/templates/bitbot-work/Dockerfile" ]]; then
-            cp "${BITBOT_HOME}/container/templates/bitbot-work/Dockerfile" .devcontainer/
+        if [[ -f "${BITBOT_HOME}/container/templates/bitbot-work/.devcontainer/Dockerfile" ]]; then
+            cp "${BITBOT_HOME}/container/templates/bitbot-work/.devcontainer/Dockerfile" .devcontainer/
         fi
 
         # Copy BitBot container scripts

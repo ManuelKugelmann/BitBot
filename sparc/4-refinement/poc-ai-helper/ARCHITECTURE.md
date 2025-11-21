@@ -77,7 +77,7 @@ fi
 
 **Installation** (during container build):
 ```dockerfile
-# In container/templates/bitbot-*/Dockerfile
+# In container/templates/bitbot-*/.devcontainer/Dockerfile
 COPY container/bitbot/util/ai-helper/ /usr/local/bitbot/util/ai-helper/
 ```
 

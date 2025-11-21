@@ -203,7 +203,7 @@ fi
 
 # Test 8: Check Dockerfiles DON'T bake tmux config (uses global mount instead)
 run_test "Base Dockerfile doesn't bake tmux config"
-if ! grep -q "tmux.conf" container/templates/bitbot-base/Dockerfile; then
+if ! grep -q "tmux.conf" container/templates/bitbot-base/.devcontainer/Dockerfile; then
     test_pass "Test passed"
 else
     test_fail "Test" "Base Dockerfile shouldn't bake tmux.conf (uses global mount)"

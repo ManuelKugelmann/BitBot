@@ -198,16 +198,21 @@ Templates under `container/templates/`:
 | `scripts/`        | Shared merge/build scripts       | Template merge and setup tools         | N/A                          |
 
 Each template contains:
-- `Dockerfile` - Container image definition
-- `devcontainer.json` - VS Code DevContainer config (generated from base + details)
-- `details.devcontainer.json` - Template-specific settings
+- `.devcontainer/` - Standard DevContainer structure
+  - `Dockerfile` - Container image definition
+  - `devcontainer.json` - VS Code DevContainer config (generated from base + details)
+  - `details.devcontainer.json` - Template-specific settings (merged with base)
 - `README.md` - Template documentation
 - `.claude/` - Template-specific Claude Code configuration
 
 **Template Internals** (for BitBot development):
-- **Base Template**: `bitbot-base/` is standalone (no merge needed)
-- **Other Templates**: Built by merging `bitbot-base/devcontainer.json` + `details.devcontainer.json`
+- **Base Template**: `bitbot-base/` provides foundation (infrastructure mounts only)
+- **Other Templates**: Built by merging `bitbot-base/.devcontainer/devcontainer.json` + `details.devcontainer.json`
 - **Merge Script**: `container/templates/scripts/merge-devcontainer.sh <template-dir>`
+- **Mount Strategy**:
+  - Base: Infrastructure mounts (tmux, claude configs)
+  - Work: Adds workspace mounts (`/workspace`, readonly `.devcontainer`)
+  - Config: Adds configspace mounts (`/configspace`, `/configspace/workspace`)
 - **Mount Deduplication**: Details mounts with same target path override base mounts
 - Container runtime scripts in `container/bitbot/` are mounted at `/usr/local/bitbot`
 - During `bitbot init`, scripts are copied to `.devcontainer/bitbot/` in user workspace
@@ -226,10 +231,14 @@ for t in bitbot-config bitbot-dev bitbot-work; do
 done
 ```
 
-**Mount Override Example**:
-- Base has `.devcontainer` mount as `readonly`
-- Config template overrides with RW mount in `details.devcontainer.json`
-- Merge script deduplicates: keeps 7 base mounts + 1 override = 8 total
+**Mount Strategy Examples**:
+- **Base**: 6 infrastructure mounts (tmux, claude configs) - no workspace
+- **Work**: Base mounts + 2 workspace mounts = 8 total
+  - `/workspace` (read-write)
+  - `/workspace/.devcontainer` (readonly to prevent accidental edits)
+- **Config**: Base mounts + 2 configspace mounts = 8 total
+  - `/configspace` (read-write, working directory)
+  - `/configspace/workspace` (read-write, includes editable `.devcontainer`)
 
 **Customizing DevContainers** (for end users):
 
