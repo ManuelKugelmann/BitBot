@@ -241,7 +241,7 @@ create_config_mode_devcontainer() {
 {
   "name": "${workspace_name}-config",
   "build": {
-    "dockerfile": "\${env:BITBOT_HOME}/container/templates/bitbot-config/Dockerfile"
+    "dockerfile": "\${localWorkspaceFolder}/.bitbot/internal/bitbot-config/Dockerfile"
   },
   "workspaceMount": "source=\${localWorkspaceFolder},target=/workspace,type=bind",
   "workspaceFolder": "/workspace",
@@ -271,28 +271,39 @@ EOF
 # ============================================================================
 
 sync_infrastructure() {
-    # Copy container bitbot scripts to .devcontainer/bitbot/
+    # Copy container infrastructure for Codespaces compatibility
     local workspace_path="$1"
 
     print_step "Syncing container infrastructure..."
 
     local bitbot_install
     bitbot_install=$(get_bitbot_install_dir)
-    local source_dir="${bitbot_install}/container/bitbot"
-    local target_dir="${workspace_path}/.devcontainer/bitbot"
 
-    if [[ ! -d "$source_dir" ]]; then
-        print_error "Container bitbot source not found: $source_dir"
+    # Sync container bitbot scripts to .devcontainer/bitbot/
+    local bitbot_source="${bitbot_install}/container/bitbot"
+    local bitbot_target="${workspace_path}/.devcontainer/bitbot"
+
+    if [[ ! -d "$bitbot_source" ]]; then
+        print_error "Container bitbot source not found: $bitbot_source"
         return 1
     fi
 
-    # Create target directory
-    create_directory "$target_dir"
-
-    # Copy all container bitbot scripts
-    cp -r "$source_dir"/* "$target_dir/"
-
+    create_directory "$bitbot_target"
+    cp -r "$bitbot_source"/* "$bitbot_target/"
     print_success "Copied container BitBot scripts to .devcontainer/bitbot/"
+
+    # Sync bitbot-config template to .bitbot/internal/bitbot-config/
+    local config_source="${bitbot_install}/container/templates/bitbot-config"
+    local config_target="${workspace_path}/.bitbot/internal/bitbot-config"
+
+    if [[ ! -d "$config_source" ]]; then
+        print_error "Config template source not found: $config_source"
+        return 1
+    fi
+
+    create_directory "$config_target"
+    cp -r "$config_source"/* "$config_target/"
+    print_success "Copied config template to .bitbot/internal/bitbot-config/"
 
     echo ""
 }

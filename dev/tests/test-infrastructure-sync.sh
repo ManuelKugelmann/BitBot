@@ -80,23 +80,23 @@ test_section "Test 3: Sync Completeness"
 
 # Test: Check bitbot/ directory synced
 if [ -d "$BITBOT_ROOT/.bitbot/internal/container/bitbot" ]; then
-    test_pass "bitbot/ directory synced"
+    test_pass "container/bitbot/ directory synced"
 else
-    test_fail "bitbot/ directory not synced"
+    test_fail "container/bitbot/ directory not synced"
 fi
 
-# Test: Check templates/bitbot-base/home/ directory synced
-if [ -d "$BITBOT_ROOT/.bitbot/internal/container/templates/bitbot-base/home" ]; then
-    test_pass "templates/bitbot-base/home/ directory synced"
+# Test: Check bitbot-config template synced
+if [ -d "$BITBOT_ROOT/.bitbot/internal/bitbot-config" ]; then
+    test_pass "bitbot-config/ template synced"
 else
-    test_fail "templates/bitbot-base/home/ directory not synced"
+    test_fail "bitbot-config/ template not synced"
 fi
 
-# Test: Check templates/ directory synced
-if [ -d "$BITBOT_ROOT/.bitbot/internal/container/templates" ]; then
-    test_pass "templates/ directory synced"
+# Test: Verify templates NOT in .bitbot/internal/container/templates/
+if [ ! -d "$BITBOT_ROOT/.bitbot/internal/container/templates" ]; then
+    test_pass "templates/ correctly NOT in container/ subdirectory"
 else
-    test_fail "templates/ directory not synced"
+    test_fail "templates/ should not be in container/ subdirectory"
 fi
 
 # ============================================================================
@@ -112,13 +112,6 @@ else
     test_fail "container/bitbot/bitbot not synced"
 fi
 
-# Test: Check tmux config
-if [ -f "$BITBOT_ROOT/.bitbot/internal/container/templates/bitbot-base/home/.tmux.conf" ]; then
-    test_pass "templates/bitbot-base/home/.tmux.conf synced"
-else
-    test_fail "templates/bitbot-base/home/.tmux.conf not synced"
-fi
-
 # Test: Check wrapper scripts
 if [ -f "$BITBOT_ROOT/.bitbot/internal/container/bitbot/wrapper/claude-wrapper.sh" ]; then
     test_pass "wrapper/claude-wrapper.sh synced"
@@ -126,11 +119,18 @@ else
     test_fail "wrapper/claude-wrapper.sh not synced"
 fi
 
-# Test: Check base template
-if [ -f "$BITBOT_ROOT/.bitbot/internal/container/templates/bitbot-base/devcontainer.json" ]; then
-    test_pass "templates/bitbot-base/devcontainer.json synced"
+# Test: Check config template devcontainer.json
+if [ -f "$BITBOT_ROOT/.bitbot/internal/bitbot-config/devcontainer.json" ]; then
+    test_pass "bitbot-config/devcontainer.json synced"
 else
-    test_fail "templates/bitbot-base/devcontainer.json not synced"
+    test_fail "bitbot-config/devcontainer.json not synced"
+fi
+
+# Test: Check config template Dockerfile
+if [ -f "$BITBOT_ROOT/.bitbot/internal/bitbot-config/Dockerfile" ]; then
+    test_pass "bitbot-config/Dockerfile synced"
+else
+    test_fail "bitbot-config/Dockerfile not synced"
 fi
 
 # ============================================================================
@@ -173,11 +173,11 @@ else
     test_fail "bitbot/bitbot content differs from source"
 fi
 
-# Test: Compare .tmux.conf content
-if diff -q "$BITBOT_ROOT/container/templates/bitbot-base/home/.tmux.conf" "$BITBOT_ROOT/.bitbot/internal/container/templates/bitbot-base/home/.tmux.conf" > /dev/null 2>&1; then
-    test_pass ".tmux.conf content matches source"
+# Test: Compare config template devcontainer.json content
+if diff -q "$BITBOT_ROOT/container/templates/bitbot-config/devcontainer.json" "$BITBOT_ROOT/.bitbot/internal/bitbot-config/devcontainer.json" > /dev/null 2>&1; then
+    test_pass "bitbot-config/devcontainer.json content matches source"
 else
-    test_fail ".tmux.conf content differs from source"
+    test_fail "bitbot-config/devcontainer.json content differs from source"
 fi
 
 # Test: Compare wrapper script content
