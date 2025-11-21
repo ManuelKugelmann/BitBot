@@ -1,6 +1,6 @@
 {
-  "$comment": "BitBot Development template details - merged with templates/bitbot-base/devcontainer.json",
-  "$comment2": "bitbot-base/devcontainer.json + details.devcontainer.json => devcontainer.json",
+  "$comment": "BitBot Development template details - merged with templates/bitbot-base/.devcontainer/devcontainer.json",
+  "$comment2": "bitbot-base/.devcontainer/devcontainer.json + details.devcontainer.json => devcontainer.json",
   "$comment3": "Run: templates/scripts/merge-devcontainer.sh templates/bitbot-dev",
 
   "name": "BitBot Development",

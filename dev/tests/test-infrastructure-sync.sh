@@ -120,17 +120,17 @@ else
 fi
 
 # Test: Check config template devcontainer.json
-if [ -f "$BITBOT_ROOT/.bitbot/internal/bitbot-config/devcontainer.json" ]; then
-    test_pass "bitbot-config/devcontainer.json synced"
+if [ -f "$BITBOT_ROOT/.bitbot/internal/bitbot-config/.devcontainer/devcontainer.json" ]; then
+    test_pass "bitbot-config/.devcontainer/devcontainer.json synced"
 else
-    test_fail "bitbot-config/devcontainer.json not synced"
+    test_fail "bitbot-config/.devcontainer/devcontainer.json not synced"
 fi
 
 # Test: Check config template Dockerfile
-if [ -f "$BITBOT_ROOT/.bitbot/internal/bitbot-config/Dockerfile" ]; then
-    test_pass "bitbot-config/Dockerfile synced"
+if [ -f "$BITBOT_ROOT/.bitbot/internal/bitbot-config/.devcontainer/Dockerfile" ]; then
+    test_pass "bitbot-config/.devcontainer/Dockerfile synced"
 else
-    test_fail "bitbot-config/Dockerfile not synced"
+    test_fail "bitbot-config/.devcontainer/Dockerfile not synced"
 fi
 
 # ============================================================================
@@ -174,10 +174,10 @@ else
 fi
 
 # Test: Compare config template devcontainer.json content
-if diff -q "$BITBOT_ROOT/container/templates/bitbot-config/devcontainer.json" "$BITBOT_ROOT/.bitbot/internal/bitbot-config/devcontainer.json" > /dev/null 2>&1; then
-    test_pass "bitbot-config/devcontainer.json content matches source"
+if diff -q "$BITBOT_ROOT/container/templates/bitbot-config/.devcontainer/devcontainer.json" "$BITBOT_ROOT/.bitbot/internal/bitbot-config/.devcontainer/devcontainer.json" > /dev/null 2>&1; then
+    test_pass "bitbot-config/.devcontainer/devcontainer.json content matches source"
 else
-    test_fail "bitbot-config/devcontainer.json content differs from source"
+    test_fail "bitbot-config/.devcontainer/devcontainer.json content differs from source"
 fi
 
 # Test: Compare wrapper script content

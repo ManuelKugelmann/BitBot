@@ -1,7 +1,6 @@
 {
-  "name": "BitBot Development",
+  "name": "BitBot Basic Environment",
   "dockerFile": "Dockerfile",
-  "workspaceFolder": "/workspace",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts"
@@ -13,8 +12,6 @@
   },
   "remoteUser": "root",
   "mounts": [
-    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
     "source=${localWorkspaceFolder}/.bitbot/internal/container/home/.tmux.conf,target=/root/.tmux.conf,type=bind,readonly",
     "source=${localWorkspaceFolder}/.bitbot/internal/container/home/.config,target=/root/.config,type=bind,consistency=cached",
     "source=${localWorkspaceFolder}/.bitbot/internal/global/.claude,target=/root/.claude,type=bind,consistency=cached",
@@ -27,22 +24,5 @@
     "--memory=8g",
     "--memory-swap=8g",
     "--pids-limit=2048"
-  ],
-  "$comment": "BitBot Development template details - merged with templates/bitbot-base/devcontainer.json",
-  "$comment2": "bitbot-base/devcontainer.json + details.devcontainer.json => devcontainer.json",
-  "$comment3": "Run: templates/scripts/merge-devcontainer.sh templates/bitbot-dev",
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-vscode.cpptools",
-        "ms-vscode.makefile-tools"
-      ],
-      "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash",
-        "C_Cpp.default.compilerPath": "/usr/bin/x86_64-w64-mingw32-gcc",
-        "C_Cpp.default.intelliSenseMode": "gcc-x64"
-      }
-    }
-  },
-  "postCreateCommand": "echo '✓ MinGW cross-compiler installed:' && x86_64-w64-mingw32-gcc --version"
+  ]
 }

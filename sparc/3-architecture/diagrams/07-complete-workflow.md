@@ -217,7 +217,7 @@ graph TB
 - Read-only overlay for `.bitbot/internal/` (protects infrastructure)
 - Separate container from work mode
 - Uses workspace-specific devcontainer at `.bitbot/internal/.devcontainer/`
-- References global Dockerfile: `$BITBOT_HOME/container/templates/bitbot-config/Dockerfile`
+- References global Dockerfile: `$BITBOT_HOME/container/templates/bitbot-config/.devcontainer/Dockerfile`
 
 **Use Cases**:
 - Edit `.devcontainer/devcontainer.json`

@@ -8,9 +8,9 @@ set -e
 
 TEMPLATE_DIR="${1:-.}"
 TEMPLATES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-BASE_FILE="$TEMPLATES_DIR/bitbot-base/devcontainer.json"
-DETAILS_FILE="$TEMPLATE_DIR/details.devcontainer.json"
-OUTPUT_FILE="$TEMPLATE_DIR/devcontainer.json"
+BASE_FILE="$TEMPLATES_DIR/bitbot-base/.devcontainer/devcontainer.json"
+DETAILS_FILE="$TEMPLATE_DIR/.devcontainer/details.devcontainer.json"
+OUTPUT_FILE="$TEMPLATE_DIR/.devcontainer/devcontainer.json"
 
 # Check if jq is installed
 if ! command -v jq &> /dev/null; then

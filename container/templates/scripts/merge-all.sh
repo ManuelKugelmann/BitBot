@@ -27,8 +27,8 @@ for template in "${TEMPLATES[@]}"; do
         continue
     fi
 
-    if [ ! -f "$TEMPLATE_DIR/details.devcontainer.json" ]; then
-        echo "⚠ No details.devcontainer.json in $template (skipping)"
+    if [ ! -f "$TEMPLATE_DIR/.devcontainer/details.devcontainer.json" ]; then
+        echo "⚠ No .devcontainer/details.devcontainer.json in $template (skipping)"
         continue
     fi
 

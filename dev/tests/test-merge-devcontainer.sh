@@ -63,17 +63,17 @@ fi
 test_section "Test 1: Basic Merge"
 
 # Test: Verify actual base template exists
-BASE_TEMPLATE="$PROJECT_ROOT/container/templates/bitbot-base/devcontainer.json"
+BASE_TEMPLATE="$PROJECT_ROOT/container/templates/bitbot-base/.devcontainer/devcontainer.json"
 if [ -f "$BASE_TEMPLATE" ]; then
-    test_pass "Base template exists at bitbot-base/devcontainer.json"
+    test_pass "Base template exists at bitbot-base/.devcontainer/devcontainer.json"
 else
-    test_fail "Base template not found at bitbot-base/devcontainer.json"
+    test_fail "Base template not found at bitbot-base/.devcontainer/devcontainer.json"
     exit 1
 fi
 
 # Test: Create details.devcontainer.json
-mkdir -p "$TEST_DIR/template1"
-cat > "$TEST_DIR/template1/details.devcontainer.json" << 'EOF'
+mkdir -p "$TEST_DIR/template1/.devcontainer"
+cat > "$TEST_DIR/template1/.devcontainer/details.devcontainer.json" << 'EOF'
 {
   "name": "Test Template",
   "features": {
@@ -83,13 +83,13 @@ cat > "$TEST_DIR/template1/details.devcontainer.json" << 'EOF'
   }
 }
 EOF
-if [ -f "$TEST_DIR/template1/details.devcontainer.json" ]; then
+if [ -f "$TEST_DIR/template1/.devcontainer/details.devcontainer.json" ]; then
     test_pass "Created details.devcontainer.json test file"
 else
     test_fail "Failed to create test details file"
 fi
 
-# Test: Run merge (uses actual bitbot-base/devcontainer.json)
+# Test: Run merge (uses actual bitbot-base/.devcontainer/devcontainer.json)
 if bash "$MERGE_SCRIPT" "$TEST_DIR/template1" &> /dev/null; then
     test_pass "Merge script executed successfully"
 else
@@ -97,42 +97,42 @@ else
 fi
 
 # Test: Verify merged devcontainer.json exists
-if [ -f "$TEST_DIR/template1/devcontainer.json" ]; then
+if [ -f "$TEST_DIR/template1/.devcontainer/devcontainer.json" ]; then
     test_pass "Merged devcontainer.json created"
 else
     test_fail "Merged devcontainer.json not created"
 fi
 
 # Test: Verify merged devcontainer.json has name from details
-if grep -q '"name": "Test Template"' "$TEST_DIR/template1/devcontainer.json"; then
+if grep -q '"name": "Test Template"' "$TEST_DIR/template1/.devcontainer/devcontainer.json"; then
     test_pass "Name from details.json included in merge"
 else
     test_fail "Name from details not in merged file"
 fi
 
 # Test: Verify merged devcontainer.json has base features from bitbot-base
-if grep -q '"ghcr.io/devcontainers/features/node:1"' "$TEST_DIR/template1/devcontainer.json"; then
+if grep -q '"ghcr.io/devcontainers/features/node:1"' "$TEST_DIR/template1/.devcontainer/devcontainer.json"; then
     test_pass "Base features (node) included from bitbot-base template"
 else
     test_fail "Base features not in merged file"
 fi
 
 # Test: Verify merged devcontainer.json has claude-code from base
-if grep -q '"ghcr.io/anthropics/devcontainer-features/claude-code:1"' "$TEST_DIR/template1/devcontainer.json"; then
+if grep -q '"ghcr.io/anthropics/devcontainer-features/claude-code:1"' "$TEST_DIR/template1/.devcontainer/devcontainer.json"; then
     test_pass "Claude Code feature included from bitbot-base template"
 else
     test_fail "Claude Code feature not in merged file"
 fi
 
 # Test: Verify merged devcontainer.json has details features
-if grep -q '"ghcr.io/devcontainers/features/python:1"' "$TEST_DIR/template1/devcontainer.json"; then
+if grep -q '"ghcr.io/devcontainers/features/python:1"' "$TEST_DIR/template1/.devcontainer/devcontainer.json"; then
     test_pass "Details features (python) included in merge"
 else
     test_fail "Details features not in merged file"
 fi
 
 # Test: Verify merged devcontainer.json has remoteUser from base
-if grep -q '"remoteUser": "root"' "$TEST_DIR/template1/devcontainer.json"; then
+if grep -q '"remoteUser": "root"' "$TEST_DIR/template1/.devcontainer/devcontainer.json"; then
     test_pass "Base properties (remoteUser) included in merge"
 else
     test_fail "remoteUser from base not in merged file"
@@ -142,8 +142,8 @@ fi
 test_section "Test 2: Override Behavior"
 
 # Test: Create details with override
-mkdir -p "$TEST_DIR/template2"
-cat > "$TEST_DIR/template2/details.devcontainer.json" << 'EOF'
+mkdir -p "$TEST_DIR/template2/.devcontainer"
+cat > "$TEST_DIR/template2/.devcontainer/details.devcontainer.json" << 'EOF'
 {
   "name": "Override Test",
   "remoteUser": "vscode",
@@ -154,7 +154,7 @@ cat > "$TEST_DIR/template2/details.devcontainer.json" << 'EOF'
   }
 }
 EOF
-if [ -f "$TEST_DIR/template2/details.devcontainer.json" ]; then
+if [ -f "$TEST_DIR/template2/.devcontainer/details.devcontainer.json" ]; then
     test_pass "Created override test details.json"
 else
     test_fail "Failed to create override test details"
@@ -168,14 +168,14 @@ else
 fi
 
 # Test: Verify remoteUser is overridden
-if grep -q '"remoteUser": "vscode"' "$TEST_DIR/template2/devcontainer.json"; then
+if grep -q '"remoteUser": "vscode"' "$TEST_DIR/template2/.devcontainer/devcontainer.json"; then
     test_pass "Property override works (remoteUser: vscode)"
 else
     test_fail "remoteUser not overridden (should be vscode)"
 fi
 
 # Test: Verify Node version is overridden
-if grep -q '"version": "18"' "$TEST_DIR/template2/devcontainer.json"; then
+if grep -q '"version": "18"' "$TEST_DIR/template2/.devcontainer/devcontainer.json"; then
     test_pass "Feature override works (node version: 18)"
 else
     test_fail "Node version not overridden (should be 18)"
@@ -192,7 +192,7 @@ else
 fi
 
 # Test: Verify bitbot-work devcontainer.json created
-if [ -f "$PROJECT_ROOT/container/templates/bitbot-work/devcontainer.json" ]; then
+if [ -f "$PROJECT_ROOT/container/templates/bitbot-work/.devcontainer/devcontainer.json" ]; then
     test_pass "bitbot-work devcontainer.json created"
 else
     test_fail "bitbot-work devcontainer.json not created"
@@ -206,7 +206,7 @@ else
 fi
 
 # Test: Verify bitbot-config devcontainer.json created
-if [ -f "$PROJECT_ROOT/container/templates/bitbot-config/devcontainer.json" ]; then
+if [ -f "$PROJECT_ROOT/container/templates/bitbot-config/.devcontainer/devcontainer.json" ]; then
     test_pass "bitbot-config devcontainer.json created"
 else
     test_fail "bitbot-config devcontainer.json not created"
@@ -220,7 +220,7 @@ else
 fi
 
 # Test: Verify bitbot-dev devcontainer.json created
-if [ -f "$PROJECT_ROOT/container/templates/bitbot-dev/devcontainer.json" ]; then
+if [ -f "$PROJECT_ROOT/container/templates/bitbot-dev/.devcontainer/devcontainer.json" ]; then
     test_pass "bitbot-dev devcontainer.json created"
 else
     test_fail "bitbot-dev devcontainer.json not created"
