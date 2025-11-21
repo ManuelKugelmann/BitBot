@@ -175,7 +175,7 @@ create_workspace_structure() {
     create_config_mode_devcontainer "$workspace_path"
 
     # Verify config devcontainer was created
-    if [[ ! -f "${workspace_path}/.bitbot/internal/.devcontainer/devcontainer.json" ]]; then
+    if [[ ! -f "${workspace_path}/.bitbot/internal/bitbot-config/.devcontainer/devcontainer.json" ]]; then
         print_error "Failed to create config devcontainer.json"
         return 1
     fi
@@ -226,7 +226,7 @@ create_config_mode_devcontainer() {
 
     local bitbot_install
     bitbot_install=$(get_bitbot_install_dir)
-    local config_dir="${workspace_path}/.bitbot/internal/.devcontainer"
+    local config_dir="${workspace_path}/.bitbot/internal/bitbot-config/.devcontainer"
     local config_devcontainer="${config_dir}/devcontainer.json"
 
     # Create .devcontainer directory

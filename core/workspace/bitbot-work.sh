@@ -21,6 +21,9 @@ bitbot_work() {
         return 1
     fi
 
+    # Sync infrastructure before launching
+    sync_workspace_infrastructure "$workspace_path"
+
     # Git warning (non-blocking)
     if check_git_uncommitted "$workspace_path"; then
         print_warning "Uncommitted changes detected"

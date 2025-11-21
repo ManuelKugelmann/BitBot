@@ -906,3 +906,37 @@ append_to_file() {
     local content="$2"
     echo "$content" >> "$file"
 }
+# ============================================================================
+# Infrastructure Sync
+# ============================================================================
+
+sync_workspace_infrastructure() {
+    # Sync infrastructure from BitBot installation to workspace
+    # Usage: sync_workspace_infrastructure <workspace_path>
+    # 
+    # Syncs:
+    # - Container BitBot scripts to .devcontainer/bitbot/
+    # - Config template to .bitbot/internal/bitbot-config/
+    #
+    # Called before launching any workspace command (work, config, etc.)
+    local workspace_path="$1"
+
+    local bitbot_install
+    bitbot_install=$(get_bitbot_install_dir)
+
+    # Sync container bitbot scripts
+    local bitbot_source="${bitbot_install}/container/bitbot"
+    local bitbot_target="${workspace_path}/.devcontainer/bitbot"
+
+    if [[ -d "$bitbot_source" ]] && [[ -d "$bitbot_target" ]]; then
+        rsync -a --delete "$bitbot_source/" "$bitbot_target/" > /dev/null 2>&1 || true
+    fi
+
+    # Sync bitbot-config template
+    local config_source="${bitbot_install}/container/templates/bitbot-config"
+    local config_target="${workspace_path}/.bitbot/internal/bitbot-config"
+
+    if [[ -d "$config_source" ]] && [[ -d "$config_target" ]]; then
+        rsync -a --delete "$config_source/" "$config_target/" > /dev/null 2>&1 || true
+    fi
+}
