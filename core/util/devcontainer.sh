@@ -74,19 +74,28 @@ run_devcontainer_cmd() {
         local win_path
         win_path=$(convert_wsl_to_windows_path "$workspace_path")
 
-        # Build command arguments string for shell execution
+        # Build command arguments string for CMD/PowerShell execution
+        # CMD.exe doesn't like unnecessarily quoted arguments (e.g., "build" fails but build works)
+        # Only quote arguments that contain spaces or special characters
         local args=""
         for arg in "$@"; do
-            # Escape quotes and spaces for shell
-            arg="${arg//\"/\\\"}"
-            args="$args \"$arg\""
+            if [[ "$arg" == *" "* || "$arg" == *"&"* || "$arg" == *"<"* || "$arg" == *">"* || "$arg" == *"|"* ]]; then
+                # Needs quoting - escape any existing quotes and wrap
+                arg="${arg//\"/\\\"}"
+                arg="\"$arg\""
+            fi
+            # Append with space separator (trim leading space at end)
+            args="${args:+$args }$arg"
         done
 
         if [[ "$workspace_path" == /mnt/* ]]; then
             # Method 3: cmd.exe wrapper for Windows mounts
             # Use cd trick to avoid UNC path limitations
-            echo "[DEBUG] Executing (WSL Method 3): cd /d \"$win_path\" && devcontainer.cmd --workspace-folder . $args" >&2
-            cmd.exe /c "cd /d \"$win_path\" && devcontainer.cmd --workspace-folder . $args"
+            # IMPORTANT: Convert backslashes to forward slashes to avoid bash escape issues
+            # CMD.exe accepts forward slashes in paths and handles spaces without quotes in cd /d
+            local win_path_fwd="${win_path//\\//}"
+            echo "[DEBUG] Executing (WSL Method 3): cd /d $win_path_fwd && devcontainer.cmd --workspace-folder . $args" >&2
+            cmd.exe /c "cd /d $win_path_fwd && devcontainer.cmd --workspace-folder . $args"
         else
             # Method 4: PowerShell wrapper for WSL native paths
             echo "[DEBUG] Executing (WSL Method 4): devcontainer.cmd --workspace-folder '$win_path' $args" >&2
